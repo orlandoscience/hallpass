@@ -445,6 +445,11 @@
   .col-ambient .slot.out{ background: rgba(37,99,235,.6); border-color: #93c5fd; }
   .col-ambient .slot.out.overdue{ background: rgba(220,38,38,.7); border-color: #fecaca; animation: pulse 1.3s infinite; }
   @keyframes pulse{ 0%,100%{ box-shadow: 0 0 0 0 rgba(254,202,202,.65); } 50%{ box-shadow: 0 0 0 9px rgba(254,202,202,0); } }
+  .pass-slots.many{ grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; max-height: 30vh; overflow-y: auto; }
+  .pass-slots.many .slot{ min-height: 46px; padding: 4px; }
+  .pass-slots.many .slot-hint{ display: none; }
+  .hpchips.letters{ gap: .3vw; }
+  .hpchips.letters button{ padding: .3em .7em; font-size: clamp(14px, min(1.5vw, 2.8vh), 32px); }
   .slot-num{ font-size: 1.05rem; font-weight: 800; }
   @media (max-height: 800px){ .slot-hint{ display: none; } .col-ambient .slot{ min-height: 54px; } .col-ambient .ding-btn{ padding: 8px; } }
   .slot-hint{ font-size: .74rem; opacity: .92; }
@@ -770,7 +775,7 @@
 
 </div>
 
-<button type="button" id="gearBtn" class="gear-btn" aria-label="Settings">⚙️</button>
+<button type="button" id="gearBtn" class="gear-btn" aria-label="Settings (double-tap)" title="Double-tap for settings">⚙️</button>
 
 <div id="pinScrim" class="pin-scrim hidden"></div>
 <div id="pinPopup" class="pin-popup hidden">
@@ -807,13 +812,14 @@
 <div id="welcome" class="modal-backdrop hidden" style="z-index:130;">
   <div class="welcome-card">
     <h1>Welcome 👋</h1>
-    <p class="welcome-lead">Three quick choices and your board is ready. You can change everything later in ⚙.</p>
+    <p class="welcome-lead">Three quick choices and your board is ready. You can change everything later: double-tap ⚙.</p>
     <h3>1. Your schedule</h3>
     <div class="btn-row" id="welBands"></div>
     <h3>2. Pass window (10/10 rule)</h3>
     <div class="field-row"><span>Passes closed in the first (min)</span><input type="number" id="welClosedStart" class="num-input" min="0" max="60"></div>
     <div class="field-row"><span>Passes closed in the last (min)</span><input type="number" id="welClosedEnd" class="num-input" min="0" max="60"></div>
     <h3>3. A PIN for the settings</h3>
+    <div class="toggle-row"><span>No PIN: open the settings with a double tap</span><label class="switch"><input type="checkbox" id="welNoPin"><span class="slider"></span></label></div>
     <div class="field-row"><span>PIN (4&ndash;8 digits)</span><input type="password" id="welPin" class="num-input" style="width:130px;" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
     <div class="welcome-err" id="welErr"></div>
     <div class="btn-row" style="justify-content:flex-end; margin-top:12px;"><button type="button" id="welStart" class="welcome-go">Start</button></div>
@@ -828,7 +834,7 @@
         <li><b>Open the page on the board.</b> Double-tap an empty spot to go full screen.</li>
         <li><b>Pick your schedule</b> at the top right (9th&ndash;12th or 10th&ndash;11th grade). The page knows the A/B days and the bell times by itself.</li>
         <li><b>The big timer is the 10/10 rule.</b> Green = hall passes are open, red = closed (the first and the last minutes of class), blue = break. The bar shows where you are in the class.</li>
-        <li><b>The ⚙ button</b> (bottom right) opens the settings with your PIN. Change the 10/10 minutes there, or turn on extras: hall pass buttons and log, sounds, rotating cards, weather.</li>
+        <li><b>The ⚙ button</b> (bottom right): double-tap it to open the settings (with your PIN, if you use one). Change the 10/10 minutes there, or turn on extras: hall pass buttons and log, sounds, rotating cards, weather.</li>
         <li><b>Lost?</b> ⚙ &rarr; Quick setup &rarr; <b>Basic</b> brings back the simple screen.</li>
       </ol>
       <div class="override-note">Everything is saved on this device only. Nothing is sent anywhere unless you connect a Google Sheet for the hall pass log.</div>
@@ -875,6 +881,14 @@
         <input type="number" id="passClosedEnd" class="num-input" min="0" max="60">
       </div>
       <div class="override-note">The big timer on the board shows when passes are open or closed. Set both to 0 to switch the rule off.</div>
+    </div>
+
+    <div class="section">
+      <h2>School bell drift</h2>
+      <div class="field-row"><span>The bell drifts by (seconds per day, + means it rings earlier)</span><input type="number" id="bellPerDay" class="num-input" step="0.1" min="-10" max="10"></div>
+      <div class="btn-row" style="margin-top:8px;"><button type="button" id="bellRememberBtn">Remember the current shift</button><button type="button" id="bellResetBtn">The bell was just reset</button></div>
+      <div class="perm-note" id="bellStatus"></div>
+      <div class="override-note">Line the board up with the bell using the &minus;1 / +1 buttons on the main screen, then press "Remember". From then on the board adds the drift by itself every day, so nobody has to nudge it again. After the school puts its bell right, press "The bell was just reset".</div>
     </div>
 
     <div class="section">
@@ -1075,16 +1089,18 @@
       <h2>Hall pass</h2>
       <div class="field-row">
         <span>Number of pass buttons</span>
-        <input type="number" id="passSlotsInput" class="num-input" min="1" max="12">
+        <input type="number" id="passSlotsInput" class="num-input" min="1">
       </div>
+      <div class="toggle-row"><span>Allow passes in the closed 10/10 minutes (asks to confirm, marked in the log)</span><label class="switch"><input type="checkbox" id="passAllowOutside"><span class="slider"></span></label></div>
       <div class="field-row">
-        <span>Turns red after (min out)</span>
-        <input type="number" id="passMaxMin" class="num-input" min="1" max="60">
+        <span>Limit (min) for a type without its own number</span>
+        <input type="number" id="passMaxMin" class="num-input" min="1" max="600">
       </div>
       <div class="field-row" style="align-items:flex-start;">
-        <span>Reasons (one per line)</span>
-        <textarea id="passReasonsInput" class="area-input" rows="5"></textarea>
+        <span>Where to, with the limit (one per line)</span>
+        <textarea id="passReasonsInput" class="area-input" rows="6"></textarea>
       </div>
+      <div class="override-note">Write a type, then <b>|</b> and its minutes, for example <b>🚻 Restroom | 8</b>. A pass turns red on the board after its limit. Limits stay on this board and are not sent anywhere.</div>
     </div>
 
     <div class="section" data-needs="hallPass">
@@ -1100,6 +1116,8 @@
         <button id="sheetTestBtn">Send test row</button>
         <button id="sheetFlushBtn">Send pending now</button>
       </div>
+      <div class="toggle-row"><span>Test mode: rows sent to the log are marked TEST</span><label class="switch"><input type="checkbox" id="passTestMode"><span class="slider"></span></label></div>
+      <div class="perm-note">Board ID in the log: <b id="boardIdText"></b></div>
       <div class="perm-note" id="rosterStatus"></div>
       <div class="perm-note" id="sheetPending"></div>
       <div class="perm-note" id="sheetStatus"></div>
@@ -1120,6 +1138,7 @@
 
     <div class="section">
       <h2>Security</h2>
+      <div class="toggle-row"><span>Ask for a PIN to open the settings</span><label class="switch"><input type="checkbox" id="pinEnabledSwitch"><span class="slider"></span></label></div>
       <div class="field-row">
         <span>New PIN (4&ndash;8 digits)</span>
         <input type="password" id="newPinInput" class="num-input" style="width:120px;" inputmode="numeric" maxlength="8" autocomplete="off">
@@ -1127,7 +1146,7 @@
       <div class="btn-row" style="margin-top:8px;">
         <button id="savePinBtn">Save PIN</button>
       </div>
-      <div class="perm-note" id="pinSaveMsg">This PIN opens the settings. Choose one that only you know.</div>
+      <div class="perm-note" id="pinSaveMsg">Open the settings by double-tapping the gear. With the PIN off, a double tap opens them straight away. The PIN also cancels a hall pass after the first 30 seconds.</div>
     </div>
 
     <div class="footer-note">
@@ -1147,10 +1166,12 @@
   <div class="hppanel">
     <div class="hd">
       <h2 id="hpTitle">Tap your name</h2>
+      <button type="button" class="x" id="hpGuest">Someone else</button>
       <button type="button" class="x" id="hpCancel">Cancel</button>
     </div>
     <div class="hpwarn" id="hpWarn" hidden></div>
     <div class="hpchips" id="hpChips"></div>
+    <div class="hpchips letters" id="hpLetters" hidden></div>
     <div class="hpgrid" id="hpGrid"></div>
     <div class="hpfoot" id="hpFoot" hidden>
       <button type="button" class="x" id="hpNotMe">Not me</button>
@@ -1266,6 +1287,7 @@ function getDefaultSettings(){
     activeBand: "1011",
     localTimeServerUrl: "",
     manualOffsetSec: 0, // manual fine-tune vs the school's own bell server, in seconds (0.1 steps)
+    bell: { refMs: Date.now(), refSec: 0, perDaySec: 0.6 },   // the school bell runs ahead of true time and keeps drifting: shift = refSec + perDaySec x days since refMs
     countdownFormat: "hms", // "hms" = HH:MM:SS, "ms" = MM:SS (for Time Left / Time Passed displays)
     setupDone: false,            // the welcome screen has been completed on this device
     extras: {                    // everything beyond the basic screen is opt-in
@@ -1277,14 +1299,19 @@ function getDefaultSettings(){
       messagesList: [],         // announcements loaded from the sheet: { text, from, to }
       wxCache: null             // last weather answer, so it still shows without internet
     },
+    boardId: "board-" + Math.random().toString(16).slice(2, 7),   // tells boards apart in a shared log
+    pinEnabled: true,          // false = the gear opens the settings with no code (a double tap is still needed)
     pin: "1234", // settings PIN (a classroom deterrent, stored on this device only)
     pass: {
       slots: 4,                 // number of hall-pass buttons
       useWindow: true,          // "passes closed" windows at the start/end of each class period
       closedStartMin: 10,
       closedEndMin: 10,
-      maxMinutes: 8,            // slot turns red after this many minutes out
-      reasons: ["🚻 Restroom", "💧 Water", "🏥 Nurse", "🏢 Office", "Other"],
+      allowOutside: false,      // a teacher may let a student out in the closed minutes (asks to confirm; the log notes it)
+      maxMinutes: 8,            // limit for a type that has no number of its own
+      reasons: ["🚻 Restroom", "🔒 Locker", "💧 Water", "🏢 Office", "🏥 Nurse", "Other"],
+      limits: { "🚻 Restroom": 8, "🔒 Locker": 3, "💧 Water": 3, "🏢 Office": 8, "🏥 Nurse": 8, "Other": 8 },   // minutes, per type; a slot turns red after it
+      testMode: false,          // rows sent to the log are marked TEST instead of LIVE
       rosterSections: {},       // { "A1": ["Full Name", ...], ... } loaded from the sheet
       sheetUrl: "",             // Google Apps Script web app URL
       sheetKey: "",             // optional secret key (same word as SECRET in the script)
@@ -1313,6 +1340,7 @@ async function loadSettingsFromIDB(){
       notify: { ...defaults.notify, ...(saved.notify || {}) },
       pass: { ...defaults.pass, ...(saved.pass || {}) },
       stage: { ...defaults.stage, ...(older ? { phases: true, weather: true, alerts: true } : {}), ...(saved.stage || {}) },
+      bell: { ...defaults.bell, ...(saved.bell || {}) },
       extras: older ? { hallPass: true, ding: true, sounds: true, cards: true } : { ...defaults.extras, ...saved.extras },
       setupDone: older ? true : !!saved.setupDone,
       overrides: { ...(saved.overrides && typeof saved.overrides === "object" ? saved.overrides : {}) }
@@ -1333,9 +1361,16 @@ let soundLibrary = []; // [{ id, name, dataUrl }] — populated async from Index
 /* ================= Date / time helpers ================= */
 let timeOffsetMs = 0; // added to Date.now() to correct for device clock drift
 
+function bellAutoSec(ms){                       // how far the school bell has drifted by now (the part nobody has to nudge by hand)
+  const b = settings.bell || {};
+  const ref = Number(b.refMs) || ms;
+  const days = Math.max(0, (ms - ref) / 86400000);
+  return (Number(b.refSec) || 0) + (Number(b.perDaySec) || 0) * days;
+}
 function appNow(){
   if(DEMO.on) return new Date(DEMO.baseSim + (Date.now() - DEMO.baseReal) * DEMO.speed);
-  return new Date(Date.now() + timeOffsetMs + Math.round((settings.manualOffsetSec || 0) * 1000));
+  const t = Date.now();
+  return new Date(t + timeOffsetMs + Math.round(((settings.manualOffsetSec || 0) + bellAutoSec(t)) * 1000));
 }
 
 function toISO(d){
@@ -1921,6 +1956,25 @@ function clampInt(v, lo, hi, dflt){
   v = parseInt(v, 10);
   if(!Number.isFinite(v)) return dflt;
   return Math.max(lo, Math.min(hi, v));
+}
+function limitSec(reason){                        // how long this kind of trip may last before the slot turns red
+  const m = Number((settings.pass.limits || {})[reason]);
+  return (m > 0 ? m : settings.pass.maxMinutes) * 60;
+}
+function reasonLinesText(){
+  const p = settings.pass;
+  return (p.reasons || []).map(r => (p.limits && p.limits[r] > 0) ? r + " | " + p.limits[r] : r).join("\n");
+}
+function parseReasonLines(text){                  // "Restroom | 8" -> label + its limit
+  const reasons = [], limits = {};
+  String(text || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(line => {
+    const m = /^(.*?)\s*\|\s*(\d+(?:\.\d+)?)\s*$/.exec(line);
+    const label = (m ? m[1] : line).trim();
+    if(!label) return;
+    reasons.push(label);
+    if(m && Number(m[2]) > 0) limits[label] = Number(m[2]);
+  });
+  return { reasons, limits };
 }
 function linesOf(text){ return String(text || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean); }
 function fmtMS(sec){
@@ -2559,6 +2613,11 @@ function getPassStatus(now){
   if(nowSec < closeAt) return { state: "open", label: "Open", time: fmtMS(closeAt - nowSec), sub: "closes in" };
   return { state: "closed", label: "Closed", time: fmtMS(endS - nowSec), sub: "class ends in" };
 }
+function closedWindowNow(){                      // the 10/10 minutes: the status object while passes are closed, else null
+  const ps = getPassStatus(appNow());
+  return ps.state === "closed" ? ps : null;
+}
+const UNDO_SEC = 30;                             // a pass can be undone without the PIN for this long
 function renderPassCard(now){
   const st = getPassStatus(now);
   $("passCard").className = "pass-card state-" + st.state;
@@ -2567,8 +2626,7 @@ function renderPassCard(now){
   $("pcTime").textContent = st.time;
   const active = settings.pass.active || [];
   const out = active.filter(Boolean);
-  const maxS = settings.pass.maxMinutes * 60;
-  const late = out.some(s => (now.getTime() - s.outMs) / 1000 > maxS);
+  const late = out.some(s => (now.getTime() - s.outMs) / 1000 > limitSec(s.reason));
   const el = $("pcOut");
   el.textContent = "Out now: " + out.length + " / " + settings.pass.slots;
   el.className = "pc-out" + (late ? " warn" : "");
@@ -2577,7 +2635,7 @@ function renderPassCard(now){
 /* ---------- Pass buttons ---------- */
 let passDialogSlot = null;
 function ensureSlots(){
-  let n = clampInt(settings.pass.slots, 1, 12, 4);
+  let n = clampInt(settings.pass.slots, 1, 200, 4);
   const a = Array.isArray(settings.pass.active) ? settings.pass.active : [];
   let last = -1;
   a.forEach((s, i) => { if(s) last = i; });
@@ -2591,6 +2649,7 @@ function renderHallPass(){
   ensureSlots();
   const wrap = $("passSlots");
   wrap.innerHTML = "";
+  wrap.classList.toggle("many", settings.pass.active.length > 8);
   settings.pass.active.forEach((st, i) => {
     const b = document.createElement("button");
     b.type = "button";
@@ -2610,18 +2669,19 @@ function renderHallPass(){
   renderPassCard(appNow());
 }
 function updatePassTimers(now){
-  const maxS = settings.pass.maxMinutes * 60;
   (settings.pass.active || []).forEach((st, i) => {
     if(!st) return;
     const sec = Math.max(0, (now.getTime() - st.outMs) / 1000);
     const el = $("slotTimer" + i);
     if(el){
       el.textContent = fmtMS(sec);
-      el.parentElement.classList.toggle("overdue", sec > maxS);
+      el.parentElement.classList.toggle("overdue", sec > limitSec(st.reason));
     }
     if(passDialogSlot === i){
       const dt = $("passDlgTimer");
       if(dt) dt.textContent = fmtMS(sec);
+      const ub = $("passUndoBtn"), vb = $("passVoidBtn");
+      if(ub && vb){ const ok = sec <= UNDO_SEC; ub.hidden = !ok; vb.hidden = ok; }      // undo for 30 s, then the PIN
     }
   });
 }
@@ -2631,41 +2691,64 @@ function closePassDialog(){
   passDialogSlot = null;
   $("passDialogBackdrop").classList.add("hidden");
 }
-function openPassDialog(i){
+function openPassDialog(i, typed){
   passDialogSlot = i;
   const st = settings.pass.active[i];
   const dlg = $("passDialog");
-  if(!st && rosterCount() > 0){ passDialogSlot = null; hpOpen(i); return; }
+  if(!st && rosterCount() > 0 && !typed){ passDialogSlot = null; hpOpen(i); return; }
   if(!st){
     const ps = getPassStatus(appNow());
-    const warn = ps.state === "closed"
-      ? '<div class="dlg-warn">Passes are closed right now: ' + esc(ps.sub) + ' ' + esc(ps.time) + '</div>' : "";
-    const reasons = (settings.pass.reasons.length ? settings.pass.reasons : ["Other"]).map((r, idx) =>
-      '<button type="button" class="chip' + (idx === 0 ? ' sel' : '') + '" data-reason="' + esc(r) + '">' + esc(r) + '</button>').join("");
-    dlg.innerHTML = '<h3>Pass ' + (i + 1) + ': sign out</h3>' + warn +
-      '<label class="dlg-label" for="passNameInput">Student</label>' +
-      '<input type="text" id="passNameInput" autocomplete="off" placeholder="Name">' +
-      '<span class="dlg-label">Reason</span><div class="chips" id="passReasonChips">' + reasons + '</div>' +
-      '<div class="dlg-actions"><button type="button" id="passCancelBtn" class="clear">Cancel</button>' +
-      '<button type="button" id="passConfirmBtn" class="grant">Sign out</button></div>';
-    dlg.querySelectorAll(".chip").forEach(ch => ch.addEventListener("click", () => {
-      dlg.querySelectorAll(".chip").forEach(c => c.classList.remove("sel"));
-      ch.classList.add("sel");
-    }));
-    $("passCancelBtn").addEventListener("click", closePassDialog);
-    $("passConfirmBtn").addEventListener("click", () => signOutSlot(i));
+    const closed = ps.state === "closed";
+    if(closed && !settings.pass.allowOutside){
+      dlg.innerHTML = '<h3>Passes are closed</h3><div class="dlg-warn">' + esc(ps.sub) + ' ' + esc(ps.time) + '</div>' +
+        '<div class="dlg-actions"><button type="button" id="passCancelBtn" class="grant">OK</button></div>';
+      $("passCancelBtn").addEventListener("click", closePassDialog);
+    } else {
+      const warn = closed ? '<div class="dlg-warn" id="passWarn">Passes are closed right now: ' + esc(ps.sub) + ' ' + esc(ps.time) + '</div>' : "";
+      const reasons = (settings.pass.reasons.length ? settings.pass.reasons : ["Other"]).map((r, idx) =>
+        '<button type="button" class="chip' + (idx === 0 ? ' sel' : '') + '" data-reason="' + esc(r) + '">' + esc(r) + '</button>').join("");
+      dlg.innerHTML = '<h3>Pass ' + (i + 1) + ': sign out</h3>' + warn +
+        '<label class="dlg-label" for="passNameInput">Student</label>' +
+        '<input type="text" id="passNameInput" autocomplete="off" placeholder="Name">' +
+        '<span class="dlg-label">Reason</span><div class="chips" id="passReasonChips">' + reasons + '</div>' +
+        '<div class="dlg-actions"><button type="button" id="passCancelBtn" class="clear">Cancel</button>' +
+        '<button type="button" id="passConfirmBtn" class="grant">Sign out</button></div>';
+      dlg.querySelectorAll(".chip").forEach(ch => ch.addEventListener("click", () => {
+        dlg.querySelectorAll(".chip").forEach(c => c.classList.remove("sel"));
+        ch.classList.add("sel");
+      }));
+      $("passCancelBtn").addEventListener("click", closePassDialog);
+      let asked = false;
+      $("passConfirmBtn").addEventListener("click", () => {
+        if(closedWindowNow() && !asked){            // outside the 10/10 window: one confirmation, then it looks like any other pass
+          asked = true;
+          const text = "Outside the 10/10 window. Continue?";
+          if($("passWarn")) $("passWarn").textContent = text;
+          else dlg.querySelector("h3").insertAdjacentHTML("afterend", '<div class="dlg-warn" id="passWarn">' + text + '</div>');
+          $("passConfirmBtn").textContent = "Yes, sign out";
+          return;
+        }
+        signOutSlot(i);
+      });
+    }
   } else {
     dlg.innerHTML = '<h3>Pass ' + (i + 1) + '</h3>' +
       '<div class="dlg-line"><b>' + esc(shortName(st.name || "Student")) + '</b> &mdash; ' + esc(st.reason || "") + '</div>' +
       '<div class="dlg-line">Left at ' + esc(hms24(new Date(st.outMs))) + ' during ' + esc(st.period || "") + '</div>' +
       '<div class="dlg-big" id="passDlgTimer">00:00</div>' +
-      '<div class="dlg-actions"><button type="button" id="passVoidBtn" class="clear">Cancel pass (PIN)</button>' +
+      '<div class="dlg-actions"><button type="button" id="passUndoBtn" class="clear">Undo (mistake)</button>' +
+      '<button type="button" id="passVoidBtn" class="clear" hidden>Cancel pass (PIN)</button>' +
       '<button type="button" id="passCloseBtn" class="clear">Close</button>' +
       '<button type="button" id="passReturnBtn" class="grant">Returned</button></div>';
     $("passVoidBtn").addEventListener("click", () => {
       const atMs = appNow().getTime();      // the arrival time is fixed at this tap, not when the pad closes
       closePassDialog();
       startCancelWithPin(i, atMs);
+    });
+    $("passUndoBtn").addEventListener("click", () => {       // a slip of the finger: undo within 30 seconds, no PIN; it stays in the log as Cancelled
+      const nowMs = appNow().getTime();
+      if((nowMs - st.outMs) / 1000 > UNDO_SEC){ closePassDialog(); startCancelWithPin(i, nowMs); return; }
+      cancelPass(i, nowMs);
     });
     $("passCloseBtn").addEventListener("click", closePassDialog);
     $("passReturnBtn").addEventListener("click", () => completePass(i));
@@ -2686,11 +2769,14 @@ function currentPeriodLabel(now){
 function signOutSlot(i){
   const dlg = $("passDialog");
   const now = appNow();
+  const closed = !!closedWindowNow();
+  if(closed && !settings.pass.allowOutside){ closePassDialog(); return; }
   const sel = dlg.querySelector(".chip.sel");
   const cp = currentPeriodLabel(now);
   settings.pass.active[i] = {
     name: ($("passNameInput").value || "").trim(),
-    section: "",
+    section: rosterCount() > 0 ? "Guest" : "",
+    outside: closed,
     reason: sel ? sel.getAttribute("data-reason") : "Other",
     outMs: now.getTime(),
     period: cp.label,
@@ -2701,27 +2787,33 @@ function signOutSlot(i){
   renderHallPass();
   closePassDialog();
 }
-function completePass(i, atMs){
+function makeEntry(i, atMs, status){             // status: "Returned" or "Cancelled"
   const st = settings.pass.active[i];
-  if(!st) return;
   const now = atMs ? new Date(atMs) : appNow();
+  const cancelled = status === "Cancelled";
   const durSec = Math.max(0, (now.getTime() - st.outMs) / 1000);
   const outD = new Date(st.outMs);
-  const entry = {
+  return {
     id: st.outMs + "-" + (i + 1),
     date: toISO(outD),
     student: st.name || "",
     reason: st.reason || "",
     slot: i + 1,
     section: st.section || "",
+    outsideWindow: !!st.outside,
+    mode: settings.pass.testMode ? "TEST" : "LIVE",
+    board: settings.boardId || "",
     timeOut: hms24(outD),
-    timeIn: hms24(now),
-    durationMin: Math.round(durSec / 6) / 10,
-    durationSec: Math.round(durSec),
+    timeIn: hms24(now),                          // for a cancelled pass: the moment Cancel / Undo was tapped
+    durationMin: cancelled ? "" : Math.round(durSec / 6) / 10,
+    durationSec: cancelled ? "" : Math.round(durSec),
     period: st.period || "",
     grades: st.band || "",
-    dayType: st.dayType || ""
+    dayType: st.dayType || "",
+    status
   };
+}
+function finishPass(i, entry){
   settings.pass.active[i] = null;
   if(!DEMO.on){                                  // a demo trip is never logged or sent
     settings.pass.recent.unshift(entry);
@@ -2734,6 +2826,14 @@ function completePass(i, atMs){
   closePassDialog();
   renderPassLogUI();
   flushLogQueue();
+}
+function completePass(i, atMs){
+  if(!settings.pass.active[i]) return;
+  finishPass(i, makeEntry(i, atMs, "Returned"));
+}
+function cancelPass(i, atMs){                    // Undo, or a cancel with the right PIN / confirmation: stays in the log as "Cancelled"
+  if(!settings.pass.active[i]) return;
+  finishPass(i, makeEntry(i, atMs || appNow().getTime(), "Cancelled"));
 }
 
 /* ---------- Name picker (panel on the left; grid of names sized to fit without scrolling) ---------- */
@@ -2756,7 +2856,7 @@ function hpOpen(slot){
   const now = appNow();
   const secs = Object.keys(settings.pass.rosterSections);
   const code = currentSectionCode(now);
-  hpPick = { slot, ctxCode: code, name: null, reason: null,
+  hpPick = { slot, ctxCode: code, name: null, reason: null, letter: null, confirming: false,
              section: settings.pass.rosterSections[code] ? code : (secs.length === 1 ? secs[0] : null) };
   const ps = getPassStatus(now), warn = $("hpWarn");
   warn.hidden = ps.state !== "closed";
@@ -2807,8 +2907,22 @@ function hpSizePanel(count){
   panel.style.width = Math.min(window.innerWidth * 0.62, cols * colW + (cols - 1) * gap + pad) + "px";
 }
 function hpShowNames(){
+  hpPick.confirming = false;
+  $("hpNotMe").textContent = "Not me"; $("hpGo").textContent = "Leave class";
   $("hpTitle").textContent = "Pass #" + (hpPick.slot + 1) + " · tap your name";
   $("hpFoot").hidden = true;
+  $("hpGuest").hidden = false;
+  const ps = getPassStatus(appNow());
+  if(ps.state === "closed" && !settings.pass.allowOutside){     // the 10/10 minutes and this board does not allow exceptions
+    $("hpTitle").textContent = "Passes are closed";
+    $("hpGuest").hidden = true;
+    $("hpChips").hidden = true; $("hpLetters").hidden = true;
+    document.querySelector(".hppanel").style.width = "";
+    const g = $("hpGrid");
+    g.innerHTML = '<div class="msg">Passes are closed right now.<br>' + esc(ps.sub) + ' ' + esc(ps.time) + '</div>';
+    g.style.gridTemplateColumns = g.style.gridTemplateRows = "";
+    return;
+  }
   const sections = Object.keys(settings.pass.rosterSections).sort();
   const showChips = !settings.pass.rosterSections[hpPick.ctxCode] && sections.length > 1;   // only when this period has no list of its own
   $("hpChips").hidden = !showChips;
@@ -2818,19 +2932,49 @@ function hpShowNames(){
   const grid = $("hpGrid");
   const outNow = new Set((settings.pass.active || []).filter(Boolean).map(a => a.name));
   const names = (settings.pass.rosterSections[hpPick.section] || []).filter(n => !outNow.has(n));
+  // a long list (study hall): first tap the first letter of the name, then the name
+  const lettersOf = n => String(n).trim().charAt(0).toUpperCase();
+  const letters = names.length > 30 ? Array.from(new Set(names.map(lettersOf))).sort() : [];
+  $("hpLetters").hidden = letters.length === 0;
+  let shown = names, needLetter = false;
+  if(letters.length){
+    if(hpPick.letter && letters.indexOf(hpPick.letter) < 0) hpPick.letter = null;
+    $("hpLetters").innerHTML = letters.map(l => '<button type="button" data-letter="' + esc(l) + '" class="' + (l === hpPick.letter ? "on" : "") + '">' + esc(l) + '</button>').join("");
+    if(hpPick.letter) shown = names.filter(n => lettersOf(n) === hpPick.letter); else needLetter = true;
+  }
   if(!hpPick.section){
     grid.innerHTML = '<div class="msg">There is no list for ' + esc(hpPick.ctxCode || "this period") + ' yet.<br>Tap your class above.</div>';
     grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
   } else if(!names.length){
     grid.innerHTML = '<div class="msg">No names left for ' + esc(hpPick.section) + '.</div>';
     grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
+  } else if(needLetter){
+    grid.innerHTML = '<div class="msg">Tap the first letter of your name.</div>';
+    grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
+    document.querySelector(".hppanel").style.width = "";
   } else {
-    grid.innerHTML = names.map(n => '<button type="button" data-name="' + esc(n) + '">' + esc(shortName(n)) + '</button>').join("");
-    hpSizePanel(names.length);
-    hpFitGrid(names.length, 4.5);
+    grid.innerHTML = shown.map(n => '<button type="button" data-name="' + esc(n) + '">' + esc(shortName(n)) + '</button>').join("");
+    hpSizePanel(shown.length);
+    hpFitGrid(shown.length, 4.5);
   }
 }
+function hpShowConfirm(){                         // passes are closed but this teacher allows it: one confirmation
+  hpPick.confirming = true;
+  $("hpGuest").hidden = true;
+  $("hpTitle").textContent = "Outside the 10/10 window";
+  $("hpChips").hidden = true; $("hpLetters").hidden = true;
+  document.querySelector(".hppanel").style.width = "";
+  const g = $("hpGrid");
+  g.innerHTML = '<div class="msg">Passes are closed right now.<br>Continue?</div>';
+  g.style.gridTemplateColumns = g.style.gridTemplateRows = "";
+  $("hpFoot").hidden = false;
+  $("hpNotMe").textContent = "Back"; $("hpGo").textContent = "Yes, continue"; $("hpGo").disabled = false;
+}
 function hpShowReason(){
+  hpPick.confirming = false;
+  $("hpGuest").hidden = true;
+  $("hpNotMe").textContent = "Not me"; $("hpGo").textContent = "Leave class";
+  $("hpLetters").hidden = true;
   document.querySelector(".hppanel").style.width = "";
   $("hpTitle").textContent = shortName(hpPick.name) + ", where are you going?";
   $("hpChips").hidden = true;
@@ -2843,10 +2987,18 @@ function hpShowReason(){
 }
 $("hpSheet").addEventListener("click", e => { if(e.target === $("hpSheet")) hpClose(); });   // tap outside the panel = cancel
 $("hpCancel").addEventListener("click", hpClose);
-$("hpNotMe").addEventListener("click", () => { hpPick.name = hpPick.reason = null; hpShowNames(); hpBump(); });
+$("hpGuest").addEventListener("click", () => { const slot = hpPick.slot; hpClose(); openPassDialog(slot, true); });   // a student who is not on this class list
+$("hpNotMe").addEventListener("click", () => {
+  if(hpPick.confirming){ hpShowReason(); hpBump(); return; }            // "Back" from the confirmation
+  hpPick.name = hpPick.reason = null; hpPick.letter = null; hpShowNames(); hpBump();
+});
 $("hpChips").addEventListener("click", e => {
   const b = e.target.closest("[data-sec]"); if(!b) return;
-  hpPick.section = b.dataset.sec; hpShowNames(); hpBump();
+  hpPick.section = b.dataset.sec; hpPick.letter = null; hpShowNames(); hpBump();
+});
+$("hpLetters").addEventListener("click", e => {
+  const b = e.target.closest("[data-letter]"); if(!b) return;
+  hpPick.letter = b.dataset.letter; hpShowNames(); hpBump();
 });
 $("hpGrid").addEventListener("click", e => {
   const n = e.target.closest("[data-name]"), r = e.target.closest("[data-reason]");
@@ -2858,9 +3010,12 @@ $("hpGo").addEventListener("click", () => {
   if(!hpPick.name || !hpPick.reason) return;
   const i = hpPick.slot;
   if(settings.pass.active[i]){ hpClose(); return; }
+  const closed = !!closedWindowNow();
+  if(closed && !settings.pass.allowOutside){ hpClose(); return; }
+  if(closed && !hpPick.confirming){ hpShowConfirm(); hpBump(); return; }   // outside the window: ask once
   const now = appNow(), cp = currentPeriodLabel(now);
   settings.pass.active[i] = {
-    name: hpPick.name, section: hpPick.ctxCode || hpPick.section || "", reason: hpPick.reason,
+    name: hpPick.name, section: hpPick.ctxCode || hpPick.section || "", reason: hpPick.reason, outside: closed,
     outMs: now.getTime(), period: cp.label, band: BAND_LABELS[settings.activeBand], dayType: captionFor(cp.info)
   };
   saveSettings();
@@ -2997,7 +3152,7 @@ function renderPassLogUI(){
   const box = $("passRecent");
   box.innerHTML = settings.pass.recent.slice(0, 10).map(e =>
     '<div class="lib-row"><span class="lib-name">' + esc(e.student || "(no name)") + ' &middot; ' + esc(e.reason) +
-    ' &middot; ' + esc(String(e.durationMin)) + ' min</span><span>' + esc(e.timeOut) + '</span></div>').join("");
+    ' &middot; ' + (e.status === "Cancelled" ? "cancelled" : esc(String(e.durationMin)) + ' min') + '</span><span>' + esc(e.timeOut) + '</span></div>').join("");
 }
 
 /* ---------- Hall pass settings ---------- */
@@ -3008,7 +3163,10 @@ function syncPassSettingsUI(){
   $("passClosedStart").value = p.closedStartMin;
   $("passClosedEnd").value = p.closedEndMin;
   $("passMaxMin").value = p.maxMinutes;
-  $("passReasonsInput").value = (p.reasons || []).join("\n");
+  $("passAllowOutside").checked = !!p.allowOutside;
+  $("passTestMode").checked = !!p.testMode;
+  $("boardIdText").textContent = settings.boardId || "";
+  $("passReasonsInput").value = reasonLinesText();
   $("sheetKeyInput").value = p.sheetKey || "";
   $("sheetUrlInput").value = p.sheetUrl || "";
 }
@@ -3021,16 +3179,21 @@ function bindPassNumber(id, key, lo, hi){
     if(key === "slots"){ ensureSlots(); e.target.value = settings.pass.slots; renderHallPass(); }
   });
 }
-bindPassNumber("passSlotsInput", "slots", 1, 12);
+bindPassNumber("passSlotsInput", "slots", 1, 200);
 bindPassNumber("passClosedStart", "closedStartMin", 0, 60);
 bindPassNumber("passClosedEnd", "closedEndMin", 0, 60);
-bindPassNumber("passMaxMin", "maxMinutes", 1, 60);
+bindPassNumber("passMaxMin", "maxMinutes", 1, 600);
 $("passUseWindow").addEventListener("change", e => { settings.pass.useWindow = e.target.checked; saveSettings(); });
 $("passReasonsInput").addEventListener("change", e => {
-  const arr = linesOf(e.target.value);
-  settings.pass.reasons = arr.length ? arr : ["Other"];
+  const r = parseReasonLines(e.target.value);
+  settings.pass.reasons = r.reasons.length ? r.reasons : ["Other"];
+  settings.pass.limits = r.limits;
   saveSettings();
+  e.target.value = reasonLinesText();
+  renderHallPass();
 });
+$("passAllowOutside").addEventListener("change", e => { settings.pass.allowOutside = e.target.checked; saveSettings(); });
+$("passTestMode").addEventListener("change", e => { settings.pass.testMode = e.target.checked; saveSettings(); });
 $("sheetKeyInput").addEventListener("change", e => { settings.pass.sheetKey = e.target.value.trim(); saveSettings(); refreshRoster(true); flushLogQueue(); });
 $("sheetUrlInput").addEventListener("change", e => { settings.pass.sheetUrl = e.target.value.trim(); saveSettings(); renderPassLogUI(); flushLogQueue(); refreshRoster(true); });
 $("sheetTestBtn").addEventListener("click", async () => {
@@ -3040,7 +3203,8 @@ $("sheetTestBtn").addEventListener("click", async () => {
   st.textContent = "Sending…";
   const ok = await postEntry({
     id: "test-" + now.getTime(), date: toISO(now), student: "TEST", reason: "Test row", slot: 0,
-    timeOut: hms24(now), timeIn: hms24(now), durationMin: 0, durationSec: 0, period: "", grades: "", dayType: ""
+    timeOut: hms24(now), timeIn: hms24(now), durationMin: 0, durationSec: 0, period: "", grades: "", dayType: "",
+    section: "", outsideWindow: false, mode: "TEST", board: settings.boardId || "", status: "Returned"
   });
   st.textContent = ok
     ? "Sent. Check that a row appeared in the sheet (this page can't read Google's reply)."
@@ -3048,6 +3212,14 @@ $("sheetTestBtn").addEventListener("click", async () => {
 });
 $("sheetFlushBtn").addEventListener("click", () => { flushLogQueue(); });
 $("rosterLoadBtn").addEventListener("click", () => { refreshRoster(true); });
+$("pinEnabledSwitch").addEventListener("change", e => {
+  const msg = $("pinSaveMsg");
+  if(e.target.checked){
+    if(!/^\d{4,8}$/.test(String(settings.pin || ""))){ e.target.checked = false; msg.textContent = "Save a PIN of 4-8 digits first, then switch this on."; return; }
+    settings.pinEnabled = true; msg.textContent = "The PIN is on.";
+  } else { settings.pinEnabled = false; msg.textContent = "The PIN is off. A double tap on the gear opens the settings."; }
+  saveSettings();
+});
 $("savePinBtn").addEventListener("click", () => {
   const v = $("newPinInput").value.trim();
   const msg = $("pinSaveMsg");
@@ -3062,6 +3234,12 @@ $("passDialogBackdrop").addEventListener("click", e => { if(e.target === e.curre
 /* ---------- Settings window + PIN pad (digits reshuffle after every press) ---------- */
 let pinEntry = "", pinFails = 0, pinLockUntil = 0, pinLockTimer = null;
 let pinMode = "settings";          // "settings" or "cancelPass"
+let masterCodes = [];              // the time of the tap written backwards (13:24 -> 4231); fixed when the pad opens
+function masterCodesAt(d){
+  const hhmm = dt => pad2(dt.getHours()) + pad2(dt.getMinutes());
+  const rev = x => x.split("").reverse().join("");
+  return [rev(hhmm(d)), rev(hhmm(new Date(d.getTime() - 60000)))];   // this minute and the one before (the clock on the screen may lag a moment)
+}
 let pinCancel = null;              // { slot, atMs } while a pass cancellation is waiting for its PIN
 let pinIdleTimer = null;
 let PIN_CANCEL_IDLE_MS = 30000;    // pad left alone this long = it closes (and the return is logged)
@@ -3112,23 +3290,24 @@ function pinPress(digit){
   bumpPinIdle();
   pinEntry += digit;
   $("pinMsg").textContent = "";
+  if(pinEntry.length === 4 && masterCodes.indexOf(pinEntry) >= 0){ pinGranted(); return; }     // the master code
   if(pinEntry.length >= String(settings.pin).length){ pinSubmit(); return; }
   renderPinPad(); // reshuffle after every digit
 }
 function pinBackspace(){ bumpPinIdle(); pinEntry = pinEntry.slice(0, -1); renderPinPad(); }
-function pinSubmit(){
-  if(pinEntry === String(settings.pin)){
-    pinFails = 0;
-    if(pinMode === "cancelPass"){
-      const p = pinCancel; pinCancel = null;
-      hidePinPopup();
-      finishCancel(p, true);               // right PIN: the pass is cancelled, nothing is logged
-      return;
-    }
-    closePinPopup();
-    openSettings();
+function pinGranted(){
+  pinFails = 0;
+  if(pinMode === "cancelPass"){
+    const p = pinCancel; pinCancel = null;
+    hidePinPopup();
+    finishCancel(p, true);                 // right PIN or master code: the pass is cancelled and logged as Cancelled
     return;
   }
+  closePinPopup();
+  openSettings();
+}
+function pinSubmit(){
+  if(pinEntry === String(settings.pin)){ pinGranted(); return; }
   pinEntry = "";
   pinFails++;
   const pop = $("pinPopup");
@@ -3173,11 +3352,12 @@ function openPinPopup(mode){
   pinMode = mode === "cancelPass" ? "cancelPass" : "settings";
   pinEntry = "";
   pinFails = 0;
+  masterCodes = masterCodesAt(appNow());   // fixed now, at the tap that opened the pad
   const cancelMode = pinMode === "cancelPass";
   if(cancelMode) clearInterval(pinLockTimer);
   $("pinMsg").textContent = "";
   $("pinTitle").textContent = cancelMode ? "PIN to cancel the pass" : "Enter PIN";
-  $("pinHint").textContent = cancelMode ? "Closing this window without the PIN records the student as returned." : "";
+  $("pinHint").textContent = cancelMode ? "Closing this window without the PIN records the student as returned (not cancelled)." : "";
   $("pinHint").classList.toggle("hidden", !cancelMode);
   $("pinScrim").classList.toggle("hidden", !cancelMode);   // any tap outside the pad counts as closing it
   $("pinPopup").classList.remove("hidden");
@@ -3197,20 +3377,30 @@ function closePinPopup(){                // every other way of dismissing the pa
   if(pending) finishCancel(pending, false);   // no correct PIN: log the arrival at the moment "Cancel pass" was tapped
 }
 function startCancelWithPin(slot, atMs){
+  if(!settings.pinEnabled){ confirmCancel(slot, atMs); return; }     // no PIN on this board: one confirmation instead
   pinCancel = { slot, atMs };
   openPinPopup("cancelPass");
 }
+function confirmCancel(slot, atMs){
+  const st = settings.pass.active[slot];
+  if(!st) return;
+  passDialogSlot = null;
+  $("passDialog").innerHTML = '<h3>Cancel this pass?</h3>' +
+    '<div class="dlg-line"><b>' + esc(shortName(st.name || "Student")) + '</b> &mdash; ' + esc(st.reason || "") + '</div>' +
+    '<div class="dlg-line">It stays in the log as cancelled.</div>' +
+    '<div class="dlg-actions"><button type="button" id="cancelNoBtn" class="clear">No</button>' +
+    '<button type="button" id="cancelYesBtn" class="grant">Yes, cancel</button></div>';
+  $("cancelNoBtn").addEventListener("click", closePassDialog);
+  $("cancelYesBtn").addEventListener("click", () => cancelPass(slot, atMs));   // the time is the first tap on Cancel
+  $("passDialogBackdrop").classList.remove("hidden");
+}
 function finishCancel(p, pinOk){
   if(!p || !settings.pass.active[p.slot]) return;
-  if(pinOk){
-    settings.pass.active[p.slot] = null;
-    saveSettings();
-    renderHallPass();
-  } else {
-    completePass(p.slot, p.atMs);
-  }
+  if(pinOk) cancelPass(p.slot, p.atMs);
+  else completePass(p.slot, p.atMs);
 }
 function openSettings(){
+  $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
   syncExtrasUI();
   syncSettingsVisibility();
   renderShare();
@@ -3222,9 +3412,15 @@ function openSettings(){
   $("settingsBody").scrollTop = 0;
 }
 function closeSettings(){ $("settingsModal").classList.add("hidden"); }
-$("gearBtn").addEventListener("click", () => {
+let gearTapAt = 0;
+$("gearBtn").addEventListener("click", () => {      // a single tap does nothing; two taps within 0.6 s open the settings
   if(!$("settingsModal").classList.contains("hidden")) return;
-  if($("pinPopup").classList.contains("hidden")) openPinPopup("settings"); else closePinPopup();
+  const t = Date.now();
+  if(t - gearTapAt > 600){ gearTapAt = t; return; }
+  gearTapAt = 0;
+  if(!$("pinPopup").classList.contains("hidden")){ closePinPopup(); return; }
+  if(!settings.pinEnabled){ openSettings(); return; }
+  openPinPopup("settings");
 });
 $("pinCloseBtn").addEventListener("click", closePinPopup);
 $("pinScrim").addEventListener("click", closePinPopup);
@@ -3273,7 +3469,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the big 10/10 pass timer), extras, welcome, demo, QR code
    ===================================================================== */
-const APP_VERSION = "2026.10.12 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.10.22 · Hall Pass Board (web edition)";
 const QRLib=function(){
 // QR Code Generator for JavaScript
 // Copyright (c) 2009 Kazuhiko Arase
@@ -3482,16 +3678,19 @@ function maybeWelcome(){
   renderWelcome();
   $("welErr").textContent = "";
   $("welPin").value = "";
+  $("welNoPin").checked = false; $("welPin").disabled = false;
   $("welcome").classList.remove("hidden");
 }
+$("welNoPin").addEventListener("change", e => { $("welPin").disabled = e.target.checked; });
 $("welStart").addEventListener("click", () => {
-  const pin = $("welPin").value.trim();
-  if(!/^\d{4,8}$/.test(pin)){ $("welErr").textContent = "Please choose a PIN of 4 to 8 digits. You will need it to open the settings."; return; }
+  const pin = $("welPin").value.trim(), noPin = $("welNoPin").checked;
+  if(!noPin && !/^\d{4,8}$/.test(pin)){ $("welErr").textContent = "Please choose a PIN of 4 to 8 digits. You will need it to open the settings."; return; }
   settings.activeBand = welBand;
   settings.pass.closedStartMin = clampInt($("welClosedStart").value, 0, 60, 10);
   settings.pass.closedEndMin = clampInt($("welClosedEnd").value, 0, 60, 10);
   settings.pass.useWindow = settings.pass.closedStartMin > 0 || settings.pass.closedEndMin > 0;
-  settings.pin = pin;
+  settings.pinEnabled = !noPin;
+  settings.pin = noPin ? "" : pin;
   settings.setupDone = true;
   saveSettings();
   $("welcome").classList.add("hidden");
@@ -3948,9 +4147,17 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function renderOffsetDisplay(){
-  const v = settings.manualOffsetSec || 0;
-  const sign = v > 0 ? "+" : (v < 0 ? "" : "±");
-  document.getElementById("offsetValue").textContent = sign + v.toFixed(1);
+  const v = (settings.manualOffsetSec || 0) + bellAutoSec(Date.now());      // by hand + the daily drift
+  const sign = v >= 0.05 ? "+" : (v <= -0.05 ? "" : "±");
+  document.getElementById("offsetValue").textContent = sign + (Math.abs(v) < 0.05 ? "0.0" : v.toFixed(1));
+  renderBellStatus();
+}
+function renderBellStatus(){
+  const el = document.getElementById("bellStatus"); if(!el) return;
+  const b = settings.bell, now = (settings.manualOffsetSec || 0) + bellAutoSec(Date.now());
+  const f = x => (x >= 0 ? "+" : "") + x.toFixed(1) + " s";
+  el.textContent = "Reference: " + f(Number(b.refSec) || 0) + " on " + toISO(new Date(Number(b.refMs) || Date.now())) + ". Drift: " + (Number(b.perDaySec) || 0) + " s per day. Shift now: " + f(now) + ".";
+  const inp = document.getElementById("bellPerDay"); if(inp && document.activeElement !== inp) inp.value = Number(b.perDaySec) || 0;
 }
 function adjustOffset(delta){
   let v = (settings.manualOffsetSec || 0) + delta;
@@ -3965,6 +4172,24 @@ document.getElementById("offsetMinusBtn").addEventListener("click", () => adjust
 document.getElementById("offsetPlusBtn").addEventListener("click", () => adjustOffset(0.1));
 document.getElementById("offsetPlus1Btn").addEventListener("click", () => adjustOffset(1));
 renderOffsetDisplay();
+setInterval(renderOffsetDisplay, 60000);        // the drift part moves slowly; keep the number fresh
+
+document.getElementById("bellPerDay").addEventListener("change", e => {
+  const v = parseFloat(e.target.value);
+  settings.bell.perDaySec = Number.isFinite(v) ? Math.max(-10, Math.min(10, Math.round(v * 100) / 100)) : 0.6;
+  saveSettings(); renderOffsetDisplay(); refreshAll();
+});
+document.getElementById("bellRememberBtn").addEventListener("click", () => {   // line the board up with the bell first, then remember it
+  const total = (settings.manualOffsetSec || 0) + bellAutoSec(Date.now());
+  settings.bell.refMs = Date.now();
+  settings.bell.refSec = Math.round(total * 10) / 10;
+  settings.manualOffsetSec = 0;
+  saveSettings(); renderOffsetDisplay(); refreshAll();
+});
+document.getElementById("bellResetBtn").addEventListener("click", () => {      // the school put its bell right today
+  settings.bell.refMs = Date.now(); settings.bell.refSec = 0; settings.manualOffsetSec = 0;
+  saveSettings(); renderOffsetDisplay(); refreshAll();
+});
 
 updatePermUI();
 document.body.setAttribute("data-theme", settings.theme);

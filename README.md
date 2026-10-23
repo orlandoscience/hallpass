@@ -13,7 +13,7 @@ passes are closed during the first and last 10 minutes of class, open in between
 ## For teachers: start in three steps
 
 1. Open the address above on the classroom screen (Chrome works best). Double-tap an empty spot to go full screen.
-2. The first time, a short welcome asks three things: your schedule (9th-12th or 10th-11th grade), the 10/10 minutes (change them if your rule is different), and a PIN for the settings.
+2. The first time, a short welcome asks three things: your schedule (9th-12th or 10th-11th grade), the 10/10 minutes (change them if your rule is different), and a PIN for the settings (or no PIN).
 3. That's it. The A/B day and the bell times are worked out by the page itself.
 
 **What the colors mean**
@@ -26,13 +26,15 @@ passes are closed during the first and last 10 minutes of class, open in between
 
 The bar under the big timer is the whole class period: red zones are the closed minutes, the white marker moves as time passes.
 
+**If the school bell and the board disagree:** line the board up with the bell using the -1 / +1 buttons on the main screen, then open the settings, *School bell drift*, and press *Remember the current shift*. The board then adds the bell's daily drift (0.6 seconds a day by default) by itself, so nobody has to nudge it again. After the school puts its bell right, press *The bell was just reset*.
+
 The board keeps working without internet once it has been opened online, and it installs like an app (Chrome menu, "Install"). It checks for a newer version by itself and loads it after school, never in the middle of class.
 
 ## Extras (all off until you switch them on)
 
-Open the settings with the gear button (bottom right) and your PIN. Under **Extras** you can switch on only what you want:
+Open the settings by double-tapping the gear button (bottom right), then your PIN if you use one (the PIN can be switched off in the settings). Under **Extras** you can switch on only what you want:
 
-- **Hall pass buttons and log**: students tap their name, choose where they are going, and tap again when they return. Trips can be saved to your own Google Sheet.
+- **Hall pass buttons and log**: students tap their name, choose where they are going, and tap again when they return. Any number of pass buttons. Each place (restroom, locker, water...) has its own limit in minutes; the pass turns red on the board after it (limits stay on the board and are not sent anywhere). A pass can be undone for 30 seconds without the PIN; after that it is cancelled with the PIN (or one confirmation if the PIN is off). Undone and cancelled passes stay in the log as Cancelled, with the time of the tap. Long class lists (study hall) are chosen by first letter. Optionally a teacher may allow passes in the closed 10/10 minutes: the board asks once, then it looks like any other pass and the log notes it. Trips can be saved to your own Google Sheet.
 - **Sounds**: warnings before the bell and a bell ring.
 - **Cards**: a rotating panel with the lesson phase, a day arc, facts, Java riddles, announcements, school calendar numbers and the Orlando weather (temperatures in degrees F with C in brackets, plus weather warnings).
 
