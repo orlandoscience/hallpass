@@ -32,10 +32,11 @@ function doPost(e) {
   const sh = ss.getSheetByName(LOG_TAB) || ss.insertSheet(LOG_TAB);
   if (sh.getLastRow() === 0) {
     sh.appendRow(['Logged at', 'Date', 'Student', 'Reason', 'Pass #', 'Out', 'In',
-                  'Minutes', 'Period', 'Grades', 'Day type', 'Trip ID', 'Section']);
+                  'Minutes', 'Period', 'Grades', 'Day type', 'Trip ID', 'Section', 'Outside window', 'Mode', 'Board', 'Status']);
   }
   sh.appendRow([new Date(), d.date, d.student, d.reason, d.slot, d.timeOut, d.timeIn,
-                d.durationMin, d.period, d.grades, d.dayType, d.id, d.section || '']);
+                d.durationMin, d.period, d.grades, d.dayType, d.id, d.section || '',
+                d.outsideWindow ? 'yes' : '', d.mode || 'LIVE', d.board || '', d.status || 'Returned']);
   return ContentService.createTextOutput('ok');
 }
 

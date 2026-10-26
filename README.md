@@ -3,8 +3,8 @@
 A classroom screen that shows the bell schedule, a live progress bar for the class period, and the **10/10 hall pass rule**:
 passes are closed during the first and last 10 minutes of class, open in between, and the screen says so in big letters.
 
-**Open it here:** https://shamilganiev.github.io/hall-pass-oss/
-**Try the demo (fast clock, no setup):** https://shamilganiev.github.io/hall-pass-oss/?demo=1
+**Open it here:** https://orlandoscience.github.io/hallpass/
+**Try the demo (fast clock, no setup):** https://orlandoscience.github.io/hallpass/?demo=1
 
 | Passes open | Passes closed |
 |---|---|
