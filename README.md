@@ -26,6 +26,8 @@ passes are closed during the first and last 10 minutes of class, open in between
 
 The bar under the big timer is the whole class period: red zones are the closed minutes, the white marker moves as time passes.
 
+**Agenda note (optional):** switch on *Agenda note* under Extras, then type the plan for each class in the settings (one item per line). Students see it on a yellow lined note with a red pin during that class and a few minutes before it. Start a line with `[x]` to cross it out.
+
 **If the school bell and the board disagree:** line the board up with the bell using the -1 / +1 buttons on the main screen, then open the settings, *School bell drift*, and press *Remember the current shift*. The board then adds the bell's daily drift (0.6 seconds a day by default) by itself, so nobody has to nudge it again. After the school puts its bell right, press *The bell was just reset*.
 
 The board keeps working without internet once it has been opened online, and it installs like an app (Chrome menu, "Install"). It checks for a newer version by itself and loads it after school, never in the middle of class.

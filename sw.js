@@ -2,10 +2,10 @@
    It keeps a copy of the board on the device so it still opens without internet,
    and quietly checks for a newer index.html each time the page is opened.
    Everything on other websites (weather, time servers, Google Sheets) goes straight to the network. */
-const CACHE = "hallpass-v1";
+const CACHE = "hallpass-v2";
 const SCOPE = self.registration.scope;
 const PAGE = new URL("index.html", SCOPE).href;
-const ASSETS = ["index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png"]
+const ASSETS = ["index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "fonts/patrick-hand-latin-400.woff2"]
   .map(p => new URL(p, SCOPE).href);
 
 self.addEventListener("install", e => {

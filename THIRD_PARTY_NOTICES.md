@@ -12,6 +12,12 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+## Patrick Hand (handwriting font)
+
+Used for the Agenda note. File: `fonts/patrick-hand-latin-400.woff2` (the Latin subset, from the Fontsource package `@fontsource/patrick-hand`).
+
+Copyright (c) 2010-2012 Patrick Wagesreiter (mail@patrickwagesreiter.at). Licensed under the SIL Open Font License, Version 1.1. The license text is in `fonts/OFL.txt` and at http://scripts.sil.org/OFL
+
 ## Data sources
 
 - Weather forecasts: Open-Meteo.com (CC BY 4.0).
