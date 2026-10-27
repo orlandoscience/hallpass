@@ -394,10 +394,6 @@
   .sc-big.sc-wx{ font-size: 2em; }
   .sc-title{ font-family: Georgia, 'Noto Serif', serif; font-size: 1.5em; font-weight: 700; text-shadow: 0 3px 14px rgba(0,0,0,.35); }
   .sc-tiny{ font-size: .42em; opacity: .8; margin-top: .4em; }
-  .sc-code{
-    font-family: 'Courier New', monospace; font-size: .95em; line-height: 1.3; text-align: left; margin: 0;
-    background: rgba(0,0,0,.34); padding: .5em .9em; border-radius: .4em; white-space: pre; width: max-content; max-width: 94%;
-  }
   .sc-q{ font-size: .8em; opacity: .95; }
   .sc-bar{ width: 70%; height: .28em; background: rgba(255,255,255,.28); border-radius: 99px; overflow: hidden; }
   .sc-bar i{ display: block; height: 100%; width: 0; background: #fde047; transition: width 1s linear; }
@@ -618,28 +614,33 @@
     font-family: 'Courier New', monospace; font-weight: 800; line-height: 1.1; margin-top: .1em;
     font-size: clamp(26px, min(3.6vw, 7vh), 96px); text-shadow: 0 3px 16px rgba(0,0,0,.35); white-space: nowrap; max-width: 100%;
   }
-  .ph-barwrap{ width: min(94%, 62em); margin-top: .6em; }
-  .ph-bar{ position: relative; height: clamp(22px, 3.6vh, 46px); }
-  .ph-zones{
+  /* ================= The lesson bar: always in its own cell at the bottom of the left panel ================= */
+  .lessonbar{ flex: 0 0 auto; padding: .7vh 1.5vw .3vh; font-size: clamp(11px, 1.1vw, 19px); }
+  .lb-bar{ position: relative; height: clamp(14px, 2.6vh, 30px); }
+  .lb-zones{
     position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; overflow: hidden; border-radius: 999px;
-    border: 2px solid rgba(255,255,255,.6); box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    border: 2px solid rgba(255,255,255,.6); box-shadow: 0 3px 12px rgba(0,0,0,.3);
   }
-  .ph-zones .z{ display: block; height: 100%; }
-  .ph-zones .z.closed{ background: #dc2626; }
-  .ph-zones .z.open{ background: #16a34a; }
-  .ph-zones .z.break{ background: #2563eb; }
-  .ph-zones .z.none{ background: #64748b; }
-  .ph-elapsed{ position: absolute; top: 0; left: 0; bottom: 0; background: rgba(255,255,255,.34); }
-  .ph-now{
-    position: absolute; top: -30%; bottom: -30%; width: 7px; margin-left: -3.5px; border-radius: 4px; background: #fff;
-    box-shadow: 0 0 14px rgba(255,255,255,.95), 0 0 0 2px rgba(0,0,0,.35);
+  .lb-zones .z{ display: block; height: 100%; }
+  .lb-zones .z.closed{ background: #dc2626; }
+  .lb-zones .z.open{ background: #16a34a; }
+  .lb-zones .z.break{ background: #2563eb; }
+  .lb-zones .z.none{ background: #64748b; }
+  .lb-elapsed{ position: absolute; top: 0; left: 0; bottom: 0; background: rgba(255,255,255,.3); }
+  .lb-now{
+    position: absolute; top: -28%; bottom: -28%; width: 6px; margin-left: -3px; border-radius: 4px; background: #fff;
+    box-shadow: 0 0 12px rgba(255,255,255,.95), 0 0 0 2px rgba(0,0,0,.35);
   }
-  .ph-marks{ position: relative; height: 3.6em; margin-top: .35em; font-size: .78em; font-weight: 700; text-shadow: 0 1px 6px rgba(0,0,0,.45); }
-  .ph-marks span{ position: absolute; top: 0; white-space: nowrap; transform: translateX(-50%); }
-  .ph-marks span.k::before{ content: ""; display: block; width: 2px; height: .5em; margin: 0 auto .15em; background: rgba(255,255,255,.85); }
-  .ph-marks .m0, .ph-marks .m1{ top: 1.9em; opacity: .9; font-weight: 600; }
-  .ph-marks .m0{ left: 0; transform: none; }
-  .ph-marks .m1{ right: 0; left: auto; transform: none; }
+  .lb-strip{ display: flex; margin-top: .4em; height: 2em; border-radius: 6px; overflow: hidden; }
+  .lb-strip i{ display: flex; align-items: center; justify-content: center; font-style: normal; font-weight: 700; color: #0b1120; white-space: nowrap; overflow: hidden; padding: 0 .3em; }
+  .lb-strip i.g0{ background: #f472b6; } .lb-strip i.g1{ background: #38bdf8; } .lb-strip i.gx{ background: #c4b5fd; } .lb-strip i.none{ background: rgba(255,255,255,.25); }
+  .lb-labels{ position: relative; height: 1.7em; margin-top: .35em; font-weight: 700; font-family: 'Courier New', monospace; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+  .lb-labels.two{ height: 3.3em; }
+  .lb-labels span{ position: absolute; top: 0; white-space: nowrap; transform: translateX(-50%); color: #fff; }
+  .lb-labels span.r2{ top: 1.6em; }
+  .lb-labels span.first{ left: 0; transform: none; }
+  .lb-labels span.last{ right: 0; left: auto; transform: none; }
+  .lb-labels span.open{ color: #4ade80; } .lb-labels span.close{ color: #f87171; }
   .ph-legend{ font-size: .9em; opacity: .95; max-width: 42em; margin-top: .4em; text-shadow: 0 1px 8px rgba(0,0,0,.4); min-height: 1.2em; }
 
   /* ================= Agenda: a yellow lined note held by a red pin ================= */
@@ -665,12 +666,10 @@
   .ag-line.num{ padding-left: 1.5em; text-indent: -1.5em; }
   .ag-line.done{ text-decoration: line-through; opacity: .55; }
   #ambient[data-agenda="1"] .pass-hero{ flex: 0 0 auto; justify-content: flex-start; gap: .1em; padding-top: .4vh; }
-  #ambient[data-agenda="1"] .ph-badge, #ambient[data-agenda="1"] .ph-sub, #ambient[data-agenda="1"] .ph-marks, #ambient[data-agenda="1"] .ph-legend{ display: none; }
+  #ambient[data-agenda="1"] .ph-badge, #ambient[data-agenda="1"] .ph-sub, #ambient[data-agenda="1"] .ph-legend{ display: none; }
   #ambient[data-agenda="1"] .ph-title{ font-size: clamp(22px, min(2.8vw, 4.6vh), 56px); }
   #ambient[data-agenda="1"] .ph-state{ font-size: clamp(20px, min(2.7vw, 4.8vh), 64px); margin-top: .2em; }
   #ambient[data-agenda="1"] .ph-count{ font-size: clamp(20px, min(2.4vw, 4.4vh), 60px); }
-  #ambient[data-agenda="1"] .ph-bar{ height: clamp(12px, 2vh, 26px); }
-  #ambient[data-agenda="1"] .ph-barwrap{ margin-top: .3em; }
   .ag-sheet{ text-align: left; }
   .ag-sheet.ag-card{ position: relative; width: 94%; height: 94%; flex: none; }
   .ag-prev{ height: 170px; margin: 8px 0; padding: 10px 6px 4px; }
@@ -740,13 +739,6 @@
       <div class="ph-sub" id="phSub"></div>
       <div class="ph-state" id="phState"></div>
       <div class="ph-count" id="phCount"></div>
-      <div class="ph-barwrap hidden" id="phBarWrap">
-        <div class="ph-bar">
-          <div class="ph-zones" id="phZones"></div>
-          <div class="ph-now" id="phNow"></div>
-        </div>
-        <div class="ph-marks" id="phMarks"></div>
-      </div>
       <div class="ph-legend" id="phLegend"></div>
     </div>
 
@@ -758,6 +750,12 @@
     </div>
 
     <div class="agenda hidden" id="agenda"><div class="ag-sheet" id="agSheet"><i class="ag-pin"></i><div class="ag-head" id="agHead"></div><div class="ag-body" id="agBody"></div></div></div>
+
+    <div class="lessonbar hidden" id="lessonBar">
+      <div class="lb-bar"><div class="lb-zones" id="lbZones"></div><div class="lb-now" id="lbNow"></div></div>
+      <div class="lb-strip" id="lbStrip" hidden></div>
+      <div class="lb-labels" id="lbLabels"></div>
+    </div>
 
     <div class="hp-panel hidden" id="hpPanel">
       <div class="hp-lock" id="hpLock" hidden>Hall passes are off. Double-tap the gear and type your teacher code.</div>
@@ -908,7 +906,7 @@
       <div class="toggle-row"><span>&ldquo;Ding the Bell&rdquo; button</span><label class="switch"><input type="checkbox" id="exDing"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Agenda note: the plan for the lesson on a yellow lined note</span><label class="switch"><input type="checkbox" id="exAgenda"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Sound alerts (warnings and bell)</span><label class="switch"><input type="checkbox" id="exSounds"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Rotating cards on the left (facts, riddles, calendar, announcements, day arc)</span><label class="switch"><input type="checkbox" id="exCards"><span class="slider"></span></label></div>
+      <div class="toggle-row"><span>Rotating cards on the left (facts, quick questions, calendar, announcements, day arc)</span><label class="switch"><input type="checkbox" id="exCards"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Lesson phases (Warm-up, Focus time, Wrap up, Last 2 minutes)</span><label class="switch"><input type="checkbox" id="stPhases"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Orlando weather</span><label class="switch"><input type="checkbox" id="stWeather"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Severe weather warnings</span><label class="switch"><input type="checkbox" id="stAlerts"><span class="slider"></span></label></div>
@@ -1115,7 +1113,7 @@
       <div class="override-note" style="margin-top:0;">What the rotating cards on the left may show. Switch off anything you don't want.</div>
       <div class="toggle-row"><span>Day arc (sun moving across the school day)</span><label class="switch"><input type="checkbox" id="stArc"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Tech facts and phrases</span><label class="switch"><input type="checkbox" id="stFacts"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Java riddles (answer appears after 30 seconds)</span><label class="switch"><input type="checkbox" id="stRiddles"><span class="slider"></span></label></div>
+      <div class="toggle-row"><span>Quick questions (the answer appears after 30 seconds)</span><label class="switch"><input type="checkbox" id="stRiddles"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Announcements from the "Messages" tab</span><label class="switch"><input type="checkbox" id="stMessages"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>School calendar numbers</span><label class="switch"><input type="checkbox" id="stCalendar"><span class="slider"></span></label></div>
       <div class="field-row">
@@ -1185,6 +1183,7 @@
         <button id="rosterLoadBtn">Check code and load names</button>
         <button id="sheetFlushBtn">Send pending now</button>
         <button id="teacherDisconnectBtn">Disconnect this board</button>
+        <button id="queueDiscardBtn">Delete waiting trips</button>
       </div>
       <div class="toggle-row"><span>Test mode: rows sent to the log are marked TEST</span><label class="switch"><input type="checkbox" id="passTestMode"><span class="slider"></span></label></div>
       <div class="perm-note">Board ID in the log: <b id="boardIdText"></b></div>
@@ -1391,6 +1390,7 @@ function getDefaultSettings(){
       sheetKey: "",             // the teacher code (from the administrator)
       teacher: { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" },   // who the school's script says this board belongs to
       rosterIds: {},            // student IDs for the names in rosterSections: { A1: { "Jane D.": "0012345678" } }
+      groups: {},               // classes whose students have different times: { A3: [{ s: 660, e: 748, g: [12] }, ...] } (minutes after midnight, grades)
       active: [],               // per slot: null | { name, reason, outMs, period, band, dayType }
       queue: [],                // finished trips waiting to be sent to the sheet
       recent: []                // last trips, shown in settings
@@ -2066,38 +2066,38 @@ function hms24(d){ return pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" 
 
 /* =====================================================================
    Left screen: the title block (changes with the lesson) + rotating cards
-   (day arc, tech facts & phrases, Java riddles, announcements, school calendar, weather)
+   (day arc, facts & phrases, quick questions, announcements, school calendar, weather)
    ===================================================================== */
 const FACTS = [
-  "The first computer \"bug\" was a real moth, found inside the Harvard Mark II in 1947.",
-  "Java was first released in 1995. Its original name was Oak.",
-  "Python is named after Monty Python's Flying Circus, not the snake.",
-  "Ada Lovelace published the first algorithm meant for a machine in 1843.",
-  "The first website went live at CERN in 1991.",
-  "The first computer mouse was made of wood, back in 1964.",
-  "Ray Tomlinson picked the @ sign for email addresses in 1971.",
-  "ENIAC, one of the first electronic computers, weighed about 30 tons.",
-  "The Apollo 11 guidance computer had only about 4 KB of RAM.",
-  "Google's name comes from \"googol\": a 1 followed by 100 zeros.",
-  "The first domain name ever registered was symbolics.com, in 1985.",
-  "A bit is a 0 or a 1. Eight bits make a byte.",
-  "The word \"robot\" comes from the Czech word robota, meaning forced labor.",
-  "Grace Hopper helped create COBOL, an early programming language for business.",
-  "\"Hello, World!\" has been the classic first program since the 1970s.",
-  "The QWERTY keyboard layout dates back to the typewriters of the 1870s.",
-  "In Java, a String can never be changed after it is created. It is immutable.",
-  "Array indexes start at 0 because they count how far an item is from the start.",
-  "Integer.MAX_VALUE in Java is 2,147,483,647. Add 1 and it wraps around to a negative number.",
-  "The Linux mascot is a penguin named Tux.",
-  "The first computer virus, Creeper (1971), only showed a message: \"I'M THE CREEPER: CATCH ME IF YOU CAN.\"",
-  "The binary number 1010 is 10 in decimal: 8 + 2.",
-  "Wi-Fi doesn't stand for anything. It is just a brand name.",
-  "The first iPhone came out in 2007.",
-  "Tim Berners-Lee wrote the first web browser in 1990.",
-  "Java's promise: write your program once, run it anywhere.",
-  "The internet and the web are not the same thing. The web runs on top of the internet.",
-  "Margaret Hamilton led the team that wrote the Apollo flight software.",
-  "The term \"software engineering\" was popularized at a NATO conference in 1968."
+  "Honey never spoils: jars of edible honey were found in ancient Egyptian tombs.",
+  "A day on Venus is longer than its year.",
+  "Octopuses have three hearts.",
+  "The Great Wall of China cannot be seen from the Moon with the naked eye.",
+  "Water covers about 71% of the Earth's surface.",
+  "Your brain uses about 20% of the energy your body makes.",
+  "Botanically, bananas are berries, but strawberries are not.",
+  "Sound travels about four times faster in water than in air.",
+  "Mount Everest, about 8,849 meters high, is the highest mountain above sea level.",
+  "The Pacific Ocean is larger than all of the Earth's land put together.",
+  "A group of crows is called a murder.",
+  "Lightning is several times hotter than the surface of the Sun.",
+  "The Moon moves about 3.8 centimeters farther from the Earth every year.",
+  "Your heart beats about 100,000 times a day.",
+  "Babies are born with about 300 bones. Adults have 206.",
+  "\"Quarantine\" comes from the Italian words for forty days.",
+  "Antarctica is the coldest and the driest continent.",
+  "Pluto was reclassified as a dwarf planet in 2006.",
+  "The shortest war in history, Britain against Zanzibar in 1896, lasted less than an hour.",
+  "A leap year has 366 days. The extra day is February 29.",
+  "Penguins cannot fly, but they are excellent swimmers.",
+  "The Amazon is the largest rainforest on Earth.",
+  "Spiders are not insects: they have eight legs, insects have six.",
+  "The first modern Olympic Games were held in Athens in 1896.",
+  "A baby panda is about as big as a stick of butter when it is born.",
+  "Mercury is the closest planet to the Sun, but Venus is the hottest.",
+  "The Nile flows north into the Mediterranean Sea.",
+  "Hummingbirds can hover, and they can even fly backward.",
+  "Florida's nickname is the Sunshine State."
 ];
 const PHRASES = [
   "Small steps every day add up to big things.",
@@ -2112,13 +2112,13 @@ const PHRASES = [
   "Be the reason someone smiles today.",
   "Every expert was once a beginner.",
   "Learning is a superpower. Keep building yours.",
-  "Debugging is detective work. Be curious about the clues.",
-  "Code is read more often than it is written. Be kind to future you.",
+  "Every problem is a puzzle. Be curious about the clues.",
+  "Write it down today. Future you will say thanks.",
   "Break big problems into small ones. Then solve the small ones.",
-  "Stuck? Breathe, reread the error message, try one thing."
+  "Stuck? Breathe, reread the question, try one thing."
 ];
-// every answer below was run through real Java before being added
-const RIDDLES = [{"code": "int x = 7 / 2;\nSystem.out.println(x);", "answer": "3"}, {"code": "double d = 7 / 2;\nSystem.out.println(d);", "answer": "3.0"}, {"code": "System.out.println(7 / 2.0);", "answer": "3.5"}, {"code": "System.out.println(17 % 5);", "answer": "2"}, {"code": "int a = 5;\na += 3 * 2;\nSystem.out.println(a);", "answer": "11"}, {"code": "System.out.println((int) 9.99);", "answer": "9"}, {"code": "String s = \"Java\";\nSystem.out.println(s.length());", "answer": "4"}, {"code": "System.out.println(\"Hello\".substring(1, 3));", "answer": "el"}, {"code": "System.out.println(\"Hello\".charAt(4));", "answer": "o"}, {"code": "int x = 5;\nx++;\nSystem.out.println(x * 2);", "answer": "12"}, {"code": "System.out.println(1 + 2 + \"3\");", "answer": "33"}, {"code": "System.out.println(\"1\" + 2 + 3);", "answer": "123"}, {"code": "boolean b = (5 > 3) && (2 > 4);\nSystem.out.println(b);", "answer": "false"}, {"code": "int x = 10;\nint y = x > 5 ? 1 : 2;\nSystem.out.println(y);", "answer": "1"}, {"code": "int k = 3;\nk *= 2 + 1;\nSystem.out.println(k);", "answer": "9"}, {"code": "System.out.println(10 / 4 * 4);", "answer": "8"}, {"code": "System.out.println(10 % 3 + 10 / 3);", "answer": "4"}, {"code": "int x = Integer.MAX_VALUE;\nx++;\nSystem.out.println(x);", "answer": "-2147483648"}, {"code": "System.out.println((double) 1 / 4);", "answer": "0.25"}, {"code": "System.out.println((double) (1 / 4));", "answer": "0.0"}, {"code": "String t = \"ab\";\nt += \"c\";\nSystem.out.println(t.length());", "answer": "3"}, {"code": "System.out.println(Math.pow(2, 3));", "answer": "8.0"}, {"code": "int x = 5;\nint y = x-- - 2;\nSystem.out.println(y + \" \" + x);", "answer": "3 4"}, {"code": "System.out.println(\"Java\".indexOf(\"v\"));", "answer": "2"}, {"code": "System.out.println(!(true || false));", "answer": "false"}, {"code": "System.out.println(5 == 5.0);", "answer": "true"}, {"code": "int x = 7;\nx /= 2;\nSystem.out.println(x);", "answer": "3"}, {"code": "System.out.println('a' + 1);", "answer": "98"}, {"code": "System.out.println((char) ('a' + 1));", "answer": "b"}, {"code": "System.out.println(Math.sqrt(16));", "answer": "4.0"}, {"code": "int x = 3;\nint y = 4;\nSystem.out.println(x + y + \"!\");", "answer": "7!"}, {"code": "System.out.println(8 % 2 == 0);", "answer": "true"}, {"code": "String a = \"hi\";\nString b = a.toUpperCase();\nSystem.out.println(a + b);", "answer": "hiHI"}, {"code": "System.out.println(1 / 2 + 1 / 2.0);", "answer": "0.5"}, {"code": "int n = 12345;\nSystem.out.println(n % 10);", "answer": "5"}, {"code": "int n = 12345;\nSystem.out.println(n / 10);", "answer": "1234"}];
+// quick questions: a short question, and the answer appears after 30 seconds (the teachers' own questions come later, from the school's sheet)
+const QUESTIONS = [{"q": "How many continents are there?", "a": "Seven"}, {"q": "What is the largest planet in our solar system?", "a": "Jupiter"}, {"q": "Which gas do plants take in from the air?", "a": "Carbon dioxide"}, {"q": "How many sides does a hexagon have?", "a": "Six"}, {"q": "What is the capital of Australia?", "a": "Canberra"}, {"q": "What is the chemical symbol for gold?", "a": "Au"}, {"q": "Which ocean is the largest?", "a": "The Pacific"}, {"q": "What is 12 × 12?", "a": "144"}, {"q": "Who wrote \"Romeo and Juliet\"?", "a": "William Shakespeare"}, {"q": "What is the hardest natural substance?", "a": "Diamond"}, {"q": "How many bones does an adult human have?", "a": "206"}, {"q": "What is the smallest prime number?", "a": "2"}, {"q": "Which planet is known as the Red Planet?", "a": "Mars"}, {"q": "Which river flows through Cairo?", "a": "The Nile"}, {"q": "What do bees make?", "a": "Honey"}, {"q": "How many minutes are in a day?", "a": "1,440"}, {"q": "At what temperature does water boil at sea level, in °C?", "a": "100 °C"}, {"q": "What force pulls things toward the Earth?", "a": "Gravity"}, {"q": "Which part of a cell holds the DNA?", "a": "The nucleus"}, {"q": "What is the square root of 81?", "a": "9"}, {"q": "Who painted the Mona Lisa?", "a": "Leonardo da Vinci"}, {"q": "In what year did people first walk on the Moon?", "a": "1969"}, {"q": "How many players of one team are on a basketball court?", "a": "Five"}, {"q": "What is the capital of Japan?", "a": "Tokyo"}, {"q": "What do we call a word with the opposite meaning?", "a": "An antonym"}, {"q": "At what temperature does water freeze, in °F?", "a": "32 °F"}, {"q": "Which organ pumps blood around the body?", "a": "The heart"}, {"q": "Which US state is nicknamed the Lone Star State?", "a": "Texas"}, {"q": "How many days are in a leap year?", "a": "366"}, {"q": "What is the largest mammal on Earth?", "a": "The blue whale"}, {"q": "Which planet is closest to the Sun?", "a": "Mercury"}, {"q": "What language is mainly spoken in Brazil?", "a": "Portuguese"}, {"q": "What is 15% of 200?", "a": "30"}, {"q": "Which gas do people need to breathe to live?", "a": "Oxygen"}, {"q": "Riddle: what gets wetter the more it dries?", "a": "A towel"}, {"q": "Riddle: what has hands but cannot clap?", "a": "A clock"}];
 
 // first day OFF for "break" events, last day for "end" events (from the OCPS 2026-2027 calendar)
 const CAL_EVENTS = [
@@ -2525,11 +2525,11 @@ function makeCard(kind, ctx, now){
     const text = useFact ? nextFrom("fact", FACTS) : nextFrom("phrase", PHRASES);
     return { kind, dur, html: '<div class="sc-label">' + (useFact ? "Did you know?" : "Thought for today") + '</div><div class="sc-text sc-serif">' + esc(text) + '</div>' };
   }
-  if(kind === "riddle"){
-    const r = nextFrom("riddle", RIDDLES);
+  if(kind === "riddle"){                          // a quick question: the answer shows after 30 seconds
+    const r = nextFrom("riddle", QUESTIONS);
     return { kind, dur: 42000,
-      html: '<div class="sc-label">Java riddle</div><pre class="sc-code">' + esc(r.code) + '</pre><div class="sc-q">What does it print?</div>' +
-            '<div class="sc-bar"><i id="riddleBar"></i></div><div class="sc-ans" id="riddleAns">→ <b>' + esc(r.answer) + '</b></div>',
+      html: '<div class="sc-label">Quick question</div><div class="sc-text sc-announce">' + esc(r.q) + '</div>' +
+            '<div class="sc-bar"><i id="riddleBar"></i></div><div class="sc-ans" id="riddleAns">→ <b>' + esc(r.a) + '</b></div>',
       update(){
         const el = Date.now() - stage.shownAt;
         const bar = $("riddleBar"); if(bar) bar.style.width = Math.min(100, el / 300) + "%";
@@ -2578,26 +2578,12 @@ function makeCard(kind, ctx, now){
   }
   return null;
 }
-function codeTooWide(code){
-  try{
-    const cs = getComputedStyle(code);
-    const inner = code.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
-    const rg = document.createRange();
-    rg.selectNodeContents(code);
-    if(typeof rg.getClientRects !== "function") return false;   // very old browser: skip the extra check, never break the card
-    let widest = 0;
-    Array.from(rg.getClientRects()).forEach(r => { widest = Math.max(widest, r.width); });
-    return widest > inner + 0.5;
-  }catch(e){ return false; }
-}
 function fitStage(){
   const box = $("stage"), el = $("stageCard");
   if(!box || !el || !el.firstChild) return;
   const base = parseFloat(getComputedStyle(box).fontSize) || 24;
   const overflows = () => {
-    if(el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) return true;
-    const code = el.querySelector(".sc-code");      // code lines never wrap: the widest line must fit INSIDE the padded box
-    return !!code && codeTooWide(code);
+    return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1;
   };
   el.classList.remove("compact");
   let fs = base;
@@ -2652,8 +2638,10 @@ function renderAmbient(now, info){
   amb.setAttribute("data-phase", ctx.lessonPhase ? ctx.lessonPhase.key : "");
   renderAlertBanner();
   renderAgenda(ctx, info, now);
+  const hm = heroModel(now, info);
+  renderLessonBar(lessonBarModel(hm, ctx, info));
   if(settings.extras.cards) stageTick(ctx, now);
-  else renderHero(heroModel(now, info));
+  else renderHero(hm);
 }
 
 /* ---------- Agenda: a yellow lined note with the plan for the lesson ---------- */
@@ -2991,7 +2979,7 @@ function signOutSlot(i){
   settings.pass.active[i] = {
     name: ($("passNameInput").value || "").trim(),
     section: rosterCount() > 0 ? "Guest" : "",
-    outside: closed, studentId: "", blk: currentSectionCode(now) || "", guest: true,
+    outside: closed, teacher: (settings.pass.teacher || {}).name || "", studentId: "", blk: currentSectionCode(now) || "", guest: true,
     reason: sel ? sel.getAttribute("data-reason") : "Other",
     outMs: now.getTime(),
     period: dispLabel(cp.label),
@@ -3016,7 +3004,7 @@ function makeEntry(i, atMs, status){             // status: "Returned" or "Cance
     slot: i + 1,
     section: st.section || "",
     outsideWindow: !!st.outside,
-    exitId: stampId(outD, now), studentId: st.studentId || "", blk: st.blk || "", guestName: (st.guest ? (st.name || "") : ""),
+    exitId: stampId(outD, now), teacher: st.teacher || "", studentId: st.studentId || "", blk: st.blk || "", guestName: (st.guest ? (st.name || "") : ""),
     outMs: st.outMs, inMs: now.getTime(),
     mode: settings.pass.testMode ? "TEST" : "LIVE",
     board: settings.boardId || "",
@@ -3254,7 +3242,7 @@ $("hpGo").addEventListener("click", () => {
   const now = appNow(), cp = currentPeriodLabel(now);
   settings.pass.active[i] = {
     name: hpPick.name, section: hpPick.ctxCode || hpPick.section || "", reason: hpPick.reason, outside: closed,
-    studentId: ((settings.pass.rosterIds || {})[hpPick.section] || {})[hpPick.name] || "", blk: hpPick.ctxCode || hpPick.section || "", guest: false,
+    teacher: (settings.pass.teacher || {}).name || "", studentId: ((settings.pass.rosterIds || {})[hpPick.section] || {})[hpPick.name] || "", blk: hpPick.ctxCode || hpPick.section || "", guest: false,
     outMs: now.getTime(), period: dispLabel(cp.label), band: BAND_LABELS[settings.activeBand], dayType: captionFor(cp.info)
   };
   saveSettings();
@@ -3291,7 +3279,8 @@ function teacherLost(msg){
   saveSettings(); renderHallPass(); renderTeacherStatus();
 }
 async function postEntry(entry){
-  if(!sheetReady()) return false;
+  if(!sheetReady() || !teacherOk()) return false;
+  if(entry.teacher && entry.teacher !== ((settings.pass.teacher || {}).name || "")) return false;     // never under somebody else's code
   if(!entry.exitId) return true;                                // made by an older version: it cannot be matched, drop it
   const q = { i: entry.exitId, s: entry.studentId || "", sec: entry.section || "", blk: entry.blk || "", w: cleanDest(entry.reason),
               to: String(entry.outMs || ""), ti: String(entry.inMs || ""), o: entry.outsideWindow ? "1" : "", m: entry.mode || "LIVE",
@@ -3305,13 +3294,19 @@ async function postEntry(entry){
 async function flushLogQueue(){
   if(DEMO.on) return;
   if(flushingLog) return;
-  if(!sheetReady() || settings.pass.queue.length === 0) return;
+  if(!sheetReady() || !teacherOk() || settings.pass.queue.length === 0) return;     // only a recognised teacher sends, and only that teacher's own trips
   flushingLog = true;
   try{
-    while(settings.pass.queue.length > 0){
-      const ok = await postEntry(settings.pass.queue[0]);
+    const me = (settings.pass.teacher || {}).name || "";
+    let i = 0;
+    while(i < settings.pass.queue.length){
+      const e = settings.pass.queue[i];
+      if(!e.teacher) e.teacher = me;                              // a trip from an older version belongs to this board's teacher
+      if(e.teacher !== me){ i++; continue; }                      // another teacher's trip waits until that teacher's code is typed again
+      const ok = await postEntry(e);
       if(!ok) break;
-      settings.pass.queue.shift();
+      const k = settings.pass.queue.indexOf(e);
+      if(k >= 0) settings.pass.queue.splice(k, 1);
       saveSettings();
     }
   } finally {
@@ -3374,6 +3369,10 @@ function applyHello(d){                          // the school's script answered
   });
   settings.pass.rosterSections = secs;
   settings.pass.rosterIds = ids;
+  settings.pass.groups = {};
+  (d.sections || []).forEach(sec => {
+    if(Array.isArray(sec.groups) && sec.groups.length > 1) settings.pass.groups[String(sec.block)] = sec.groups.map(g => ({ s: Number(g.start), e: Number(g.end), g: (g.grades || []).map(Number) }));
+  });
   settings.pass.teacher = { ok: true, name: String(d.teacher || ""), display: String(d.display || d.teacher || ""), role: String(d.role || "teacher"), checkedAt: Date.now(), error: "" };
   saveSettings(); renderHallPass(); renderTeacherStatus();
   return secs;
@@ -3400,13 +3399,16 @@ async function refreshRoster(manual){
   }
   if(r.data.role !== "teacher"){ teacherLost("This code is not for a classroom board."); return; }
   applyHello(r.data);
+  flushLogQueue();                                                // what was waiting for this teacher goes now
 }
 function renderPassLogUI(){
-  const q = settings.pass.queue.length;
-  const hasUrl = sheetReady();
-  $("sheetPending").textContent = q === 0
-    ? "Nothing waiting to be sent."
-    : q + " trip" + (q > 1 ? "s" : "") + " waiting to be sent" + (hasUrl ? "." : " (type your teacher code first).");
+  const q = settings.pass.queue, me = teacherOk() ? ((settings.pass.teacher || {}).name || "") : "";
+  const mine = q.filter(e => !e.teacher || e.teacher === me).length, others = {};
+  q.forEach(e => { if(e.teacher && e.teacher !== me) others[e.teacher] = (others[e.teacher] || 0) + 1; });
+  const parts = [];
+  if(mine) parts.push(mine + " trip" + (mine > 1 ? "s" : "") + " waiting to be sent" + (sheetReady() && teacherOk() ? "." : " (type your teacher code first)."));
+  Object.keys(others).forEach(n => parts.push(others[n] + " trip" + (others[n] > 1 ? "s" : "") + " of " + n.replace(/\./g, " ") + " wait until that teacher's code is typed on this board again."));
+  $("sheetPending").textContent = parts.length ? parts.join(" ") : "Nothing waiting to be sent.";
   const box = $("passRecent");
   box.innerHTML = settings.pass.recent.slice(0, 10).map(e =>
     '<div class="lib-row"><span class="lib-name">' + esc(e.student || "(no name)") + ' &middot; ' + esc(e.reason) +
@@ -3460,10 +3462,23 @@ $("sheetKeyInput").addEventListener("change", e => {
   saveSettings(); renderHallPass(); renderTeacherStatus(); refreshRoster(true); flushLogQueue();
 });
 $("teacherDisconnectBtn").addEventListener("click", () => {                     // forget the code and the student lists on this board
-  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {};
+  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {}; settings.pass.groups = {};
   settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" };
   $("sheetKeyInput").value = ""; saveSettings(); renderHallPass(); renderTeacherStatus();
-  $("sheetStatus").textContent = "Disconnected. Trips still waiting stay on this device until a code is entered again.";
+  $("sheetStatus").textContent = "Disconnected. Trips still waiting stay on this device, marked with their teacher, until that teacher's code is typed again.";
+  renderPassLogUI();
+});
+let discardArmedAt = 0;
+$("queueDiscardBtn").addEventListener("click", () => {                         // two taps, so it is not done by accident
+  const n = settings.pass.queue.length, btn = $("queueDiscardBtn");
+  if(!n){ $("sheetStatus").textContent = "Nothing is waiting."; return; }
+  if(Date.now() - discardArmedAt > 6000){
+    discardArmedAt = Date.now(); btn.textContent = "Tap again to delete " + n + " waiting trip" + (n > 1 ? "s" : "");
+    setTimeout(() => { if(Date.now() - discardArmedAt >= 6000) btn.textContent = "Delete waiting trips"; }, 6100);
+    return;
+  }
+  settings.pass.queue = []; discardArmedAt = 0; btn.textContent = "Delete waiting trips"; saveSettings(); renderPassLogUI();
+  $("sheetStatus").textContent = "Deleted " + n + " waiting trip" + (n > 1 ? "s" : "") + ".";
 });
 $("sheetUrlInput").addEventListener("change", e => { settings.pass.sheetUrl = e.target.value.trim(); saveSettings(); renderPassLogUI(); flushLogQueue(); refreshRoster(true); });
 $("sheetFlushBtn").addEventListener("click", () => { flushLogQueue(); });
@@ -3727,7 +3742,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the big 10/10 pass timer), extras, welcome, demo, QR code
    ===================================================================== */
-const APP_VERSION = "2026.10.29 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.10.31 · Hall Pass Board (web edition)";
 const QRLib=function(){
 // QR Code Generator for JavaScript
 // Copyright (c) 2009 Kazuhiko Arase
@@ -3822,8 +3837,8 @@ function heroModel(now, info){
   if(a > 0) zones.push({ w: a / len, k: "closed" });
   zones.push({ w: (closeAt - openAt) / len, k: "open" });
   if(b > 0) zones.push({ w: b / len, k: "closed" });
-  if(a > 0) marks.push({ f: a / len, t: "opens " + clockOfSec(openAt) });
-  if(b > 0) marks.push({ f: 1 - b / len, t: "closes " + clockOfSec(closeAt) });
+  if(a > 0) marks.push({ f: a / len, t: clockOfSec(openAt), k: "open" });
+  if(b > 0) marks.push({ f: 1 - b / len, t: clockOfSec(closeAt), k: "close" });
   m.bar = { f: clamp01(f), zones, marks, left: fmtClock(row.start), right: fmtClock(row.end) };
   return m;
 }
@@ -3851,21 +3866,88 @@ function renderHero(m){
   $("passHero").setAttribute("data-state", m.state);
   const fitSig = m.stateText + "|" + m.count.length + "|" + window.innerWidth + "x" + window.innerHeight + "|" + $("ambient").getAttribute("data-agenda");
   if(fitSig !== heroFitSig){ heroFitSig = fitSig; fitHeroText(); }
-  const wrap = $("phBarWrap");
-  if(!m.bar){ wrap.classList.add("hidden"); return; }
-  wrap.classList.remove("hidden");
-  const sig = JSON.stringify([m.bar.zones, m.bar.marks, m.bar.left, m.bar.right]);
-  if(sig !== heroSig){
-    heroSig = sig;
-    $("phZones").innerHTML = m.bar.zones.map(z => '<i class="z ' + z.k + '" style="width:' + (z.w * 100).toFixed(3) + '%"></i>').join("") + '<b class="ph-elapsed" id="phElapsed"></b>';
-    $("phMarks").innerHTML = '<span class="m0">' + esc(m.bar.left) + '</span>' +
-      m.bar.marks.map(k => '<span class="k" style="left:' + (k.f * 100).toFixed(3) + '%">' + esc(k.t) + '</span>').join("") +
-      '<span class="m1">' + esc(m.bar.right) + '</span>';
-  }
-  const pct = (m.bar.f * 100).toFixed(3) + "%";
-  $("phElapsed").style.width = pct;
-  $("phNow").style.left = pct;
 }
+
+/* ---------- The lesson bar: the 10/10 zones of the class, always in view ---------- */
+const stripAP = t => String(t || "").replace(/\s*[AP]M$/i, "");
+const ordinal = n => { n = Number(n); return n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : n + "th"; };
+const gradeText = list => list.length ? list.map(ordinal).join(" + ") + " grade" : "";
+function multiBar(groups, nowSec){                // a class whose students have different times (block 3): every group has its own 10/10
+  const P = settings.pass;
+  const A = P.useWindow ? (Number(P.closedStartMin) || 0) * 60 : 0, B = P.useWindow ? (Number(P.closedEndMin) || 0) * 60 : 0;
+  const gs = groups.map(x => ({ s: x.s * 60, e: x.e * 60, g: x.g || [] })).filter(x => x.e > x.s).sort((p, q) => p.s - q.s);
+  const t0 = gs[0].s, t1 = Math.max.apply(null, gs.map(x => x.e)), len = t1 - t0;
+  const pts = new Set([t0, t1]);
+  gs.forEach(x => { pts.add(x.s); pts.add(x.e); if(A) pts.add(x.s + A); if(B) pts.add(x.e - B); });
+  const b = Array.from(pts).filter(t => t >= t0 && t <= t1).sort((p, q) => p - q);
+  const stateAt = t => {                          // red as soon as ANY group that is in the room is in its closed minutes
+    const act = gs.filter(x => t >= x.s && t < x.e);
+    if(!act.length) return "none";
+    return act.some(x => (A && t < x.s + A) || (B && t >= x.e - B)) ? "closed" : "open";
+  };
+  const segs = [];
+  for(let i = 0; i + 1 < b.length; i++){
+    const st = stateAt((b[i] + b[i + 1]) / 2), last = segs[segs.length - 1];
+    if(last && last.k === st) last.b = b[i + 1]; else segs.push({ a: b[i], b: b[i + 1], k: st });
+  }
+  const marks = [];
+  for(let i = 1; i < segs.length; i++){
+    const prev = segs[i - 1].k, cur = segs[i].k;
+    marks.push({ f: (segs[i].a - t0) / len, t: clockOfSec(segs[i].a), k: cur === "closed" ? "close" : (prev === "closed" ? "open" : "plain") });
+  }
+  const sb = Array.from(new Set(gs.reduce((o, x) => o.concat([x.s, x.e]), []))).sort((p, q) => p - q), strip = [];
+  for(let i = 0; i + 1 < sb.length; i++){         // who is in the room: one coloured piece for each stretch with the same people
+    const mid = (sb[i] + sb[i + 1]) / 2, idx = gs.map((x, j) => (mid >= x.s && mid < x.e) ? j : -1).filter(j => j >= 0), grades = [];
+    idx.forEach(j => gs[j].g.forEach(n => { if(grades.indexOf(n) < 0) grades.push(n); }));
+    const label = idx.length ? (gradeText(grades) || (idx.length > 1 ? "Everyone" : "Group " + (idx[0] + 1))) : "";
+    const cls = !idx.length ? "none" : (idx.length > 1 ? "gx" : (idx[0] === 0 ? "g0" : "g1")), last = strip[strip.length - 1];
+    if(last && last.label === label && last.cls === cls) last.b = sb[i + 1]; else strip.push({ a: sb[i], b: sb[i + 1], label, cls });
+  }
+  return { f: clamp01((nowSec - t0) / len), zones: segs.map(z => ({ w: (z.b - z.a) / len, k: z.k })), marks, left: clockOfSec(t0), right: clockOfSec(t1),
+           strip: strip.map(z => ({ w: (z.b - z.a) / len, label: z.label, cls: z.cls })) };
+}
+function lessonBarModel(hm, ctx, info){
+  const letter = ctx.letter || info.letter || null, map = settings.pass.groups || {};
+  if(letter) for(let n = 1; n <= 4; n++){
+    const g = map[letter + n];
+    if(!g || g.length < 2) continue;
+    if(ctx.nowSec >= Math.min.apply(null, g.map(x => x.s)) * 60 && ctx.nowSec < Math.max.apply(null, g.map(x => x.e)) * 60) return multiBar(g, ctx.nowSec);
+  }
+  return hm.bar || null;
+}
+let lbSig = "";
+function layoutBarLabels(){                       // two labels never sit on top of each other: the second goes one line down
+  const box = $("lbLabels"), spans = Array.from(box.children), ends = [-1e9, -1e9];
+  let two = false;
+  spans.forEach(sp => sp.classList.remove("r2"));
+  if(!spans.length || !spans[0].getBoundingClientRect().width){ box.classList.remove("two"); return; }     // not on screen (or no layout): nothing to measure
+  spans.forEach(sp => {
+    const r = sp.getBoundingClientRect();
+    if(r.left >= ends[0] + 4){ ends[0] = r.right; }
+    else { sp.classList.add("r2"); two = true; ends[1] = Math.max(ends[1], r.right); }
+  });
+  box.classList.toggle("two", two);
+}
+function renderLessonBar(bar){
+  const box = $("lessonBar");
+  if(!bar){ box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  const sig = JSON.stringify([bar.zones, bar.marks, bar.left, bar.right, bar.strip || null, window.innerWidth, window.innerHeight]);
+  if(sig !== lbSig){
+    lbSig = sig;
+    $("lbZones").innerHTML = bar.zones.map(z => '<i class="z ' + z.k + '" style="width:' + (z.w * 100).toFixed(3) + '%"></i>').join("") + '<b class="lb-elapsed" id="lbElapsed"></b>';
+    $("lbStrip").innerHTML = (bar.strip || []).map(z => '<i class="' + z.cls + '" style="width:' + (z.w * 100).toFixed(3) + '%">' + esc(z.label) + '</i>').join("");
+    $("lbStrip").hidden = !(bar.strip && bar.strip.length);
+    $("lbLabels").innerHTML = '<span class="first">' + esc(stripAP(bar.left)) + '</span>' +
+      bar.marks.map(k => '<span class="' + k.k + '" style="left:' + (k.f * 100).toFixed(3) + '%">' + esc(stripAP(k.t)) + '</span>').join("") +
+      '<span class="last">' + esc(stripAP(bar.right)) + '</span>';
+    layoutBarLabels();
+  }
+  const pct = (bar.f * 100).toFixed(3) + "%";
+  $("lbElapsed").style.width = pct;
+  $("lbNow").style.left = pct;
+}
+window.addEventListener("resize", () => { lbSig = ""; });
 
 /* ---------- Extras: what is switched on besides the basic screen ---------- */
 const EXTRA_TOGGLES = { exHallPass: "hallPass", exDing: "ding", exSounds: "sounds", exCards: "cards", exAgenda: "agenda" };

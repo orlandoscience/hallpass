@@ -15,7 +15,7 @@ const LAT = 28.5383, LON = -81.3792;   // Orlando, for the weather warnings
 const ALERTS_UA = 'OSHS-classroom-board (teacher classroom display)';   // api.weather.gov asks for this header
 const TAB = { master: 'Master', schedule: 'Schedule', teachers: 'Teachers', settings: 'Settings', log: 'Log', messages: 'Messages' };
 const BLOCKS = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
-const SCHEDULE_HEAD = ['Student ID', 'Name', 'Block', 'Time', 'Teacher', 'Course', 'Room', 'Role'];
+const SCHEDULE_HEAD = ['Student ID', 'Name', 'Block', 'Time', 'Teacher', 'Course', 'Room', 'Role', 'Grade'];
 const TEACHERS_HEAD = ['Code', 'Teacher', 'Role', 'Active', 'Link', 'Note'];
 const LOG_HEAD = ['Exit ID', 'Student ID', 'Section', 'Teacher', 'Room', 'Where', 'Out', 'Back', 'Minutes', 'Status', 'Outside window', 'Mode', 'Board', 'Guest name'];
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // no 0/O, 1/I/L
@@ -108,6 +108,31 @@ function uniqueNames_(students) {      // "First L."; two of the same get more o
     .sort(function (a, b) { return a.n < b.n ? -1 : a.n > b.n ? 1 : 0; });
 }
 
+function parseRange_(txt) {            // "11:00AM - 12:28PM" -> [660, 748] (minutes after midnight), or null
+  const m = /^(\d{1,2}):(\d{2})([AP])M?-(\d{1,2}):(\d{2})([AP])M?$/i.exec(String(txt).replace(/\s+/g, ''));
+  if (!m) return null;
+  const mins = function (h, mi, ap) { h = Number(h) % 12; if (/p/i.test(ap)) h += 12; return h * 60 + Number(mi); };
+  const a = mins(m[1], m[2], m[3]), b = mins(m[4], m[5], m[6]);
+  return b > a ? [a, b] : null;
+}
+
+function sectionGroups_(rows) {        // a class whose students have different times (block 3: the two lunch groups): one group per time
+  const map = {}, order = [];
+  rows.forEach(function (r) {
+    const k = String(r.time).replace(/\s+/g, '').toUpperCase();
+    if (!map[k]) { map[k] = { time: r.time, grades: {} }; order.push(k); }
+    if (r.grade) map[k].grades[r.grade] = 1;
+  });
+  if (order.length < 2) return null;
+  const groups = [];
+  order.forEach(function (k) {
+    const rg = parseRange_(map[k].time);
+    if (rg) groups.push({ start: rg[0], end: rg[1], grades: Object.keys(map[k].grades).map(Number).sort(function (a, b) { return a - b; }) });
+  });
+  groups.sort(function (a, b) { return a.start - b.start; });
+  return groups.length > 1 ? groups : null;
+}
+
 function today_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'); }
 
 function setting_(key, fallback) {
@@ -143,8 +168,11 @@ function hello_(t) {
     BLOCKS.forEach(function (b) {
       const rows = byBlock[b];
       if (!rows) return;
-      res.sections.push({ block: b, time: rows[0].time, room: rows[0].room, course: rows[0].course,
-                          students: uniqueNames_(rows.map(function (r) { return { id: r.id, name: r.name }; })) });
+      const sec = { block: b, time: rows[0].time, room: rows[0].room, course: rows[0].course,
+                    students: uniqueNames_(rows.map(function (r) { return { id: r.id, name: r.name }; })) };
+      const groups = sectionGroups_(rows);
+      if (groups) sec.groups = groups;
+      res.sections.push(sec);
     });
   }
   const json = JSON.stringify(res);
@@ -155,10 +183,10 @@ function hello_(t) {
 function readSchedule_() {
   const sh = sheet_(TAB.schedule), out = [];
   if (!sh || sh.getLastRow() < 2) return out;
-  sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues().forEach(function (r) {
+  sh.getRange(2, 1, sh.getLastRow() - 1, 9).getValues().forEach(function (r) {
     if (!String(r[0]).trim()) return;
     out.push({ id: String(r[0]).trim(), name: String(r[1]), block: String(r[2]).trim().toUpperCase(), time: String(r[3]), teacher: String(r[4]).trim(),
-              course: String(r[5]), room: String(r[6]), role: String(r[7] || 'YR').trim().toUpperCase() });
+              course: String(r[5]), room: String(r[6]), role: String(r[7] || 'YR').trim().toUpperCase(), grade: Number(String(r[8]).trim()) || 0 });
   });
   return out;
 }
@@ -272,19 +300,20 @@ function importSchedule() {
   if (!m || m.getLastRow() < 2) { say_('The Master tab is empty. Paste the school\'s schedule export there first (header row included).'); return; }
   const v = m.getRange(1, 1, m.getLastRow(), m.getLastColumn()).getValues(), head = v[0];
   const c = { id: findCol_(head, ['STUDENT ID', 'STUDENTID', 'ID']), name: findCol_(head, ['NAME', 'STUDENT NAME', 'STUDENT']), block: findCol_(head, ['BLOCK']),
-              time: findCol_(head, ['TIME']), teacher: findCol_(head, ['TEACHER']), course: findCol_(head, ['COURSE']), room: findCol_(head, ['ROOM']), role: findCol_(head, ['ROLE']) };
+              time: findCol_(head, ['TIME']), teacher: findCol_(head, ['TEACHER']), course: findCol_(head, ['COURSE']), room: findCol_(head, ['ROOM']), role: findCol_(head, ['ROLE']), grade: findCol_(head, ['GRADE']) };
   const missing = ['id', 'name', 'block', 'teacher', 'room'].filter(function (k) { return c[k] < 0; });
   if (missing.length) { say_('The Master tab is missing these columns: ' + missing.join(', ') + '. Nothing was changed.'); return; }
   const exclude = String(setting_('exclude_courses', '')).split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
   const rows = [], students = {}, teachers = {};
+  const skippedBy = {};
   let skipped = 0, excluded = 0;
   v.slice(1).forEach(function (r) {
     const block = String(r[c.block]).trim().toUpperCase(), id = String(r[c.id]).trim();
-    if (BLOCKS.indexOf(block) < 0 || !id) { skipped++; return; }
+    if (BLOCKS.indexOf(block) < 0 || !id) { skipped++; const why = !id ? '(no student ID)' : (block || '(no block)'); skippedBy[why] = (skippedBy[why] || 0) + 1; return; }
     const course = c.course >= 0 ? String(r[c.course]).trim() : '';
     if (exclude.some(function (x) { return course.toLowerCase().indexOf(x) >= 0; })) { excluded++; return; }
     const role = c.role >= 0 ? (String(r[c.role]).trim().toUpperCase() || 'YR') : 'YR';
-    rows.push([id, String(r[c.name]).trim(), block, c.time >= 0 ? String(r[c.time]).trim() : '', String(r[c.teacher]).trim(), course, String(r[c.room]).trim(), role]);
+    rows.push([id, String(r[c.name]).trim(), block, c.time >= 0 ? String(r[c.time]).trim() : '', String(r[c.teacher]).trim(), course, String(r[c.room]).trim(), role, c.grade >= 0 ? String(r[c.grade]).trim() : '']);
     students[id] = 1; teachers[String(r[c.teacher]).trim()] = 1;
   });
   const s = ensureTab_(TAB.schedule, SCHEDULE_HEAD).sh;
@@ -295,7 +324,7 @@ function importSchedule() {
   }
   CacheService.getScriptCache().remove('teachers');
   say_('Imported ' + rows.length + ' class rows: ' + Object.keys(students).length + ' students, ' + Object.keys(teachers).length + ' teachers.\n' +
-       'Skipped ' + skipped + ' rows that are not classes (lunch and so on)' + (excluded ? ', and ' + excluded + ' rows of excluded courses' : '') + '.\n' +
+       'Skipped ' + skipped + ' rows that are not in a class block A1-B4' + (skipped ? ' (' + Object.keys(skippedBy).map(function (k) { return k + ': ' + skippedBy[k]; }).join(', ') + ')' : '') + (excluded ? ', and ' + excluded + ' rows of excluded courses' : '') + '.\n' +
        'Parent e-mails and the other Master columns were NOT copied. Next: "3. Make teacher codes", then clear the Master tab.');
 }
 

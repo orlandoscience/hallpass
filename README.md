@@ -24,7 +24,7 @@ passes are closed during the first and last 10 minutes of class, open in between
 | Red | Hall passes are closed (first and last minutes of class). The countdown shows when they open. |
 | Blue | Passing period or lunch. The countdown shows when the next class starts. |
 
-The bar under the big timer is the whole class period: red zones are the closed minutes, the white marker moves as time passes.
+The **lesson bar** sits in its own cell at the bottom of the left panel, under everything else (cards, agenda note), above the pass buttons. It shows the whole class period: red zones are the closed minutes, the white marker moves as time passes, and the times under it say when passes open (green) and close (red). An ordinary class has two red zones. A class whose students have different times (block 3, when the two lunch groups share a room, such as Dual Enrollment) shows **four**, one pair for each group, and a strip that says which grades are in the room: for example *12th grade / 12th + 10th grade / 10th grade*. That information comes from the school's schedule, so it needs the teacher code.
 
 **Agenda note (optional):** switch on *Agenda note* under Extras, then type the plan for each class (A1, B2...) in the settings, one item per line. Students see it on a yellow lined note with a red pin during that class and a few minutes before it. On the basic screen the note and the big timer take turns; with the rotating cards on, the note is one of the cards and gets the same time as the others. Start a line with `[x]` to cross it out.
 
@@ -38,7 +38,7 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 
 - **Hall pass buttons and log** (two buttons to start with; they work only after the teacher code is typed, see below): students tap their name and choose where they are going (the *Leave class* button then counts down 5 seconds and the student leaves by himself; every new tap on a place starts the count again; the seconds are a setting, 0 = off), and tap again when they return. Any number of pass buttons. Each place (restroom, locker, water...) has its own limit in minutes; the pass turns red on the board after it (limits stay on the board and are not sent anywhere). A pass can be undone for 30 seconds without the PIN; after that it is cancelled with the PIN (or one confirmation if the PIN is off). Undone and cancelled passes stay in the log as Cancelled, with the time of the tap. Long class lists (study hall) are chosen by first letter. Optionally a teacher may allow passes in the closed 10/10 minutes: the board asks once, then it looks like any other pass and the log notes it. Trips can be saved to your own Google Sheet.
 - **Sounds**: warnings before the bell and a bell ring.
-- **Cards**: a rotating panel with the lesson phase, a day arc, facts, Java riddles, announcements, school calendar numbers and the Orlando weather (temperatures in degrees F with C in brackets, plus weather warnings).
+- **Cards**: a rotating panel with the lesson phase, a day arc, facts, quick questions with answers, announcements, school calendar numbers and the Orlando weather (temperatures in degrees F with C in brackets, plus weather warnings).
 
 `Quick setup -> Basic` brings back the simple screen at any time.
 

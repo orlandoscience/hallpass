@@ -5,7 +5,7 @@ One Google Sheet in the **school's account** holds everything. Teachers never op
 | Tab | What it is | Who fills it |
 |---|---|---|
 | `Master` | The school's schedule export, pasted once. It may contain parent e-mails, so it is **cleared after the import**. | You |
-| `Schedule` | The clean copy the boards use: student ID, name, block, time, teacher, course, room, role. | The import |
+| `Schedule` | The clean copy the boards use: student ID, name, block, time, teacher, course, room, role, grade. | The import |
 | `Teachers` | One row per teacher: code, name, role, active, setup link. | "Make teacher codes" |
 | `Settings` | `site_url`, `semester2_start`, `exclude_courses`. | You |
 | `Log` | **One tab**, one row per finished trip. Never split by week. | The boards |
@@ -24,10 +24,12 @@ One Google Sheet in the **school's account** holds everything. Teachers never op
 ## 2. Set up the tabs and the schedule
 
 1. **Hall Pass -> 1. Set up tabs.** Creates `Master`, `Schedule`, `Teachers`, `Settings`, `Log` and puts the sheet on New York time.
-2. Open the school's schedule export and copy everything, **header row included**, into the `Master` tab (cell A1). Needed columns: `STUDENT ID`, `NAME`, `BLOCK`, `TIME`, `TEACHER`, `COURSE`, `ROOM`, `ROLE` (the other columns are ignored).
+2. Open the school's schedule export and copy everything, **header row included**, into the `Master` tab (cell A1). Needed columns: `STUDENT ID`, `NAME`, `BLOCK`, `TIME`, `TEACHER`, `COURSE`, `ROOM`, `ROLE`, `GRADE` (the other columns are ignored; `GRADE` is only used to say which grades are in a class with two times).
 3. On `Settings`: write the first day of the second semester in `semester2_start` (like `2027-01-11`), and in `exclude_courses` the courses that are not classrooms, separated by commas (for example `Full-Time No OSS, Dual Enrollment`).
 4. **Hall Pass -> 2. Import schedule from Master.** It keeps only the blocks A1-A4 and B1-B4, skips lunch rows, and copies **only the needed columns** (no parent e-mails). Student IDs stay text, so a leading zero is not lost. Run it again after a new export: it replaces the `Schedule` tab.
 5. **Hall Pass -> Clear the Master tab** (answer Yes). The sensitive export is gone, `Schedule` stays.
+
+**Classes with two times.** In block 3 the two lunch groups have different class times (11:00-12:28 and 11:45-1:13). When the students of one class (for example Dual Enrollment) have more than one time, the board draws the lesson bar with the 10/10 zones of **each** group (four red zones) and says which grades are in the room. Run the import again after adding the `Grade` column: older `Schedule` tabs without it still work, the strip then says "Group 1 / Group 2".
 
 **Semesters.** A course with ROLE `YR` counts all year, `S1` until `semester2_start`, `S2` from that day. Until the date is set, the first semester is used.
 
@@ -62,6 +64,10 @@ One row per finished trip, appended to the **`Log`** tab:
 | Guest name | Only for a visitor typed by hand (no ID). |
 
 Tip: **Data -> Create a filter**, or build a pivot table on this tab. About 600-1,000 trips a day is roughly 150,000 rows a year, well inside the limits of one tab. When a year ends, copy the sheet and start a fresh `Log`.
+
+## Changing the teacher on a board
+
+*Settings -> Teacher code and hall pass log -> **Disconnect this board***, then type the new teacher's code (or open the new teacher's setup link on that board). The old code and the old student lists are forgotten. Trips that were still waiting to be sent **stay marked with the teacher who made them** and are sent only when that teacher's code is typed on a board again; they are never sent under the new teacher's name. *Delete waiting trips* (two taps) removes them for good. A student who is still out when the code is changed can still be returned; his trip stays the first teacher's.
 
 ## 5. Check and troubleshoot
 
