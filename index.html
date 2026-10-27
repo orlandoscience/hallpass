@@ -451,6 +451,8 @@
   .pass-slots.many{ grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; max-height: 30vh; overflow-y: auto; }
   .pass-slots.many .slot{ min-height: 46px; padding: 4px; }
   .pass-slots.many .slot-hint{ display: none; }
+  .pass-slots.locked .slot.free{ opacity: .45; filter: grayscale(1); }
+  .hp-lock{ font-size: .85em; text-align: center; padding: 6px 8px; margin-bottom: 6px; border-radius: 8px; background: rgba(0,0,0,.35); border: 1px dashed rgba(255,255,255,.4); }
   .hpchips.letters{ gap: .3vw; }
   .hpchips.letters button{ padding: .3em .7em; font-size: clamp(14px, min(1.5vw, 2.8vh), 32px); }
   .slot-num{ font-size: 1.05rem; font-weight: 800; }
@@ -758,6 +760,7 @@
     <div class="agenda hidden" id="agenda"><div class="ag-sheet" id="agSheet"><i class="ag-pin"></i><div class="ag-head" id="agHead"></div><div class="ag-body" id="agBody"></div></div></div>
 
     <div class="hp-panel hidden" id="hpPanel">
+      <div class="hp-lock" id="hpLock" hidden>Hall passes are off. Double-tap the gear and type your teacher code.</div>
       <div class="pass-slots" id="passSlots"></div>
       <button type="button" id="ringDistractorBtn" class="ding-btn">🔔 Ding the Bell</button>
     </div>
@@ -854,7 +857,7 @@
 <div id="welcome" class="modal-backdrop hidden" style="z-index:130;">
   <div class="welcome-card">
     <h1>Welcome 👋</h1>
-    <p class="welcome-lead">Three quick choices and your board is ready. You can change everything later: double-tap ⚙.</p>
+    <p class="welcome-lead">A few quick choices and your board is ready. You can change everything later: double-tap ⚙.</p>
     <h3>1. Your schedule</h3>
     <div class="btn-row" id="welBands"></div>
     <h3>2. Pass window (10/10 rule)</h3>
@@ -863,6 +866,8 @@
     <h3>3. A PIN for the settings</h3>
     <div class="toggle-row"><span>No PIN: open the settings with a double tap</span><label class="switch"><input type="checkbox" id="welNoPin"><span class="slider"></span></label></div>
     <div class="field-row"><span>PIN (4&ndash;8 digits)</span><input type="password" id="welPin" class="num-input" style="width:130px;" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
+    <h3>4. Your teacher code</h3>
+    <div class="field-row"><span>From your administrator (you can add it later)</span><input type="text" id="welCode" class="num-input" style="width:150px;" maxlength="20" autocomplete="off" autocapitalize="characters"></div>
     <div class="welcome-err" id="welErr"></div>
     <div class="btn-row" style="justify-content:flex-end; margin-top:12px;"><button type="button" id="welStart" class="welcome-go">Start</button></div>
     <div class="btn-row" style="justify-content:center; margin-top:12px;"><button type="button" id="welDemo" class="welcome-demo">Just look first: start the demo (a pretend school day)</button></div>
@@ -880,7 +885,7 @@
         <li><b>The ⚙ button</b> (bottom right): double-tap it to open the settings (with your PIN, if you use one). Change the 10/10 minutes there, or turn on extras: hall pass buttons and log, sounds, rotating cards, weather.</li>
         <li><b>Lost?</b> ⚙ &rarr; Quick setup &rarr; <b>Basic</b> brings back the simple screen.</li>
       </ol>
-      <div class="override-note">Everything is saved on this device only. Nothing is sent anywhere until you type the school password for the hall pass log.</div>
+      <div class="override-note">Everything is saved on this device only. Nothing is sent anywhere until you type your teacher code, and then only the student ID, the destination and the times.</div>
       <div class="btn-row" style="margin-top:10px;"><button type="button" id="helpDemoBtn">Try the demo: a pretend school day on a fast clock</button></div>
     </div>
   </div>
@@ -1164,18 +1169,18 @@
     </div>
 
     <div class="section" data-needs="hallPass">
-      <h2>Hall pass log (Google Sheets)</h2>
+      <h2>Teacher code and hall pass log</h2>
       <div class="btn-row">
-        <input type="text" id="sheetUrlInput" placeholder="Apps Script web app URL (https://script.google.com/macros/s/.../exec)">
+        <input type="password" id="sheetKeyInput" placeholder="Your teacher code" autocomplete="new-password" autocapitalize="characters">
       </div>
+      <div class="perm-note">The code comes from your administrator and connects this board to your classes. Without it hall passes stay off and no student names are loaded. Trips are logged by student ID.</div>
       <div class="btn-row" style="margin-top:8px;">
-        <input type="password" id="sheetKeyInput" placeholder="Secret key (the school password)" autocomplete="new-password">
-        <div class="perm-note">The school's address is already filled in. Type the school password in the key box: nothing is sent until you do.</div>
+        <input type="text" id="sheetUrlInput" placeholder="Script address (already filled in for the school)">
       </div>
       <div class="btn-row" style="margin-top:10px;">
-        <button id="rosterLoadBtn">Load names now</button>
-        <button id="sheetTestBtn">Send test row</button>
+        <button id="rosterLoadBtn">Check code and load names</button>
         <button id="sheetFlushBtn">Send pending now</button>
+        <button id="teacherDisconnectBtn">Disconnect this board</button>
       </div>
       <div class="toggle-row"><span>Test mode: rows sent to the log are marked TEST</span><label class="switch"><input type="checkbox" id="passTestMode"><span class="slider"></span></label></div>
       <div class="perm-note">Board ID in the log: <b id="boardIdText"></b></div>
@@ -1378,7 +1383,9 @@ function getDefaultSettings(){
       testMode: false,          // rows sent to the log are marked TEST instead of LIVE
       rosterSections: {},       // { "A1": ["Full Name", ...], ... } loaded from the sheet
       sheetUrl: DEFAULT_SHEET_URL,   // Google Apps Script web app URL: the school's, filled in; nothing is sent until the key is typed
-      sheetKey: "",             // optional secret key (same word as SECRET in the script)
+      sheetKey: "",             // the teacher code (from the administrator)
+      teacher: { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" },   // who the school's script says this board belongs to
+      rosterIds: {},            // student IDs for the names in rosterSections: { A1: { "Jane D.": "0012345678" } }
       active: [],               // per slot: null | { name, reason, outMs, period, band, dayType }
       queue: [],                // finished trips waiting to be sent to the sheet
       recent: []                // last trips, shown in settings
@@ -1402,7 +1409,7 @@ async function loadSettingsFromIDB(){
     return {
       ...defaults, ...saved,
       notify: { ...defaults.notify, ...(saved.notify || {}) },
-      pass: { ...defaults.pass, ...(saved.pass || {}), sheetUrl: ((saved.pass && saved.pass.sheetUrl) || defaults.pass.sheetUrl) },
+      pass: { ...defaults.pass, ...(saved.pass || {}), sheetUrl: ((saved.pass && saved.pass.sheetUrl) || defaults.pass.sheetUrl), teacher: { ...defaults.pass.teacher, ...((saved.pass && saved.pass.teacher) || {}) } },
       stage: { ...defaults.stage, ...(older ? { phases: true, weather: true, alerts: true } : {}), ...(saved.stage || {}) },
       bell: { ...defaults.bell, ...(saved.bell || {}) },
       agenda: { ...defaults.agenda, ...(saved.agenda || {}), texts: { ...((saved.agenda && saved.agenda.texts) || {}) } },
@@ -2840,6 +2847,9 @@ function renderHallPass(){
   const wrap = $("passSlots");
   wrap.innerHTML = "";
   wrap.classList.toggle("many", settings.pass.active.length > 8);
+  const locked = !teacherOk() && !DEMO.on;
+  wrap.classList.toggle("locked", locked);
+  const hint = $("hpLock"); if(hint) hint.hidden = !(locked && settings.extras.hallPass);
   settings.pass.active.forEach((st, i) => {
     const b = document.createElement("button");
     b.type = "button";
@@ -2881,7 +2891,16 @@ function closePassDialog(){
   passDialogSlot = null;
   $("passDialogBackdrop").classList.add("hidden");
 }
+function showLockedDialog(){
+  passDialogSlot = null;
+  $("passDialog").innerHTML = '<h3>Teacher code needed</h3><div class="dlg-line">Hall passes work when this board knows its teacher.</div>' +
+    '<div class="dlg-line">Double-tap the gear, open <b>Teacher code</b> and type the code your administrator gave you.</div>' +
+    '<div class="dlg-actions"><button type="button" id="passCancelBtn" class="grant">OK</button></div>';
+  $("passCancelBtn").addEventListener("click", closePassDialog);
+  $("passDialogBackdrop").classList.remove("hidden");
+}
 function openPassDialog(i, typed){
+  if(!settings.pass.active[i] && !teacherOk() && !DEMO.on){ showLockedDialog(); return; }
   passDialogSlot = i;
   const st = settings.pass.active[i];
   const dlg = $("passDialog");
@@ -2957,6 +2976,7 @@ function currentPeriodLabel(now){
   return { label: ph ? ph.label : "Outside class hours", info };
 }
 function signOutSlot(i){
+  if(!teacherOk() && !DEMO.on){ closePassDialog(); return; }
   const dlg = $("passDialog");
   const now = appNow();
   const closed = !!closedWindowNow();
@@ -2966,7 +2986,7 @@ function signOutSlot(i){
   settings.pass.active[i] = {
     name: ($("passNameInput").value || "").trim(),
     section: rosterCount() > 0 ? "Guest" : "",
-    outside: closed,
+    outside: closed, exitId: newExitId(i), studentId: "", blk: currentSectionCode(now) || "", guest: true,
     reason: sel ? sel.getAttribute("data-reason") : "Other",
     outMs: now.getTime(),
     period: dispLabel(cp.label),
@@ -2991,6 +3011,8 @@ function makeEntry(i, atMs, status){             // status: "Returned" or "Cance
     slot: i + 1,
     section: st.section || "",
     outsideWindow: !!st.outside,
+    exitId: st.exitId || newExitId(i), studentId: st.studentId || "", blk: st.blk || "", guestName: (st.guest ? (st.name || "") : ""),
+    outMs: st.outMs, inMs: now.getTime(),
     mode: settings.pass.testMode ? "TEST" : "LIVE",
     board: settings.boardId || "",
     timeOut: hms24(outD),
@@ -3200,12 +3222,14 @@ $("hpGo").addEventListener("click", () => {
   if(!hpPick.name || !hpPick.reason) return;
   const i = hpPick.slot;
   if(settings.pass.active[i]){ hpClose(); return; }
+  if(!teacherOk() && !DEMO.on){ hpClose(); return; }
   const closed = !!closedWindowNow();
   if(closed && !settings.pass.allowOutside){ hpClose(); return; }
   if(closed && !hpPick.confirming){ hpShowConfirm(); hpBump(); return; }   // outside the window: ask once
   const now = appNow(), cp = currentPeriodLabel(now);
   settings.pass.active[i] = {
     name: hpPick.name, section: hpPick.ctxCode || hpPick.section || "", reason: hpPick.reason, outside: closed,
+    exitId: newExitId(i), studentId: ((settings.pass.rosterIds || {})[hpPick.section] || {})[hpPick.name] || "", blk: hpPick.ctxCode || hpPick.section || "", guest: false,
     outMs: now.getTime(), period: dispLabel(cp.label), band: BAND_LABELS[settings.activeBand], dayType: captionFor(cp.info)
   };
   saveSettings();
@@ -3227,18 +3251,26 @@ function sheetReady(){                         // may the board talk to the scri
   if(u === DEFAULT_SHEET_URL && !(settings.pass.sheetKey || "").trim()) return false;   // the school's address needs the school's key
   return true;
 }
-function sheetHint(){ return (settings.pass.sheetUrl || "").trim() ? "Type the school password (secret key) first." : "Paste the web app URL first."; }
+function sheetHint(){ return (settings.pass.sheetUrl || "").trim() ? "Type your teacher code first." : "Paste the web app URL first."; }
+function teacherOk(){ const t = settings.pass.teacher; return !!(t && t.ok === true); }     // hall passes work only for a board the school has recognised
+function normCode(c){ return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+function newExitId(i){ return Date.now().toString(36) + "-" + (i + 1) + "-" + Math.random().toString(36).slice(2, 5); }
+function cleanDest(r){ return String(r || "").replace(/[^\w &'\/\-]/g, "").replace(/\s+/g, " ").trim() || "Other"; }
+function teacherLost(msg){
+  settings.pass.teacher = Object.assign({}, settings.pass.teacher, { ok: false, error: msg || "Code not recognized." });
+  saveSettings(); renderHallPass(); renderTeacherStatus();
+}
 async function postEntry(entry){
-  const url = (settings.pass.sheetUrl || "").trim();
-  if(!url || !sheetReady()) return false;
-  try{
-    await fetch(url, {
-      method: "POST", mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify((settings.pass.sheetKey || "").trim() ? Object.assign({}, entry, { key: settings.pass.sheetKey.trim() }) : entry)
-    });
-    return true;
-  }catch(e){ return false; }
+  if(!sheetReady()) return false;
+  if(!entry.exitId) return true;                                // made by an older version: it cannot be matched, drop it
+  const q = { i: entry.exitId, s: entry.studentId || "", sec: entry.section || "", blk: entry.blk || "", w: cleanDest(entry.reason),
+              to: String(entry.outMs || ""), ti: String(entry.inMs || ""), o: entry.outsideWindow ? "1" : "", m: entry.mode || "LIVE",
+              b: entry.board || "", st: entry.status || "Returned", g: entry.guestName || "" };
+  const r = await sheetGet("log", d => (d && d.ok === true) ? { ok: true } : { error: (d && d.error) || "script error" }, q);
+  if(r && r.ok) return true;
+  if(r && r.error === "unknown code") teacherLost("Code not recognized. Ask your administrator.");
+  else if(r && /^(bad trip id|bad times|bad status)/.test(r.error)){ $("sheetStatus").textContent = "One trip was refused (" + r.error + ") and skipped."; return true; }
+  return false;                                                  // no answer or a temporary problem: try again later
 }
 async function flushLogQueue(){
   if(DEMO.on) return;
@@ -3275,12 +3307,13 @@ function normalizeRoster(d){
 }
 let sheetCbCount = 0;
 let SHEET_JSONP_TIMEOUT_MS = 12000;   // how long to wait for the script-tag fallback before giving up
-async function sheetGet(action, read){
+async function sheetGet(action, read, extra){
   const url = (settings.pass.sheetUrl || "").trim();
   if(!url || !sheetReady()) return null;
+  const enc = v => encodeURIComponent(String(v)).replace(/[!'()*~]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
   const key = (settings.pass.sheetKey || "").trim();
-  const k = encodeURIComponent(key).replace(/[!'()*~]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
-  const base = url + (url.indexOf("?") === -1 ? "?" : "&") + "action=" + action + (key ? "&key=" + k : "");
+  const more = Object.keys(extra || {}).filter(k => extra[k] !== "" && extra[k] != null).map(k => "&" + k + "=" + enc(extra[k])).join("");
+  const base = url + (url.indexOf("?") === -1 ? "?" : "&") + "action=" + action + (key ? "&code=" + enc(key) : "") + more;
   try{
     const res = await fetch(base + "&t=" + Date.now(), { cache: "no-store" });
     const r = read(await res.json());
@@ -3297,55 +3330,53 @@ async function sheetGet(action, read){
     document.head.appendChild(s);
   });
 }
-function fetchRoster(){
-  return sheetGet("roster", data => {
-    if(data && data.ok === false) return { error: data.error || "script error" };
-    const sections = normalizeRoster(data);
-    return sections ? { sections, tab: data.tab || null } : null;
-  });
-}
 function rosterCount(){
   return Object.values(settings.pass.rosterSections || {}).reduce((n, l) => n + l.length, 0);
 }
+function applyHello(d){                          // the school's script answered: who this board is, and the students of this teacher's classes
+  const secs = {}, ids = {};
+  (d.sections || []).forEach(sec => {
+    const list = (sec.students || []).filter(x => x && x.n);
+    if(!list.length) return;
+    const k = String(sec.block);
+    secs[k] = list.map(x => String(x.n));
+    ids[k] = {}; list.forEach(x => { ids[k][String(x.n)] = String(x.id || ""); });
+  });
+  settings.pass.rosterSections = secs;
+  settings.pass.rosterIds = ids;
+  settings.pass.teacher = { ok: true, name: String(d.teacher || ""), display: String(d.display || d.teacher || ""), role: String(d.role || "teacher"), checkedAt: Date.now(), error: "" };
+  saveSettings(); renderHallPass(); renderTeacherStatus();
+  return secs;
+}
+function renderTeacherStatus(){
+  const el = $("rosterStatus"); if(!el) return;
+  const t = settings.pass.teacher || {};
+  if(t.ok){
+    const secs = Object.keys(settings.pass.rosterSections || {}), total = rosterCount();
+    el.textContent = "Connected as " + (t.display || t.name) + ". " + total + " student" + (total === 1 ? "" : "s") + " in " + secs.length + " class" + (secs.length === 1 ? "" : "es") + (secs.length ? " (" + secs.join(", ") + ")" : "") + ".";
+  } else if(t.error){ el.textContent = t.error;
+  } else if(sheetReady()){ el.textContent = "Not checked yet. Press \"Check code and load names\".";
+  } else { el.textContent = "Not connected: type your teacher code. Hall passes stay off until then."; }
+}
 async function refreshRoster(manual){
   const st = $("rosterStatus");
-  if(!sheetReady()){ if(manual) st.textContent = sheetHint(); return; }
-  if(manual) st.textContent = "Loading names…";
-  const r = await fetchRoster();
+  if(!sheetReady()){ if(manual) st.textContent = sheetHint(); else renderTeacherStatus(); return; }
+  if(manual) st.textContent = "Checking your code…";
+  const r = await sheetGet("hello", d => (d && d.ok === true && Array.isArray(d.sections)) ? { data: d } : { error: (d && d.error) || "script error" });
   if(!r || r.error){
-    st.textContent = r && r.error === "bad key"
-      ? "Wrong secret key."
-      : "Couldn't load names. Using the " + rosterCount() + " saved on this device.";
+    if(r && r.error === "unknown code") teacherLost("Code not recognized. Check it, or ask your administrator.");
+    else { if(manual) st.textContent = "Couldn't reach the school's script." + (teacherOk() ? " Using the names saved on this device." : ""); }
     return;
   }
-  const codes = Object.keys(r.sections);
-  const total = codes.reduce((n, c) => n + r.sections[c].length, 0);
-  if(total === 0){
-    const tab = r.tab;
-    if(tab && tab.found === false){
-      st.textContent = 'This spreadsheet has no tab named "Roster". Create it (exact name). Keeping the saved list.';
-    } else if(tab && tab.cells > 0){
-      st.textContent = 'The Roster tab has ' + tab.cells + ' filled cell' + (tab.cells > 1 ? 's' : '') +
-        ', but no names could be read. Put the class code (A1, A2…) at the start of each row with the names to its right, or the codes in row 1 with the names below.';
-    } else if(tab){
-      st.textContent = 'The Roster tab is empty. Keeping the saved list.';
-    } else {
-      st.textContent = 'No names came back. If you just changed the script, publish it as a new version (Deploy → Manage deployments). Keeping the saved list.';
-    }
-    return;
-  }
-  settings.pass.rosterSections = r.sections;
-  saveSettings();
-  st.textContent = "Loaded " + total + " names in " + codes.length + " section" + (codes.length > 1 ? "s" : "") +
-    " (" + codes.join(", ") + ") at " + hms24(appNow()).slice(0, 5) + ".";
+  if(r.data.role !== "teacher"){ teacherLost("This code is not for a classroom board."); return; }
+  applyHello(r.data);
 }
-
 function renderPassLogUI(){
   const q = settings.pass.queue.length;
   const hasUrl = sheetReady();
   $("sheetPending").textContent = q === 0
     ? "Nothing waiting to be sent."
-    : q + " trip" + (q > 1 ? "s" : "") + " waiting to be sent" + (hasUrl ? "." : " (connect the log above).");
+    : q + " trip" + (q > 1 ? "s" : "") + " waiting to be sent" + (hasUrl ? "." : " (type your teacher code first).");
   const box = $("passRecent");
   box.innerHTML = settings.pass.recent.slice(0, 10).map(e =>
     '<div class="lib-row"><span class="lib-name">' + esc(e.student || "(no name)") + ' &middot; ' + esc(e.reason) +
@@ -3391,22 +3422,18 @@ $("passReasonsInput").addEventListener("change", e => {
 });
 $("passAllowOutside").addEventListener("change", e => { settings.pass.allowOutside = e.target.checked; saveSettings(); });
 $("passTestMode").addEventListener("change", e => { settings.pass.testMode = e.target.checked; saveSettings(); });
-$("sheetKeyInput").addEventListener("change", e => { settings.pass.sheetKey = e.target.value.trim(); saveSettings(); refreshRoster(true); flushLogQueue(); });
-$("sheetUrlInput").addEventListener("change", e => { settings.pass.sheetUrl = e.target.value.trim(); saveSettings(); renderPassLogUI(); flushLogQueue(); refreshRoster(true); });
-$("sheetTestBtn").addEventListener("click", async () => {
-  const st = $("sheetStatus");
-  if(!sheetReady()){ st.textContent = sheetHint(); return; }
-  const now = appNow();
-  st.textContent = "Sending…";
-  const ok = await postEntry({
-    id: "test-" + now.getTime(), date: toISO(now), student: "TEST", reason: "Test row", slot: 0,
-    timeOut: hms24(now), timeIn: hms24(now), durationMin: 0, durationSec: 0, period: "", grades: "", dayType: "",
-    section: "", outsideWindow: false, mode: "TEST", board: settings.boardId || "", status: "Returned"
-  });
-  st.textContent = ok
-    ? "Sent. Check that a row appeared in the sheet (this page can't read Google's reply)."
-    : "Couldn't reach Google. Check the connection and the URL.";
+$("sheetKeyInput").addEventListener("change", e => {
+  settings.pass.sheetKey = normCode(e.target.value); e.target.value = settings.pass.sheetKey;
+  settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" };
+  saveSettings(); renderHallPass(); renderTeacherStatus(); refreshRoster(true); flushLogQueue();
 });
+$("teacherDisconnectBtn").addEventListener("click", () => {                     // forget the code and the student lists on this board
+  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {};
+  settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" };
+  $("sheetKeyInput").value = ""; saveSettings(); renderHallPass(); renderTeacherStatus();
+  $("sheetStatus").textContent = "Disconnected. Trips still waiting stay on this device until a code is entered again.";
+});
+$("sheetUrlInput").addEventListener("change", e => { settings.pass.sheetUrl = e.target.value.trim(); saveSettings(); renderPassLogUI(); flushLogQueue(); refreshRoster(true); });
 $("sheetFlushBtn").addEventListener("click", () => { flushLogQueue(); });
 $("rosterLoadBtn").addEventListener("click", () => { refreshRoster(true); });
 $("pinEnabledSwitch").addEventListener("change", e => {
@@ -3598,6 +3625,7 @@ function finishCancel(p, pinOk){
 }
 function openSettings(){
   $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
+  renderTeacherStatus();
   if(settings.extras.agenda){ agSyncUI(false); setTimeout(agPreview, 80); }
   syncExtrasUI();
   syncSettingsVisibility();
@@ -3667,7 +3695,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the big 10/10 pass timer), extras, welcome, demo, QR code
    ===================================================================== */
-const APP_VERSION = "2026.10.27 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.10.28 · Hall Pass Board (web edition)";
 const QRLib=function(){
 // QR Code Generator for JavaScript
 // Copyright (c) 2009 Kazuhiko Arase
@@ -3829,6 +3857,7 @@ function applyExtras(){
   syncSettingsVisibility();
   stageReset();
   agendaSig = "";
+  renderHallPass();                              // the grey "teacher code" hint follows the switch at once
 }
 Object.keys(EXTRA_TOGGLES).forEach(id => {
   $(id).addEventListener("change", e => {
@@ -3872,12 +3901,22 @@ function renderWelcome(){
   $("welClosedStart").value = settings.pass.closedStartMin;
   $("welClosedEnd").value = settings.pass.closedEndMin;
 }
+function applyCodeFromHash(){                    // a personal setup link: .../hallpass/#code=ABCD2345
+  const m = /^#code=([A-Za-z0-9 \-]{6,24})$/.exec(location.hash || "");
+  if(!m) return false;
+  settings.pass.sheetKey = normCode(m[1]);
+  settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" };
+  try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}      // the code does not stay in the address bar
+  saveSettings();
+  return true;
+}
 function maybeWelcome(){
   if(settings.setupDone || DEMO.on || DEMO_PARAM) return;
   renderWelcome();
   $("welErr").textContent = "";
   $("welPin").value = "";
   $("welNoPin").checked = false; $("welPin").disabled = false;
+  $("welCode").value = settings.pass.sheetKey || "";
   $("welcome").classList.remove("hidden");
 }
 $("welNoPin").addEventListener("change", e => { $("welPin").disabled = e.target.checked; });
@@ -3891,10 +3930,13 @@ $("welStart").addEventListener("click", () => {
   settings.pinEnabled = !noPin;
   settings.pin = noPin ? "" : pin;
   settings.setupDone = true;
+  const code = normCode($("welCode").value);
+  if(code){ settings.pass.sheetKey = code; settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" }; }
   saveSettings();
   $("welcome").classList.add("hidden");
   syncPassSettingsUI();
   refreshAll();
+  if(code) refreshRoster(true);
 });
 
 /* ---------- Demo: a pretend school day on a fast clock ---------- */
@@ -4447,7 +4489,9 @@ syncTime().then(refreshAll); // refine once synced (or confirmed offline), doesn
   renderWeatherChip();
   stageReset();
   // everything that needs the internet starts once the saved settings are known
-  refreshRoster(false);
+  const fromLink = applyCodeFromHash();
+  renderTeacherStatus(); renderHallPass();
+  refreshRoster(fromLink);
   refreshMessages(false);
   fetchWeather();
   fetchAlerts();

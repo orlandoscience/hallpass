@@ -36,7 +36,7 @@ The board keeps working without internet once it has been opened online, and it 
 
 Open the settings by double-tapping the gear button (bottom right), then your PIN if you use one (the PIN can be switched off in the settings). Under **Extras** you can switch on only what you want:
 
-- **Hall pass buttons and log** (two buttons to start with): students tap their name, choose where they are going, and tap again when they return. Any number of pass buttons. Each place (restroom, locker, water...) has its own limit in minutes; the pass turns red on the board after it (limits stay on the board and are not sent anywhere). A pass can be undone for 30 seconds without the PIN; after that it is cancelled with the PIN (or one confirmation if the PIN is off). Undone and cancelled passes stay in the log as Cancelled, with the time of the tap. Long class lists (study hall) are chosen by first letter. Optionally a teacher may allow passes in the closed 10/10 minutes: the board asks once, then it looks like any other pass and the log notes it. Trips can be saved to your own Google Sheet.
+- **Hall pass buttons and log** (two buttons to start with; they work only after the teacher code is typed, see below): students tap their name, choose where they are going, and tap again when they return. Any number of pass buttons. Each place (restroom, locker, water...) has its own limit in minutes; the pass turns red on the board after it (limits stay on the board and are not sent anywhere). A pass can be undone for 30 seconds without the PIN; after that it is cancelled with the PIN (or one confirmation if the PIN is off). Undone and cancelled passes stay in the log as Cancelled, with the time of the tap. Long class lists (study hall) are chosen by first letter. Optionally a teacher may allow passes in the closed 10/10 minutes: the board asks once, then it looks like any other pass and the log notes it. Trips can be saved to your own Google Sheet.
 - **Sounds**: warnings before the bell and a bell ring.
 - **Cards**: a rotating panel with the lesson phase, a day arc, facts, Java riddles, announcements, school calendar numbers and the Orlando weather (temperatures in degrees F with C in brackets, plus weather warnings).
 
@@ -57,15 +57,15 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 | `index.html` | The whole board (page, bell schedules, A/B calendar). |
 | `sw.js`, `manifest.webmanifest`, `icon*.png/svg` | Make it work offline and installable. |
 | `LICENSE` | The Free School Use License. |
-| `apps-script/Code.gs` | Optional Google Apps Script for the hall pass log, student names, announcements and weather warnings. |
+| `apps-script/Code.gs`, `apps-script/SETUP.md` | The school's Google Apps Script (teacher codes, class lists, the log, announcements, weather warnings) and the administrator's guide. |
+| `apps-script/webapplink` | The address of the deployed script (also built into `index.html`). |
 | `docs/` | Screenshots and QR codes for slides. |
 
-**Optional: hall pass log in a Google Sheet** (only if you switch on the hall pass extra)
+**Teacher codes, class lists and the hall pass log**
 
-1. Create a Google Sheet. Extensions -> Apps Script. Paste `apps-script/Code.gs`.
-2. Deploy -> New deployment -> Web app. Execute as: *Me*. Who has access: *Anyone*. Copy the web app address.
-3. The school's address is already built into the page (it is also written in `apps-script/webapplink`, so change both if you ever make a new deployment). On the board: settings -> Hall pass log: type the school password (the `SECRET` word of the script) in the key box, press *Send test row*. Until the password is typed, nothing is sent.
-4. Trips appear in a tab called `HallPass` (created automatically). A tab called `Roster` (class codes such as A1, A2 in row 1, names underneath) feeds the name buttons. A tab called `Messages` feeds announcements. For weather warnings, choose `authorize` in the script editor and press Run once.
+The hall pass buttons need to know whose board this is. Each teacher has a personal **teacher code**, made by the administrator in the school's Google Sheet. The code is typed once on the board (welcome screen, or Settings -> *Teacher code*), or arrives in a personal setup link that ends in `#code=...`. Without a code the buttons stay grey, no student names are loaded and nothing is logged. With a code the board receives only the students of that teacher's own classes (from the school schedule) and logs each finished trip **by student ID**, one row on the single `Log` tab of the school's sheet.
+
+The administrator's guide is in [`apps-script/SETUP.md`](apps-script/SETUP.md). In short: paste `apps-script/Code.gs` into the sheet's Apps Script, deploy it as a web app (the address is built into the page and also written in `apps-script/webapplink`; deploy a *new version* of the same deployment to keep it), then use the menu *Hall Pass*: set up tabs, import the schedule export, make teacher codes, make setup links.
 
 ## License
 
@@ -73,8 +73,8 @@ Hall Pass Board is free for schools, including all schools of Discovery Educatio
 
 ## Privacy
 
-- Everything is stored in the browser of the board itself (IndexedDB). Nothing is sent anywhere unless you connect a Google Sheet or switch on the weather.
-- **This repository and the website are public. Never commit student names, rosters or sheet addresses.** Names live only on the boards and in your own Google Sheet.
+- Everything is stored in the browser of the board itself (IndexedDB). Nothing is sent anywhere until the teacher code is typed (and then only the student ID, the destination and the times), or you switch on the weather.
+- **This repository and the website are public. Never commit student names, rosters, schedule exports or teacher codes.** The address of the school's script is public on purpose: it answers nobody without a valid teacher code. Names live only in the school's Google Sheet and, for each teacher's own classes, on that teacher's board.
 - The weather extra contacts open-meteo.com and api.weather.gov (through your Google script). The time sync contacts public time servers.
 - Forgot the PIN? Clear the site's data in Chrome (site settings) and the welcome screen returns. This also clears that board's saved settings.
 
