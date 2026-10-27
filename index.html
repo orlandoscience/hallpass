@@ -1,9 +1,11 @@
 <!DOCTYPE html>
+<!-- Hall Pass Board. Copyright (c) 2026 Shamil Ganiev. Free School Use License: free for schools, including all Discovery Education schools. See LICENSE. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0b1120">
+<meta name="author" content="Shamil Ganiev">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -667,8 +669,8 @@
   #ambient[data-agenda="1"] .ph-count{ font-size: clamp(20px, min(2.4vw, 4.4vh), 60px); }
   #ambient[data-agenda="1"] .ph-bar{ height: clamp(12px, 2vh, 26px); }
   #ambient[data-agenda="1"] .ph-barwrap{ margin-top: .3em; }
-  #ambient[data-cards="1"][data-agenda="1"] .stage, #ambient[data-cards="1"][data-agenda="1"] .stage-note{ display: none; }
-  #ambient[data-cards="1"][data-agenda="1"] .greeting{ flex: 0 0 auto; }
+  .ag-sheet{ text-align: left; }
+  .ag-sheet.ag-card{ position: relative; width: 94%; height: 94%; flex: none; }
   .ag-prev{ height: 170px; margin: 8px 0; padding: 10px 6px 4px; }
   .ag-prev .ag-sheet{ height: 100%; transform: none; padding: 14px 10px 6px; }
   .ag-prev.empty .ag-body{ opacity: .35; }
@@ -878,7 +880,7 @@
         <li><b>The ⚙ button</b> (bottom right): double-tap it to open the settings (with your PIN, if you use one). Change the 10/10 minutes there, or turn on extras: hall pass buttons and log, sounds, rotating cards, weather.</li>
         <li><b>Lost?</b> ⚙ &rarr; Quick setup &rarr; <b>Basic</b> brings back the simple screen.</li>
       </ol>
-      <div class="override-note">Everything is saved on this device only. Nothing is sent anywhere unless you connect a Google Sheet for the hall pass log.</div>
+      <div class="override-note">Everything is saved on this device only. Nothing is sent anywhere until you type the school password for the hall pass log.</div>
       <div class="btn-row" style="margin-top:10px;"><button type="button" id="helpDemoBtn">Try the demo: a pretend school day on a fast clock</button></div>
     </div>
   </div>
@@ -1137,9 +1139,10 @@
       <div class="ag-prev" id="agPreview"><div class="ag-sheet"><i class="ag-pin"></i><div class="ag-head"></div><div class="ag-body"></div></div></div>
       <div class="toggle-row"><span>Clear it at the end of the day</span><label class="switch"><input type="checkbox" id="agClearDaily"><span class="slider"></span></label></div>
       <div class="field-row"><span>Show it from (minutes before the class starts)</span><input type="number" id="agLead" class="num-input" min="0" max="30"></div>
+      <div class="field-row"><span>Seconds on screen: the note and the big timer take turns</span><input type="number" id="agSec" class="num-input" min="8" max="90"></div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="agCopyDay">Copy to this day's periods</button><button type="button" id="agCopyAll">Copy to all 8 classes</button><button type="button" id="agClear">Clear this note</button></div>
       <div class="perm-note" id="agStatus"></div>
-      <div class="override-note">The note shows during the class you pick here (and a few minutes before it). Start a line with <b>[x]</b> to cross it out. Plain text only: it is shown to students exactly as typed.</div>
+      <div class="override-note">On the basic screen the note and the big timer take turns; with the rotating cards on, the note is one of the cards and gets the same time as the others. It shows during the class you pick here (and a few minutes before it). Start a line with <b>[x]</b> to cross it out. Plain text only: it is shown to students exactly as typed.</div>
     </div>
 
     <div class="section" data-needs="hallPass">
@@ -1166,7 +1169,8 @@
         <input type="text" id="sheetUrlInput" placeholder="Apps Script web app URL (https://script.google.com/macros/s/.../exec)">
       </div>
       <div class="btn-row" style="margin-top:8px;">
-        <input type="password" id="sheetKeyInput" placeholder="Secret key (only if the script has one)" autocomplete="new-password">
+        <input type="password" id="sheetKeyInput" placeholder="Secret key (the school password)" autocomplete="new-password">
+        <div class="perm-note">The school's address is already filled in. Type the school password in the key box: nothing is sent until you do.</div>
       </div>
       <div class="btn-row" style="margin-top:10px;">
         <button id="rosterLoadBtn">Load names now</button>
@@ -1211,6 +1215,7 @@
       Times come from the OSHS 2026&ndash;2027 A/B block schedule and bell schedule sheet.
       Once the board has been opened online it keeps working without internet, and it updates itself outside school hours.
       <br>Version <span id="appVersion"></span>
+      <br>Hall Pass Board &copy; 2026 Shamil Ganiev. Free for schools under the Free School Use License (see LICENSE on GitHub).
       <div class="perm-note" id="updateNote"></div>
       <div class="btn-row hidden" id="updateRow" style="margin-top:6px;"><button id="reloadNowBtn" type="button">Reload now</button></div>
     </div>
@@ -1335,6 +1340,7 @@ const BAND_LABELS = { "912": "9th–12th Grade", "1011": "10th–11th Grade" };
    at all for non-http(s) origins like that, even though setting it silently
    "succeeds." IndexedDB is a separate API that does work here (confirmed by
    the sound library already surviving reloads), so settings live there too. */
+const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyK0y5PNq5rJfvAAVGyctWzQhSYwjvACE3muXEAojeoQZYqvBlAdE_XXXrCC3i77kO5HA/exec";   // the school's Google script (also written in apps-script/webapplink); useless without the key
 function getDefaultSettings(){
   return {
     theme: "dark",
@@ -1361,7 +1367,7 @@ function getDefaultSettings(){
     pinEnabled: true,          // false = the gear opens the settings with no code (a double tap is still needed)
     pin: "1234", // settings PIN (a classroom deterrent, stored on this device only)
     pass: {
-      slots: 4,                 // number of hall-pass buttons
+      slots: 2,                 // number of hall-pass buttons
       useWindow: true,          // "passes closed" windows at the start/end of each class period
       closedStartMin: 10,
       closedEndMin: 10,
@@ -1371,7 +1377,7 @@ function getDefaultSettings(){
       limits: { "🚻 Restroom": 8, "🔒 Locker": 3, "💧 Water": 3, "🏢 Office": 8, "🏥 Nurse": 8, "Other": 8 },   // minutes, per type; a slot turns red after it
       testMode: false,          // rows sent to the log are marked TEST instead of LIVE
       rosterSections: {},       // { "A1": ["Full Name", ...], ... } loaded from the sheet
-      sheetUrl: "",             // Google Apps Script web app URL
+      sheetUrl: DEFAULT_SHEET_URL,   // Google Apps Script web app URL: the school's, filled in; nothing is sent until the key is typed
       sheetKey: "",             // optional secret key (same word as SECRET in the script)
       active: [],               // per slot: null | { name, reason, outMs, period, band, dayType }
       queue: [],                // finished trips waiting to be sent to the sheet
@@ -1396,7 +1402,7 @@ async function loadSettingsFromIDB(){
     return {
       ...defaults, ...saved,
       notify: { ...defaults.notify, ...(saved.notify || {}) },
-      pass: { ...defaults.pass, ...(saved.pass || {}) },
+      pass: { ...defaults.pass, ...(saved.pass || {}), sheetUrl: ((saved.pass && saved.pass.sheetUrl) || defaults.pass.sheetUrl) },
       stage: { ...defaults.stage, ...(older ? { phases: true, weather: true, alerts: true } : {}), ...(saved.stage || {}) },
       bell: { ...defaults.bell, ...(saved.bell || {}) },
       agenda: { ...defaults.agenda, ...(saved.agenda || {}), texts: { ...((saved.agenda && saved.agenda.texts) || {}) } },
@@ -1406,6 +1412,8 @@ async function loadSettingsFromIDB(){
     };
   }catch(e){ return defaults; }
 }
+let DAY_LETTER = null;                          // A or B: the board shows A1, B2... instead of "Period 1"
+function dispLabel(l){ const m = DAY_LETTER && /^Period\s*(\d)$/i.exec(String(l)); return m ? DAY_LETTER + m[1] : l; }
 let settings = getDefaultSettings(); // real values are loaded from IndexedDB near the end of this script
 const DEMO = { on: false, speed: 1, baseSim: 0, baseReal: 0, backup: null };   // presentation demo (see below)
 function saveSettings(){
@@ -1675,7 +1683,7 @@ function renderScheduleList(info, nowMinutes){
       : "";
     div.innerHTML = `
       ${bar}
-      <span class="label">${row.label}${isNow ? '<span class="now-tag">Now</span>' : ""}</span>
+      <span class="label">${dispLabel(row.label)}${isNow ? '<span class="now-tag">Now</span>' : ""}</span>
       <span class="time">${fmtClock(row.start)} – ${fmtClock(row.end)}</span>
     `;
     return div;
@@ -1791,14 +1799,14 @@ function renderCountdown(info, now){
     const secondsLeft = (boundary.minutes - nowMinutes) * 60;
     cdTime.textContent = fmtCountdown(secondsLeft);
     cdLabel.textContent = "Time left until";
-    cdSub.textContent = boundary.isEnd ? `${boundary.row.label} ends` : `${boundary.row.label} begins`;
+    cdSub.textContent = boundary.isEnd ? `${dispLabel(boundary.row.label)} ends` : `${dispLabel(boundary.row.label)} begins`;
   }
 
   const phase = findCurrentPhase(rows, nowMinutes);
   if(phase){
     const secondsPassed = (nowMinutes - phase.startMinutes) * 60;
     cdPassedTime.textContent = fmtCountdown(secondsPassed);
-    cdPassedSub.textContent = `since ${phase.label} began`;
+    cdPassedSub.textContent = `since ${dispLabel(phase.label)} began`;
   } else {
     cdPassedTime.textContent = "--:--:--";
     cdPassedSub.textContent = "";
@@ -1912,7 +1920,7 @@ function checkAndFireNotifications(info, now){
         if(nowSeconds >= fireAt && nowSeconds < fireAt + 2 && !firedNotifications[key]){
           firedNotifications[key] = true;
           if(canNotify){
-            new Notification(`${t} minutes left`, { body: `${row.label} ends in ${t} minutes.`, tag: key });
+            new Notification(`${t} minutes left`, { body: `${dispLabel(row.label)} ends in ${t} minutes.`, tag: key });
           }
           playSoundFor("warning");
         }
@@ -1962,6 +1970,7 @@ function refreshAll(){
   renderBandTabs();
   renderOverrideButtonsCombined();
   const info = renderHeaderAndBadge();
+  DAY_LETTER = info.letter || null;
   const now = appNow();
   const nowMinutes = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
   renderScheduleList(info, nowMinutes);
@@ -1982,6 +1991,7 @@ function tick(){
     firedNotifications = {};
   }
   const info = effectiveBandInfo(settings.activeBand, iso);
+  DAY_LETTER = info.letter || null;
   const nowMinutes = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
   document.getElementById("todayLine").textContent = now.toLocaleDateString(undefined, {
     weekday:"long", year:"numeric", month:"long", day:"numeric"
@@ -2206,7 +2216,7 @@ function activeMessages(iso){
 }
 async function refreshMessages(manual){
   const st = $("msgStatus");
-  if(!(settings.pass.sheetUrl || "").trim()){ if(manual) st.textContent = "Paste the web app URL first (Hall pass log)."; return; }
+  if(!sheetReady()){ if(manual) st.textContent = sheetHint(); return; }
   if(manual) st.textContent = "Loading…";
   const r = await sheetGet("messages", d => {
     if(d && d.ok === false) return { error: d.error || "script error" };
@@ -2293,7 +2303,7 @@ function renderWeatherChip(){
 async function fetchAlerts(){
   if(!settings.stage.weather || !settings.stage.alerts){ WX.alerts = []; renderAlertBanner(); return; }
   let list = null;
-  if((settings.pass.sheetUrl || "").trim()){
+  if(sheetReady()){
     const r = await sheetGet("alerts", d => {
       if(d && d.ok === false) return { error: d.error || "script error" };
       return d && Array.isArray(d.alerts) ? { alerts: d.alerts } : null;
@@ -2422,7 +2432,7 @@ function stageContext(now, info){
   const todEmoji = { morning: "🌅", day: "☀️", evening: "🌇", night: "🌙" }[tod];
   const iso = toISO(now);
   const rows = rowsFor(settings.activeBand, info.timeType);
-  const ctx = { tod, rows, iso, nowSec, mode: "noschool", title: greeting, emoji: todEmoji, sub: "", note: "", row: null, lessonPhase: null, arcTitle: "" };
+  const ctx = { tod, rows, iso, nowSec, letter: info.letter || null, mode: "noschool", title: greeting, emoji: todEmoji, sub: "", note: "", row: null, lessonPhase: null, arcTitle: "" };
   if(rows.length === 0){
     const nd = nextSchoolDay(iso), dow = now.getDay();
     if(!nd && iso > SCHOOL_DAYS[SCHOOL_DAYS.length - 1]){ ctx.title = "Have a Wonderful Summer!"; ctx.emoji = "🌴"; ctx.sub = "See you next school year."; }
@@ -2437,8 +2447,8 @@ function stageContext(now, info){
     ctx.row = row;
     if(row.type === "class"){
       ctx.mode = "class";
-      ctx.title = row.label;
-      ctx.arcTitle = row.label;
+      ctx.title = dispLabel(row.label);
+      ctx.arcTitle = dispLabel(row.label);
       if(settings.stage.phases){
         ctx.lessonPhase = lessonPhase(row, nowSec);
         ctx.emoji = ctx.lessonPhase.emoji;
@@ -2450,7 +2460,7 @@ function stageContext(now, info){
       ctx.emoji = row.type === "lunch" ? "🍽️" : "🚶";
       ctx.arcTitle = ctx.title;
       const nx = nextMain(idx + 1);
-      ctx.sub = nx ? "Next: " + nx.label + " in " + fmtDur(rowStartSec(nx) - nowSec) : "Next bell at " + fmtClock(row.end);
+      ctx.sub = nx ? "Next: " + dispLabel(nx.label) + " in " + fmtDur(rowStartSec(nx) - nowSec) : "Next bell at " + fmtClock(row.end);
       ctx.note = wxDismissNote(now, rows);
     }
   } else if(nowSec < rowStartSec(rows[0])){
@@ -2469,16 +2479,16 @@ function stageContext(now, info){
 }
 
 const STAGE_ORDER = {
-  class:    ["arc", "fact", "calendar", "riddle", "message", "weather"],
-  break:    ["fact", "riddle", "calendar", "message", "weather", "arc"],
-  lunch:    ["fact", "riddle", "calendar", "message", "weather", "arc"],
-  before:   ["fact", "calendar", "riddle", "message", "weather", "arc"],
+  class:    ["agenda", "arc", "fact", "calendar", "riddle", "message", "weather"],
+  break:    ["agenda", "fact", "riddle", "calendar", "message", "weather", "arc"],
+  lunch:    ["agenda", "fact", "riddle", "calendar", "message", "weather", "arc"],
+  before:   ["agenda", "fact", "calendar", "riddle", "message", "weather", "arc"],
   after:    ["wxNext", "message", "calendar", "fact", "riddle", "arc"],
   noschool: ["fact", "calendar", "weather", "riddle", "message"]
 };
 function kindEnabled(k){
   const s = settings.stage;
-  return k === "arc" ? s.arc : k === "fact" ? s.facts : k === "riddle" ? s.riddles : k === "message" ? s.messages
+  return k === "agenda" ? !!settings.extras.agenda : k === "arc" ? s.arc : k === "fact" ? s.facts : k === "riddle" ? s.riddles : k === "message" ? s.messages
        : k === "calendar" ? s.calendar : (k === "weather" || k === "wxNext") ? s.weather : true;
 }
 function arcPoint(f){
@@ -2491,6 +2501,13 @@ function arcFraction(rows, nowSec){
 }
 function makeCard(kind, ctx, now){
   const dur = Math.max(8, Math.min(90, settings.stage.cardSec || 20)) * 1000;
+  if(kind === "agenda"){                          // the note is one of the cards: it gets the same time as the others
+    const code = agendaCodeFor(ctx), text = code ? agendaText(code, ctx.iso) : "";
+    if(!text.trim()) return null;
+    const head = "Agenda · " + agDateLabel(ctx.iso);
+    return { kind, dur, html: '<div class="ag-sheet ag-card"><i class="ag-pin"></i><div class="ag-head"></div><div class="ag-body"></div></div>',
+             mount(el){ paintAgenda(el.querySelector(".ag-sheet"), text, head); } };
+  }
   if(kind === "fact"){
     const useFact = stage.factToggle++ % 2 === 0;
     const text = useFact ? nextFrom("fact", FACTS) : nextFrom("phrase", PHRASES);
@@ -2586,7 +2603,7 @@ function showCard(c, instant){
   stage.shownAt = Date.now();
   const el = $("stageCard");
   clearTimeout(stage.swap);
-  const put = () => { el.innerHTML = c.html; el.classList.remove("out"); fitStage(); };
+  const put = () => { el.innerHTML = c.html; el.classList.remove("out"); fitStage(); if(c.mount) c.mount(el); };
   if(instant || !el.firstChild){ put(); return; }
   el.classList.add("out");
   stage.swap = setTimeout(put, 330);
@@ -2641,7 +2658,7 @@ function agendaText(code, iso){                  // the plan for this class, if 
   return String(e.t);
 }
 function agendaCodeFor(ctx, info){               // the class whose plan is on the note: this lesson, or the next one that starts soon
-  const letter = info.letter || "A";
+  const letter = (ctx && ctx.letter) || (info && info.letter) || "A";
   const code = row => { const m = row && /Period\s*(\d)/.exec(row.label); return m ? letter + m[1] : null; };
   if(ctx.mode === "class") return code(ctx.row);
   if(ctx.mode === "break" || ctx.mode === "lunch" || ctx.mode === "before"){
@@ -2671,11 +2688,20 @@ function paintAgenda(sheet, text, head, maxFs){  // writes the lines and shrinks
   setSize(14);
   return false;
 }
+const agView = { key: "", on: false, since: 0 };   // the basic screen: is the note on screen now, or the big timer?
 function renderAgenda(ctx, info, now){
-  const code = settings.extras.agenda ? agendaCodeFor(ctx, info) : null;
-  const text = code ? agendaText(code, ctx.iso) : "";
-  const box = $("agenda"), amb = $("ambient");
-  const show = !!text.trim();
+  const amb = $("ambient"), box = $("agenda");
+  let show = false, text = "", code = null;
+  if(settings.extras.agenda && !settings.extras.cards){     // with the cards on, the note is one of the cards instead
+    code = agendaCodeFor(ctx, info);
+    text = code ? agendaText(code, ctx.iso) : "";
+    if(text.trim()){
+      const hold = Math.max(8, Math.min(90, settings.stage.cardSec || 20)) * 1000, t = Date.now(), key = code + "|" + text;
+      if(agView.key !== key){ agView.key = key; agView.on = true; agView.since = t; }          // a new or changed note shows at once
+      else if(t - agView.since >= hold){ agView.on = !agView.on; agView.since = t; }          // then the note and the big timer take turns
+      show = agView.on;
+    } else agView.key = "";
+  } else agView.key = "";
   if((amb.getAttribute("data-agenda") === "1") !== show){ amb.setAttribute("data-agenda", show ? "1" : "0"); heroFitSig = ""; agendaSig = ""; }
   box.classList.toggle("hidden", !show);
   if(!show) return;
@@ -2701,6 +2727,7 @@ function agSyncUI(keepBlock){
   $("agText").value = e ? e.t : "";
   $("agClearDaily").checked = !!settings.agenda.clearDaily;
   $("agLead").value = settings.agenda.leadMin;
+  $("agSec").value = settings.stage.cardSec;
   $("agStatus").textContent = "";
   agPreview();
 }
@@ -2726,6 +2753,7 @@ $("agCopyDay").addEventListener("click", () => { const L = $("agBlock").value.ch
 $("agCopyAll").addEventListener("click", () => agCopy(AGENDA_BLOCKS));
 $("agClear").addEventListener("click", () => { $("agText").value = ""; agCopy([$("agBlock").value]); agPreview(); });
 $("agClearDaily").addEventListener("change", e => { settings.agenda.clearDaily = e.target.checked; saveSettings(); agendaSig = ""; refreshAll(); });
+$("agSec").addEventListener("change", e => { const v = clampInt(e.target.value, 8, 90, 20); settings.stage.cardSec = v; e.target.value = v; $("stCardSec").value = v; saveSettings(); });
 $("agLead").addEventListener("change", e => { const v = clampInt(e.target.value, 0, 30, 5); settings.agenda.leadMin = v; e.target.value = v; saveSettings(); agendaSig = ""; refreshAll(); });
 window.addEventListener("resize", () => { agendaSig = ""; });
 
@@ -2747,7 +2775,7 @@ Object.keys(STAGE_TOGGLES).forEach(id => {
 });
 $("stCardSec").addEventListener("change", e => {
   const v = clampInt(e.target.value, 8, 90, 20);
-  settings.stage.cardSec = v; e.target.value = v; saveSettings();
+  settings.stage.cardSec = v; e.target.value = v; if($("agSec")) $("agSec").value = v; saveSettings();
 });
 $("stLoadMsgBtn").addEventListener("click", () => { refreshMessages(true); });
 $("stLoadWxBtn").addEventListener("click", async () => { await fetchWeather(true); await fetchAlerts(); });
@@ -2797,7 +2825,7 @@ function renderPassCard(now){
 /* ---------- Pass buttons ---------- */
 let passDialogSlot = null;
 function ensureSlots(){
-  let n = clampInt(settings.pass.slots, 1, 200, 4);
+  let n = clampInt(settings.pass.slots, 1, 200, 2);
   const a = Array.isArray(settings.pass.active) ? settings.pass.active : [];
   let last = -1;
   a.forEach((s, i) => { if(s) last = i; });
@@ -2941,7 +2969,7 @@ function signOutSlot(i){
     outside: closed,
     reason: sel ? sel.getAttribute("data-reason") : "Other",
     outMs: now.getTime(),
-    period: cp.label,
+    period: dispLabel(cp.label),
     band: BAND_LABELS[settings.activeBand],
     dayType: captionFor(cp.info)
   };
@@ -3178,7 +3206,7 @@ $("hpGo").addEventListener("click", () => {
   const now = appNow(), cp = currentPeriodLabel(now);
   settings.pass.active[i] = {
     name: hpPick.name, section: hpPick.ctxCode || hpPick.section || "", reason: hpPick.reason, outside: closed,
-    outMs: now.getTime(), period: cp.label, band: BAND_LABELS[settings.activeBand], dayType: captionFor(cp.info)
+    outMs: now.getTime(), period: dispLabel(cp.label), band: BAND_LABELS[settings.activeBand], dayType: captionFor(cp.info)
   };
   saveSettings();
   hpClose();
@@ -3193,9 +3221,16 @@ window.addEventListener("resize", () => {
    Entries are always queued first and removed only after the request goes out,
    so nothing is lost if the board is offline or no URL is set yet. */
 let flushingLog = false;
+function sheetReady(){                         // may the board talk to the script at all?
+  const u = (settings.pass.sheetUrl || "").trim();
+  if(!u) return false;
+  if(u === DEFAULT_SHEET_URL && !(settings.pass.sheetKey || "").trim()) return false;   // the school's address needs the school's key
+  return true;
+}
+function sheetHint(){ return (settings.pass.sheetUrl || "").trim() ? "Type the school password (secret key) first." : "Paste the web app URL first."; }
 async function postEntry(entry){
   const url = (settings.pass.sheetUrl || "").trim();
-  if(!url) return false;
+  if(!url || !sheetReady()) return false;
   try{
     await fetch(url, {
       method: "POST", mode: "no-cors",
@@ -3208,7 +3243,7 @@ async function postEntry(entry){
 async function flushLogQueue(){
   if(DEMO.on) return;
   if(flushingLog) return;
-  if(!(settings.pass.sheetUrl || "").trim() || settings.pass.queue.length === 0) return;
+  if(!sheetReady() || settings.pass.queue.length === 0) return;
   flushingLog = true;
   try{
     while(settings.pass.queue.length > 0){
@@ -3242,7 +3277,7 @@ let sheetCbCount = 0;
 let SHEET_JSONP_TIMEOUT_MS = 12000;   // how long to wait for the script-tag fallback before giving up
 async function sheetGet(action, read){
   const url = (settings.pass.sheetUrl || "").trim();
-  if(!url) return null;
+  if(!url || !sheetReady()) return null;
   const key = (settings.pass.sheetKey || "").trim();
   const k = encodeURIComponent(key).replace(/[!'()*~]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
   const base = url + (url.indexOf("?") === -1 ? "?" : "&") + "action=" + action + (key ? "&key=" + k : "");
@@ -3274,7 +3309,7 @@ function rosterCount(){
 }
 async function refreshRoster(manual){
   const st = $("rosterStatus");
-  if(!(settings.pass.sheetUrl || "").trim()){ if(manual) st.textContent = "Paste the web app URL first."; return; }
+  if(!sheetReady()){ if(manual) st.textContent = sheetHint(); return; }
   if(manual) st.textContent = "Loading names…";
   const r = await fetchRoster();
   if(!r || r.error){
@@ -3307,10 +3342,10 @@ async function refreshRoster(manual){
 
 function renderPassLogUI(){
   const q = settings.pass.queue.length;
-  const hasUrl = !!(settings.pass.sheetUrl || "").trim();
+  const hasUrl = sheetReady();
   $("sheetPending").textContent = q === 0
     ? "Nothing waiting to be sent."
-    : q + " trip" + (q > 1 ? "s" : "") + " waiting to be sent" + (hasUrl ? "." : " (add the URL above).");
+    : q + " trip" + (q > 1 ? "s" : "") + " waiting to be sent" + (hasUrl ? "." : " (connect the log above).");
   const box = $("passRecent");
   box.innerHTML = settings.pass.recent.slice(0, 10).map(e =>
     '<div class="lib-row"><span class="lib-name">' + esc(e.student || "(no name)") + ' &middot; ' + esc(e.reason) +
@@ -3360,7 +3395,7 @@ $("sheetKeyInput").addEventListener("change", e => { settings.pass.sheetKey = e.
 $("sheetUrlInput").addEventListener("change", e => { settings.pass.sheetUrl = e.target.value.trim(); saveSettings(); renderPassLogUI(); flushLogQueue(); refreshRoster(true); });
 $("sheetTestBtn").addEventListener("click", async () => {
   const st = $("sheetStatus");
-  if(!(settings.pass.sheetUrl || "").trim()){ st.textContent = "Paste the web app URL first."; return; }
+  if(!sheetReady()){ st.textContent = sheetHint(); return; }
   const now = appNow();
   st.textContent = "Sending…";
   const ok = await postEntry({
@@ -3632,7 +3667,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the big 10/10 pass timer), extras, welcome, demo, QR code
    ===================================================================== */
-const APP_VERSION = "2026.10.26.2 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.10.27 · Hall Pass Board (web edition)";
 const QRLib=function(){
 // QR Code Generator for JavaScript
 // Copyright (c) 2009 Kazuhiko Arase
@@ -3700,12 +3735,12 @@ function heroModel(now, info){
     const nx = rows.slice(idx + 1).find(r => r.type !== "break");
     m.state = "break"; m.stateText = row.type === "lunch" ? "LUNCH" : "BREAK";
     m.title = row.type === "lunch" ? "Lunch" : "Passing period";
-    m.sub = nx ? "Next: " + nx.label + " at " + fmtClock(nx.start) : "Last bell at " + fmtClock(row.end);
-    m.count = nx ? nx.label + " in " + fmtDur(rowStartSec(nx) - nowSec) : "";
+    m.sub = nx ? "Next: " + dispLabel(nx.label) + " at " + fmtClock(nx.start) : "Last bell at " + fmtClock(row.end);
+    m.count = nx ? dispLabel(nx.label) + " in " + fmtDur(rowStartSec(nx) - nowSec) : "";
     m.bar = solid("break", f, fmtClock(row.start), fmtClock(row.end));
     return m;
   }
-  m.title = row.label;
+  m.title = dispLabel(row.label);
   m.sub = (settings.stage.phases ? lessonPhase(row, nowSec).name + " · " : "") + "until " + fmtClock(row.end);
   const A = Number(P.closedStartMin) || 0, Bm = Number(P.closedEndMin) || 0;
   if(!P.useWindow || (A <= 0 && Bm <= 0)){

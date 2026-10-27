@@ -26,7 +26,7 @@ passes are closed during the first and last 10 minutes of class, open in between
 
 The bar under the big timer is the whole class period: red zones are the closed minutes, the white marker moves as time passes.
 
-**Agenda note (optional):** switch on *Agenda note* under Extras, then type the plan for each class in the settings (one item per line). Students see it on a yellow lined note with a red pin during that class and a few minutes before it. Start a line with `[x]` to cross it out.
+**Agenda note (optional):** switch on *Agenda note* under Extras, then type the plan for each class (A1, B2...) in the settings, one item per line. Students see it on a yellow lined note with a red pin during that class and a few minutes before it. On the basic screen the note and the big timer take turns; with the rotating cards on, the note is one of the cards and gets the same time as the others. Start a line with `[x]` to cross it out.
 
 **If the school bell and the board disagree:** line the board up with the bell using the -1 / +1 buttons on the main screen, then open the settings, *School bell drift*, and press *Remember the current shift*. The board then adds the bell's daily drift (0.6 seconds a day by default) by itself, so nobody has to nudge it again. After the school puts its bell right, press *The bell was just reset*.
 
@@ -36,7 +36,7 @@ The board keeps working without internet once it has been opened online, and it 
 
 Open the settings by double-tapping the gear button (bottom right), then your PIN if you use one (the PIN can be switched off in the settings). Under **Extras** you can switch on only what you want:
 
-- **Hall pass buttons and log**: students tap their name, choose where they are going, and tap again when they return. Any number of pass buttons. Each place (restroom, locker, water...) has its own limit in minutes; the pass turns red on the board after it (limits stay on the board and are not sent anywhere). A pass can be undone for 30 seconds without the PIN; after that it is cancelled with the PIN (or one confirmation if the PIN is off). Undone and cancelled passes stay in the log as Cancelled, with the time of the tap. Long class lists (study hall) are chosen by first letter. Optionally a teacher may allow passes in the closed 10/10 minutes: the board asks once, then it looks like any other pass and the log notes it. Trips can be saved to your own Google Sheet.
+- **Hall pass buttons and log** (two buttons to start with): students tap their name, choose where they are going, and tap again when they return. Any number of pass buttons. Each place (restroom, locker, water...) has its own limit in minutes; the pass turns red on the board after it (limits stay on the board and are not sent anywhere). A pass can be undone for 30 seconds without the PIN; after that it is cancelled with the PIN (or one confirmation if the PIN is off). Undone and cancelled passes stay in the log as Cancelled, with the time of the tap. Long class lists (study hall) are chosen by first letter. Optionally a teacher may allow passes in the closed 10/10 minutes: the board asks once, then it looks like any other pass and the log notes it. Trips can be saved to your own Google Sheet.
 - **Sounds**: warnings before the bell and a bell ring.
 - **Cards**: a rotating panel with the lesson phase, a day arc, facts, Java riddles, announcements, school calendar numbers and the Orlando weather (temperatures in degrees F with C in brackets, plus weather warnings).
 
@@ -56,6 +56,7 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 |---|---|
 | `index.html` | The whole board (page, bell schedules, A/B calendar). |
 | `sw.js`, `manifest.webmanifest`, `icon*.png/svg` | Make it work offline and installable. |
+| `LICENSE` | The Free School Use License. |
 | `apps-script/Code.gs` | Optional Google Apps Script for the hall pass log, student names, announcements and weather warnings. |
 | `docs/` | Screenshots and QR codes for slides. |
 
@@ -63,8 +64,12 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 
 1. Create a Google Sheet. Extensions -> Apps Script. Paste `apps-script/Code.gs`.
 2. Deploy -> New deployment -> Web app. Execute as: *Me*. Who has access: *Anyone*. Copy the web app address.
-3. On the board: settings -> Hall pass log: paste the address (and the secret word if you set `SECRET` in the script), press *Send test row*.
+3. The school's address is already built into the page (it is also written in `apps-script/webapplink`, so change both if you ever make a new deployment). On the board: settings -> Hall pass log: type the school password (the `SECRET` word of the script) in the key box, press *Send test row*. Until the password is typed, nothing is sent.
 4. Trips appear in a tab called `HallPass` (created automatically). A tab called `Roster` (class codes such as A1, A2 in row 1, names underneath) feeds the name buttons. A tab called `Messages` feeds announcements. For weather warnings, choose `authorize` in the script editor and press Run once.
+
+## License
+
+Hall Pass Board is free for schools, including all schools of Discovery Education. Copyright (c) 2026 Shamil Ganiev. You may use, copy, modify and share it for school purposes, keep the author's name, and not sell it. The full text is in [LICENSE](LICENSE). This is a plain-language school license, not a legal opinion: a school or district may want its own counsel to read it.
 
 ## Privacy
 

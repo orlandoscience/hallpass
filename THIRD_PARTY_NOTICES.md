@@ -1,5 +1,7 @@
 # Third-party notices
 
+Hall Pass Board itself is covered by the Free School Use License (see `LICENSE`). The parts below belong to other people and keep their own licenses.
+
 ## qrcode-generator (QR code generator for JavaScript)
 
 Used inside `index.html` to draw the QR code in the settings window.
