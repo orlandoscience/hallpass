@@ -24,6 +24,8 @@ passes are closed during the first and last 10 minutes of class, open in between
 | Red | Hall passes are closed (first and last minutes of class). The countdown shows when they open. |
 | Blue | Passing period or lunch. The countdown shows when the next class starts. |
 
+The **pass indicator** ("PASSES OPEN, closes in 20:27") is always the small one at the top of the left panel, so it is only an indicator of whether the restrooms may be used. The top of the right half shows the teacher's **name and room** between the title and the clock; both come from the school's list when the teacher code is checked and can be changed in the settings (*Teacher code and hall pass log*).
+
 The **lesson bar** sits in its own cell at the bottom of the left panel, under everything else (cards, agenda note), above the pass buttons. It shows the whole class period: red zones are the closed minutes, the white marker moves as time passes, and the times under it say when passes open (green) and close (red). An ordinary class has two red zones. A class whose students have different times (block 3, when the two lunch groups share a room, such as Dual Enrollment) shows **four**, one pair for each group, and a strip that says which grades are in the room: for example *12th grade / 12th + 10th grade / 10th grade*. That information comes from the school's schedule, so it needs the teacher code.
 
 **Agenda note (optional):** switch on *Agenda note* under Extras, then type the plan for each class (A1, B2...) in the settings, one item per line. Students see it on a yellow lined note with a red pin during that class and a few minutes before it. On the basic screen the note and the big timer take turns; with the rotating cards on, the note is one of the cards and gets the same time as the others. Start a line with `[x]` to cross it out.
@@ -32,9 +34,9 @@ The **lesson bar** sits in its own cell at the bottom of the left panel, under e
 
 The board keeps working without internet once it has been opened online, and it installs like an app (Chrome menu, "Install"). It checks for a newer version by itself and loads it after school, never in the middle of class.
 
-## Extras (all off until you switch them on)
+## Extras (all off until you switch them on) and the screen
 
-Open the settings by double-tapping the gear button (bottom right), then your PIN if you use one (the PIN can be switched off in the settings). Under **Extras** you can switch on only what you want:
+Open the settings by double-tapping the gear button (bottom right), then your PIN if you use one (the PIN can be switched off in the settings). **Every section is always visible; the switch next to its name turns it on or off** (an off section is greyed and locked, and its extra is not used). The extras:
 
 - **Hall pass buttons and log** (two buttons to start with; they work only after the teacher code is typed, see below): students tap their name and choose where they are going (the *Leave class* button then counts down 5 seconds and the student leaves by himself; every new tap on a place starts the count again; the seconds are a setting, 0 = off), and tap again when they return. Any number of pass buttons. Each place (restroom, locker, water...) has its own limit in minutes; the pass turns red on the board after it (limits stay on the board and are not sent anywhere). A pass can be undone for 30 seconds without the PIN; after that it is cancelled with the PIN (or one confirmation if the PIN is off). Undone and cancelled passes stay in the log as Cancelled, with the time of the tap. Long class lists (study hall) are chosen by first letter. Optionally a teacher may allow passes in the closed 10/10 minutes: the board asks once, then it looks like any other pass and the log notes it. Trips can be saved to your own Google Sheet.
 - **Sounds**: warnings before the bell and a bell ring.
@@ -59,7 +61,7 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 | `LICENSE` | The Free School Use License. |
 | `apps-script/Code.gs`, `apps-script/SETUP.md` | The school's Google Apps Script (teacher codes, class lists, the log, announcements, weather warnings) and the administrator's guide. |
 | `apps-script/webapplink` | The address of the deployed script (also built into `index.html`). |
-| `docs/` | Screenshots and QR codes for slides. |
+| `docs/` | Screenshots and QR codes of the page address, for slides (the page itself no longer makes QR codes). |
 
 **Teacher codes, class lists and the hall pass log**
 
@@ -80,4 +82,4 @@ Hall Pass Board is free for schools, including all schools of Discovery Educatio
 
 ## Credits
 
-QR codes use *qrcode-generator* by Kazuhiko Arase (MIT license, see `THIRD_PARTY_NOTICES.md`). Weather data: Open-Meteo.com. Warnings: U.S. National Weather Service.
+The handwriting font is Patrick Hand (SIL OFL, see `THIRD_PARTY_NOTICES.md`). Weather data: Open-Meteo.com. Warnings: U.S. National Weather Service.

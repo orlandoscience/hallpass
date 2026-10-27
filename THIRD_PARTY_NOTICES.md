@@ -2,18 +2,6 @@
 
 Hall Pass Board itself is covered by the Free School Use License (see `LICENSE`). The parts below belong to other people and keep their own licenses.
 
-## qrcode-generator (QR code generator for JavaScript)
-
-Used inside `index.html` to draw the QR code in the settings window.
-
-Copyright (c) 2009 Kazuhiko Arase
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 ## Patrick Hand (handwriting font)
 
 Used for the Agenda note. File: `fonts/patrick-hand-latin-400.woff2` (the Latin subset, from the Fontsource package `@fontsource/patrick-hand`).
