@@ -4,7 +4,7 @@ A classroom screen that shows the bell schedule, a live progress bar for the cla
 passes are closed during the first and last 10 minutes of class, open in between, and the screen says so in big letters.
 
 **Open it here:** https://orlandoscience.github.io/hallpass/
-**Try the demo (fast clock, no setup):** https://orlandoscience.github.io/hallpass/?demo=1
+**Try the demo (fast clock, no setup):** https://orlandoscience.github.io/hallpass/?demo=1 (or press *Just look first* on the welcome screen, or *Try the demo* in the Quick start guide)
 
 | Passes open | Passes closed |
 |---|---|
