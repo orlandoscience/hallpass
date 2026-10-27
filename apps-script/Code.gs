@@ -228,6 +228,7 @@ function log_(t, p) {
         if (String(r[0]) === id && r[3] === t.teacher && String(r[1]) === studentId && String(r[13]) === guest) { cache.put('x:' + dupKey, '1', 21600); return { ok: true, dup: true }; }
       }
     }
+    sh.getRange(last + 1, 2).setNumberFormat('@');                                  // the student ID stays text on every new row, however far down
     sh.getRange(last + 1, 1, 1, row.length).setValues([row]);
     cache.put('x:' + dupKey, '1', 21600);
     return { ok: true };
@@ -317,7 +318,7 @@ function importSchedule() {
     students[id] = 1; teachers[String(r[c.teacher]).trim()] = 1;
   });
   const s = ensureTab_(TAB.schedule, SCHEDULE_HEAD).sh;
-  if (s.getLastRow() > 1) s.getRange(2, 1, s.getLastRow() - 1, SCHEDULE_HEAD.length).clearContents();
+  if (s.getLastRow() > 1) s.getRange(2, 1, s.getLastRow() - 1, SCHEDULE_HEAD.length).clearContent();   // (Range has clearContent, Sheet has clearContents)
   if (rows.length) {
     s.getRange(2, 1, rows.length, 1).setNumberFormat('@');
     s.getRange(2, 1, rows.length, SCHEDULE_HEAD.length).setValues(rows);
