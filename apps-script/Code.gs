@@ -184,20 +184,24 @@ function log_(t, p) {
   const mode = String(p.m) === 'TEST' ? 'TEST' : 'LIVE';
   const row = [id, studentId, section, t.teacher, room, cleanWhere_(p.w), new Date(tOut), new Date(tIn), minutes, status,
                String(p.o) === '1' ? 'yes' : '', mode, String(p.b || '').replace(/[^\w\-]/g, '').slice(0, 24), String(p.g || '').replace(/[\r\n]/g, ' ').trim().slice(0, 40)];
+  const guest = row[13], dupKey = id + '|' + t.teacher + '|' + studentId + '|' + guest;   // a plain date-and-time ID can repeat: the trip is the ID + teacher + student
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     const cache = CacheService.getScriptCache();
-    if (cache.get('x:' + id)) return { ok: true, dup: true };
+    if (cache.get('x:' + dupKey)) return { ok: true, dup: true };
     const sh = logSheet_();
     const last = sh.getLastRow();
     if (last > 1) {                                       // a retry of something already written?
       const from = Math.max(2, last - DEDUPE_ROWS + 1);
-      const ids = sh.getRange(from, 1, last - from + 1, 1).getValues();
-      for (let i = 0; i < ids.length; i++) if (ids[i][0] === id) { cache.put('x:' + id, '1', 21600); return { ok: true, dup: true }; }
+      const rows = sh.getRange(from, 1, last - from + 1, LOG_HEAD.length).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (String(r[0]) === id && r[3] === t.teacher && String(r[1]) === studentId && String(r[13]) === guest) { cache.put('x:' + dupKey, '1', 21600); return { ok: true, dup: true }; }
+      }
     }
     sh.getRange(last + 1, 1, 1, row.length).setValues([row]);
-    cache.put('x:' + id, '1', 21600);
+    cache.put('x:' + dupKey, '1', 21600);
     return { ok: true };
   } finally { lock.releaseLock(); }
 }

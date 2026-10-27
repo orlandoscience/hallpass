@@ -1156,6 +1156,10 @@
         <span>Number of pass buttons</span>
         <input type="number" id="passSlotsInput" class="num-input" min="1">
       </div>
+      <div class="field-row">
+        <span>Leave by itself after (seconds, 0 = off)</span>
+        <input type="number" id="passAutoLeave" class="num-input" min="0" max="30">
+      </div>
       <div class="toggle-row"><span>Allow passes in the closed 10/10 minutes (asks to confirm, marked in the log)</span><label class="switch"><input type="checkbox" id="passAllowOutside"><span class="slider"></span></label></div>
       <div class="field-row">
         <span>Limit (min) for a type without its own number</span>
@@ -1373,6 +1377,7 @@ function getDefaultSettings(){
     pin: "1234", // settings PIN (a classroom deterrent, stored on this device only)
     pass: {
       slots: 2,                 // number of hall-pass buttons
+      autoLeaveSec: 5,          // after a reason is picked the student leaves by himself after this many seconds (0 = off)
       useWindow: true,          // "passes closed" windows at the start/end of each class period
       closedStartMin: 10,
       closedEndMin: 10,
@@ -2986,7 +2991,7 @@ function signOutSlot(i){
   settings.pass.active[i] = {
     name: ($("passNameInput").value || "").trim(),
     section: rosterCount() > 0 ? "Guest" : "",
-    outside: closed, exitId: newExitId(i), studentId: "", blk: currentSectionCode(now) || "", guest: true,
+    outside: closed, studentId: "", blk: currentSectionCode(now) || "", guest: true,
     reason: sel ? sel.getAttribute("data-reason") : "Other",
     outMs: now.getTime(),
     period: dispLabel(cp.label),
@@ -3011,7 +3016,7 @@ function makeEntry(i, atMs, status){             // status: "Returned" or "Cance
     slot: i + 1,
     section: st.section || "",
     outsideWindow: !!st.outside,
-    exitId: st.exitId || newExitId(i), studentId: st.studentId || "", blk: st.blk || "", guestName: (st.guest ? (st.name || "") : ""),
+    exitId: stampId(outD, now), studentId: st.studentId || "", blk: st.blk || "", guestName: (st.guest ? (st.name || "") : ""),
     outMs: st.outMs, inMs: now.getTime(),
     mode: settings.pass.testMode ? "TEST" : "LIVE",
     board: settings.boardId || "",
@@ -3077,7 +3082,7 @@ function hpOpen(slot){
   hpShowNames();
   hpBump();
 }
-function hpClose(){ $("hpSheet").classList.remove("open"); clearTimeout(hpIdle); }
+function hpClose(){ $("hpSheet").classList.remove("open"); clearTimeout(hpIdle); hpAutoStop(); }
 function hpBump(){ clearTimeout(hpIdle); hpIdle = setTimeout(hpClose, HP_IDLE_SEC * 1000); }
 
 // lay the buttons out so they all fit in the panel without scrolling; more names = smaller buttons
@@ -3119,6 +3124,7 @@ function hpSizePanel(count){
   panel.style.width = Math.min(window.innerWidth * 0.62, cols * colW + (cols - 1) * gap + pad) + "px";
 }
 function hpShowNames(){
+  hpAutoStop();
   hpPick.confirming = false;
   $("hpNotMe").textContent = "Not me"; $("hpGo").textContent = "Leave class";
   $("hpTitle").textContent = "Pass #" + (hpPick.slot + 1) + " · tap your name";
@@ -3171,6 +3177,7 @@ function hpShowNames(){
   }
 }
 function hpShowConfirm(){                         // passes are closed but this teacher allows it: one confirmation
+  hpAutoStop();
   hpPick.confirming = true;
   $("hpGuest").hidden = true;
   $("hpTitle").textContent = "Outside the 10/10 window";
@@ -3182,7 +3189,24 @@ function hpShowConfirm(){                         // passes are closed but this 
   $("hpFoot").hidden = false;
   $("hpNotMe").textContent = "Back"; $("hpGo").textContent = "Yes, continue"; $("hpGo").disabled = false;
 }
+const hpAuto = { timer: null, endAt: 0 };
+function hpAutoStop(){ clearInterval(hpAuto.timer); hpAuto.timer = null; }
+function hpAutoLabel(){ $("hpGo").textContent = "Leave class (" + Math.max(0, Math.ceil((hpAuto.endAt - Date.now()) / 1000)) + ")"; }
+function hpAutoStart(){                           // every tap on a reason starts the count again
+  hpAutoStop();
+  const sec = clampInt(settings.pass.autoLeaveSec, 0, 30, 5);
+  if(!sec || !hpPick || !hpPick.name || !hpPick.reason || hpPick.confirming) return;
+  hpAuto.endAt = Date.now() + sec * 1000;
+  hpAutoLabel();
+  hpAuto.timer = setInterval(hpAutoTick, 250);
+}
+function hpAutoTick(){
+  if(!hpPick || !hpPick.reason || hpPick.confirming || !$("hpSheet").classList.contains("open")){ hpAutoStop(); return; }
+  if(Date.now() >= hpAuto.endAt){ hpAutoStop(); $("hpGo").click(); return; }   // same as pressing the button (in the closed minutes this only asks the question)
+  hpAutoLabel();
+}
 function hpShowReason(){
+  hpAutoStop();
   hpPick.confirming = false;
   $("hpGuest").hidden = true;
   $("hpNotMe").textContent = "Not me"; $("hpGo").textContent = "Leave class";
@@ -3215,10 +3239,11 @@ $("hpLetters").addEventListener("click", e => {
 $("hpGrid").addEventListener("click", e => {
   const n = e.target.closest("[data-name]"), r = e.target.closest("[data-reason]");
   if(n){ hpPick.name = n.dataset.name; hpPick.reason = null; hpShowReason(); }
-  else if(r){ hpPick.reason = r.dataset.reason; hpShowReason(); }
+  else if(r){ hpPick.reason = r.dataset.reason; hpShowReason(); hpAutoStart(); }
   hpBump();
 });
 $("hpGo").addEventListener("click", () => {
+  hpAutoStop();
   if(!hpPick.name || !hpPick.reason) return;
   const i = hpPick.slot;
   if(settings.pass.active[i]){ hpClose(); return; }
@@ -3229,7 +3254,7 @@ $("hpGo").addEventListener("click", () => {
   const now = appNow(), cp = currentPeriodLabel(now);
   settings.pass.active[i] = {
     name: hpPick.name, section: hpPick.ctxCode || hpPick.section || "", reason: hpPick.reason, outside: closed,
-    exitId: newExitId(i), studentId: ((settings.pass.rosterIds || {})[hpPick.section] || {})[hpPick.name] || "", blk: hpPick.ctxCode || hpPick.section || "", guest: false,
+    studentId: ((settings.pass.rosterIds || {})[hpPick.section] || {})[hpPick.name] || "", blk: hpPick.ctxCode || hpPick.section || "", guest: false,
     outMs: now.getTime(), period: dispLabel(cp.label), band: BAND_LABELS[settings.activeBand], dayType: captionFor(cp.info)
   };
   saveSettings();
@@ -3254,7 +3279,12 @@ function sheetReady(){                         // may the board talk to the scri
 function sheetHint(){ return (settings.pass.sheetUrl || "").trim() ? "Type your teacher code first." : "Paste the web app URL first."; }
 function teacherOk(){ const t = settings.pass.teacher; return !!(t && t.ok === true); }     // hall passes work only for a board the school has recognised
 function normCode(c){ return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
-function newExitId(i){ return Date.now().toString(36) + "-" + (i + 1) + "-" + Math.random().toString(36).slice(2, 5); }
+function stampId(outD, inD){                      // yyyyMMdd + HHmmss out + HHmmss back, e.g. 20261027113215113412
+  const p = n => String(n).padStart(2, "0");
+  const d = x => x.getFullYear() + p(x.getMonth() + 1) + p(x.getDate());
+  const t = x => p(x.getHours()) + p(x.getMinutes()) + p(x.getSeconds());
+  return d(outD) + t(outD) + t(inD);
+}
 function cleanDest(r){ return String(r || "").replace(/[^\w &'\/\-]/g, "").replace(/\s+/g, " ").trim() || "Other"; }
 function teacherLost(msg){
   settings.pass.teacher = Object.assign({}, settings.pass.teacher, { ok: false, error: msg || "Code not recognized." });
@@ -3387,6 +3417,7 @@ function renderPassLogUI(){
 function syncPassSettingsUI(){
   const p = settings.pass;
   $("passSlotsInput").value = p.slots;
+  $("passAutoLeave").value = p.autoLeaveSec;
   $("passUseWindow").checked = !!p.useWindow;
   $("passClosedStart").value = p.closedStartMin;
   $("passClosedEnd").value = p.closedEndMin;
@@ -3408,6 +3439,7 @@ function bindPassNumber(id, key, lo, hi){
   });
 }
 bindPassNumber("passSlotsInput", "slots", 1, 200);
+bindPassNumber("passAutoLeave", "autoLeaveSec", 0, 30);
 bindPassNumber("passClosedStart", "closedStartMin", 0, 60);
 bindPassNumber("passClosedEnd", "closedEndMin", 0, 60);
 bindPassNumber("passMaxMin", "maxMinutes", 1, 600);
@@ -3695,7 +3727,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the big 10/10 pass timer), extras, welcome, demo, QR code
    ===================================================================== */
-const APP_VERSION = "2026.10.28 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.10.29 · Hall Pass Board (web edition)";
 const QRLib=function(){
 // QR Code Generator for JavaScript
 // Copyright (c) 2009 Kazuhiko Arase

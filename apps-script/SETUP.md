@@ -50,7 +50,7 @@ One row per finished trip, appended to the **`Log`** tab:
 
 | Column | Meaning |
 |---|---|
-| Exit ID | Made by the board. A trip sent twice is recognised and written once. |
+| Exit ID | The date and times of the trip: the day, the time out and the time back, for example `20261027113215113412` (2026-10-27, out 11:32:15, back 11:34:12). A trip sent twice is recognised (same ID, teacher and student) and written once. |
 | Student ID | Text. Names are **not** in the log: look them up in `Schedule`. |
 | Section | The class (A1...B4), or `Guest` for a student who is not on the teacher's list. |
 | Teacher, Room | Filled in by the script from the code and the schedule. They cannot be faked by a board. |
