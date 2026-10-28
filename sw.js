@@ -2,7 +2,7 @@
    It keeps a copy of the board on the device so it still opens without internet,
    and quietly checks for a newer index.html each time the page is opened.
    Everything on other websites (weather, time servers, Google Sheets) goes straight to the network. */
-const CACHE = "hallpass-v2";
+const CACHE = "hallpass-v3";
 const SCOPE = self.registration.scope;
 const PAGE = new URL("index.html", SCOPE).href;
 const ASSETS = ["index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "fonts/patrick-hand-latin-400.woff2"]
@@ -32,7 +32,10 @@ self.addEventListener("fetch", e => {
   const bare = url.origin + url.pathname;
   if(bare === PAGE && url.searchParams.has("fresh")){ e.respondWith(freshPage()); return; }   // the page asking "is there a newer version?"
   if(req.mode === "navigate" || bare === PAGE){ e.respondWith(pageResponse(e)); return; }
-  if(ASSETS.indexOf(bare) >= 0){ e.respondWith(caches.match(bare).then(hit => hit || fetch(req))); }
+  if(ASSETS.indexOf(bare) >= 0){ e.respondWith(caches.match(bare).then(hit => hit || fetch(req))); return; }
+  if(/\/sounds\/[^/]+\.(mp3|wav|ogg|m4a|aac)$/i.test(url.pathname) && !req.headers.has("range")){     // the school's sound files: kept after the first download, so they also play offline
+    e.respondWith(caches.open(CACHE).then(c => c.match(req).then(hit => hit || fetch(req).then(res => { if(res.ok) c.put(req, res.clone()); return res; }))));
+  }
 });
 
 // Show the saved page at once; fetch the newest one in the background for next time.

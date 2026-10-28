@@ -733,6 +733,8 @@
   .welcome-card h3{ margin: 16px 0 6px; font-size: 1rem; color: var(--accent); }
   .welcome-lead{ margin: 0 0 6px; color: var(--ink-dim); font-size: .92rem; }
   .welcome-err{ color: var(--danger); font-size: .85rem; min-height: 1.2em; margin-top: 8px; }
+  .seg{ padding: 6px 12px; border-radius: 8px; margin-left: 4px; }
+  .seg.on{ background: #2563eb; border-color: #93c5fd; color: #fff; }
   .te-backdrop{ z-index: 112; }
   .te-window{
     background: var(--bg-b); color: var(--ink); border-radius: 18px; width: min(94vw, 820px); max-height: 96vh; overflow-y: auto;
@@ -743,8 +745,9 @@
   .te-left, .te-right{ display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .te-label{ font-size: .75rem; opacity: .75; text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
   .te-chips{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .te-adj{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-  .te-adj button{ font-size: clamp(11px, 2.1vh, 20px); white-space: nowrap; padding: 0 2px; }
+  .te-adj{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .te-adj button{ font-size: clamp(11px, 2.1vh, 20px); white-space: nowrap; padding: 0 2px; min-width: 0; overflow: hidden; }
+  @media (max-width: 700px){ .te-body{ grid-template-columns: 1fr; } }
   .te-pad{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; }
   .te-chips button, .te-adj button, .te-pad button, .te-actions button{
     font: inherit; font-weight: 800; border-radius: 12px; border: 2px solid rgba(255,255,255,.25); background: var(--panel-2); color: var(--ink);
@@ -956,9 +959,9 @@
         <div class="te-chips" id="tePresets"></div>
         <div class="te-label" id="teRecentLabel">Last used</div>
         <div class="te-chips" id="teRecent"></div>
-        <div class="te-label">Adjust</div>
+        <div class="te-label">Adjust (m = minutes, s = seconds)</div>
         <div class="te-adj" id="teAdj">
-          <button type="button" data-d="-60">&minus;1 min</button><button type="button" data-d="-10">&minus;10 s</button><button type="button" data-d="10">+10 s</button><button type="button" data-d="60">+1 min</button><button type="button" data-d="300">+5 min</button>
+          <button type="button" data-d="-60">&minus;1m</button><button type="button" data-d="-10">&minus;10s</button><button type="button" data-d="10">+10s</button><button type="button" data-d="60">+1m</button><button type="button" data-d="300">+5m</button>
         </div>
       </div>
       <div class="te-right">
@@ -1113,19 +1116,15 @@
     <div class="section" data-follows="exSounds">
       <h2>Sound Library</h2>
       <div class="override-note">
-        Add audio files already saved on this device (downloaded through the board's browser,
-        a USB drive, a royalty-free sound site, etc.). Every file you add here shows up as its
-        own option in <strong>both</strong> dropdowns above, so Warning and Bell Ring can each
-        use a completely different file. This app can't fetch or convert audio from other
-        websites itself &mdash; that risks copyright/terms-of-service issues &mdash; only files
-        you already legally have on this device can be used.
+        <strong>School sounds:</strong> every .mp3 in the <strong>sounds</strong> folder of the school's GitHub page appears in all
+        the lists above by itself (a new file shows up within a few hours, or press the button). They are saved on the board,
+        so they also play without internet.
       </div>
+      <div class="btn-row" style="margin-top:8px;"><button type="button" id="schoolSoundsBtn">Refresh school sounds</button></div>
+      <div class="perm-note" id="schoolSoundsStatus"></div>
       <div class="perm-note" style="margin-top:8px;">
-        A webpage can't automatically scan a folder for files sitting next to it &mdash; browsers
-        don't allow that, for the same reason a website can't browse your hard drive on its own.
-        The closest working equivalent: the picker below accepts <strong>multiple files at once</strong>,
-        so if all your bell MP3s are in one folder, open the picker, select all of them together
-        (Ctrl/Cmd-click or drag-select), and every one gets added in a single step.
+        You can also add audio files saved on this device (they stay on this board only). Only files you legally have can be used;
+        the picker takes several files at once.
       </div>
       <div class="btn-row" style="margin-top:10px;">
         <input type="file" id="librarySoundInput" accept="audio/*" multiple>
@@ -1218,10 +1217,16 @@
     <div class="section" data-switch="exTimer">
       <div class="sec-head"><h2>Timer</h2><label class="switch sec-switch"><input type="checkbox" id="exTimer"><span class="slider"></span></label></div>
       <div class="field-row"><span>Time</span><span><input type="number" id="tmSetMin" class="num-input" min="0" max="99" style="width:4.5em;"> min &nbsp;<input type="number" id="tmSetSec" class="num-input" min="0" max="59" style="width:4.5em;"> s</span></div>
-      <div class="field-row"><span>Turns red when this much is left (seconds)</span><input type="number" id="tmThreshold" class="num-input" min="0" max="3600"></div>
-      <div class="toggle-row"><span>Ring the bell when it ends (needs Sound alerts)</span><label class="switch"><input type="checkbox" id="tmRing"><span class="slider"></span></label></div>
+      <div class="field-row"><span>Turns red when this much is left</span><span class="thr"><input type="number" id="tmThreshold" class="num-input" min="0" max="3600" step="any" style="width:5em;"> <button type="button" id="tmThrMin" class="seg">min</button><button type="button" id="tmThrSec" class="seg on">sec</button></span></div>
+      <div class="toggle-row"><span>Play a sound when the time is up</span><label class="switch"><input type="checkbox" id="tmEndOn"><span class="slider"></span></label></div>
+      <div class="field-row"><span>Sound</span><span><select id="tmEndSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmEndTest">&#9654; Test</button></span></div>
+      <div class="volume-row"><span style="min-width:80px;">Volume</span><input type="range" id="tmEndVol" min="0" max="100" value="5" style="flex:1;"><span id="tmEndVolVal" style="min-width:42px; text-align:right;">5%</span></div>
+      <div class="toggle-row" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);"><span>Play a sound when it turns red (once)</span><label class="switch"><input type="checkbox" id="tmWarnOn"><span class="slider"></span></label></div>
+      <div class="field-row"><span>Sound</span><span><select id="tmWarnSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmWarnTest">&#9654; Test</button></span></div>
+      <div class="volume-row"><span style="min-width:80px;">Volume</span><input type="range" id="tmWarnVol" min="0" max="100" value="5" style="flex:1;"><span id="tmWarnVolVal" style="min-width:42px; text-align:right;">5%</span></div>
       <div class="field-row"><span>Quick choices in the editor (minutes, with commas)</span><input type="text" id="tmPresets" class="num-input" style="width:14em;" maxlength="40"></div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="tmOpenEditor">Open the timer editor</button><button type="button" id="tmReset">Reset</button></div>
+      <div class="override-note">The two sounds are the timer's own: they work whenever the timer is on, whatever the Sound alerts switch says. The lists include the school sounds.</div>
       <div class="override-note">The timer sits in the middle of the top row on the left. Closing the settings does not start it, it only shows it. On the board: tap to start, tap again to pause. When it shows 00:00, or when you hold it for a moment, the editor opens.</div>
     </div>
 
@@ -1452,7 +1457,7 @@ function getDefaultSettings(){
     extras: {                    // everything beyond the basic screen is opt-in
       hallPass: false, ding: false, sounds: false, cards: false, agenda: false, timer: false
     },
-    timer: { duration: 300, remaining: 300, running: false, endAt: 0, finished: false, threshold: 60, ring: true, presets: "1,2,3,5,10,15,20,30", recent: [] },   // seconds; endAt = the moment it ends while it runs
+    timer: { duration: 300, remaining: 300, running: false, endAt: 0, finished: false, threshold: 60, thresholdUnit: "s", endOn: true, endSound: "bell", endVolume: 5, warnOn: false, warnSound: "chime", warnVolume: 5, warned: false, presets: "1,2,3,5,10,15,20,30", recent: [] },   // seconds; endAt = the moment it ends while it runs
     agenda: { clearDaily: true, leadMin: 5, texts: {} },   // texts["A1"] = { t: the plan, d: the day it was written }
     stage: {                    // the rotating left screen
       phases: false, arc: true, facts: true, riddles: true, messages: true, calendar: true,
@@ -1489,7 +1494,8 @@ function getDefaultSettings(){
       n15:false, n10:false, n5:false, sound:"bell", volume:2,
       customMinEnabled:false, customMinutes:3,
       ringBell:false, ringSound:"bell", ringVolume:2,
-      distractorSound:"bell", distractorVolume:2
+      distractorSound:"bell", distractorVolume:2,
+      schoolSounds: { at: 0, files: [] }   // the file names found in the school's sounds folder, and when they were looked up
     },
     overrides: {} // flat: dateISO -> { band } | { noschool:true }  (single selection, applies once)
   };
@@ -1507,7 +1513,7 @@ async function loadSettingsFromIDB(){
       pass: { ...defaults.pass, ...(saved.pass || {}), sheetUrl: ((saved.pass && saved.pass.sheetUrl) || defaults.pass.sheetUrl), teacher: { ...defaults.pass.teacher, ...((saved.pass && saved.pass.teacher) || {}) }, profile: { ...defaults.pass.profile, ...((saved.pass && saved.pass.profile) || {}) } },
       stage: { ...defaults.stage, ...(older ? { phases: true, weather: true, alerts: true } : {}), ...(saved.stage || {}) },
       bell: { ...defaults.bell, ...(saved.bell || {}) },
-      timer: { ...defaults.timer, ...(saved.timer || {}), recent: ((saved.timer && saved.timer.recent) || []).slice(0, 4) },
+      timer: { ...defaults.timer, ...(saved.timer || {}), recent: ((saved.timer && saved.timer.recent) || []).slice(0, 4), endOn: (saved.timer && saved.timer.endOn !== undefined) ? saved.timer.endOn : !(saved.timer && saved.timer.ring === false) },
       agenda: { ...defaults.agenda, ...(saved.agenda || {}), texts: { ...((saved.agenda && saved.agenda.texts) || {}) } },
       extras: older ? { hallPass: true, ding: true, sounds: true, cards: true } : { ...defaults.extras, ...saved.extras },
       setupDone: older ? true : !!saved.setupDone,
@@ -1527,6 +1533,7 @@ function saveSettings(){
   idbSet("appSettings", toSave);
 }
 let soundLibrary = []; // [{ id, name, dataUrl }] — populated async from IndexedDB below
+let schoolSounds = []; // [{ id, name, file, url, loaded, loading, error }] — the mp3 files of the school's "sounds" folder
 
 /* ================= Date / time helpers ================= */
 let timeOffsetMs = 0; // added to Date.now() to correct for device clock drift
@@ -1938,12 +1945,12 @@ function syncVolumeUI(){
   document.getElementById("distractorVolumeSlider").value = dv;
   document.getElementById("distractorVolumeValue").textContent = dv + "%";
 }
+function allSoundIds(){ return ["sound-bell", "sound-chime"].concat(soundLibrary.map(i => "sound-" + i.id), schoolSounds.map(i => "sound-" + i.id)); }
 function applyVolumeToAllSounds(){
   // Used only to prime elements during the audio-unlock step; actual playback
   // volume is set per-play in playSoundFor() based on which kind is firing.
   const vol = safeVolume(settings.notify.volume) / 100;
-  const ids = ["sound-bell", "sound-chime", ...soundLibrary.map(i => "sound-" + i.id)];
-  ids.forEach(id => {
+  allSoundIds().forEach(id => {
     const el = document.getElementById(id);
     if(el){ el.volume = vol; }
   });
@@ -1957,13 +1964,20 @@ function showAudioError(msg){
   showAudioError._t = setTimeout(() => { el.style.display = "none"; }, 8000);
 }
 function playSoundFor(kind){
-  const soundKey = kind === "ring" ? settings.notify.ringSound
+  const soundKey = kind === "timerEnd" ? settings.timer.endSound : kind === "timerWarn" ? settings.timer.warnSound
+    : kind === "ring" ? settings.notify.ringSound
     : kind === "distractor" ? settings.notify.distractorSound
     : settings.notify.sound;
-  const vol = kind === "ring" ? settings.notify.ringVolume
+  const vol = kind === "timerEnd" ? settings.timer.endVolume : kind === "timerWarn" ? settings.timer.warnVolume
+    : kind === "ring" ? settings.notify.ringVolume
     : kind === "distractor" ? settings.notify.distractorVolume
     : settings.notify.volume;
-  const el = document.getElementById("sound-" + soundKey) || document.getElementById("sound-bell");
+  let el = document.getElementById("sound-" + soundKey);
+  if(!el){
+    const it = schoolSounds.find(x => x.id === soundKey);
+    if(it && !it.error && !it.loaded){ loadSchoolSound(it).then(() => { if(it.loaded) playSoundFor(kind); }); return; }      // a school sound that is not loaded yet: load it, then play
+    el = document.getElementById("sound-bell");
+  }
   if(!el){ showAudioError("Sound file missing"); return; }
   try{
     el.volume = safeVolume(vol) / 100;
@@ -2750,7 +2764,11 @@ function renderTimer(){
   if(t.running && timerLeft() <= 0){                    // time is up
     const late = Date.now() - t.endAt;
     t.running = false; t.remaining = 0; t.endAt = 0; t.finished = true; saveSettings();
-    if(t.ring && settings.extras.sounds && late < 5000) playSoundFor("ring");     // not for a timer that ended while the page was closed
+    if(t.endOn && late < 5000) playSoundFor("timerEnd");                          // not for a timer that ended while the page was closed
+  }
+  if(t.running){                                        // the moment it crosses the red threshold: one sound, once
+    const lf = timerLeft(), thr = Number(t.threshold) || 0;
+    if(thr > 0 && lf > 0 && lf <= thr && !t.warned){ t.warned = true; saveSettings(); if(t.warnOn) playSoundFor("timerWarn"); }
   }
   const left = timerLeft();
   const state = t.running ? "running" : (left <= 0 ? (t.finished ? "done" : "zero") : (left < t.duration ? "paused" : "idle"));
@@ -2764,6 +2782,7 @@ function timerStart(){
   const t = settings.timer, left = timerLeft();
   if(left <= 0) return;
   t.running = true; t.endAt = Date.now() + left * 1000; t.finished = false;
+  t.warned = left <= (Number(t.threshold) || 0);          // started (or resumed) inside the red zone: no sound, it is already red
   saveSettings(); renderTimer();
 }
 function timerPause(){
@@ -2774,7 +2793,7 @@ function timerPause(){
 function timerSet(sec, start){                          // a new time: it is only shown, unless it is started
   const t = settings.timer;
   sec = Math.max(0, Math.min(5999, Math.round(Number(sec) || 0)));
-  t.duration = sec; t.remaining = sec; t.running = false; t.endAt = 0; t.finished = false;
+  t.duration = sec; t.remaining = sec; t.running = false; t.endAt = 0; t.finished = false; t.warned = false;
   if(sec > 0){ t.recent = [sec].concat((t.recent || []).filter(x => x !== sec)).slice(0, 4); }
   if(start && sec > 0) timerStart(); else { saveSettings(); renderTimer(); }
   syncTimerUI();
@@ -2832,19 +2851,47 @@ $("teStart").addEventListener("click", () => { if(te.value > 0){ timerSet(te.val
 function syncTimerUI(){
   const t = settings.timer;
   $("tmSetMin").value = Math.floor(t.duration / 60); $("tmSetSec").value = t.duration % 60;
-  $("tmThreshold").value = t.threshold; $("tmRing").checked = !!t.ring; $("tmPresets").value = t.presets;
+  thrShow(); $("tmPresets").value = t.presets;
+  syncTimerSoundUI();
+}
+function syncTimerSoundUI(){
+  const t = settings.timer;
+  [["End", "end"], ["Warn", "warn"]].forEach(([P, k]) => {
+    $("tm" + P + "On").checked = !!t[k + "On"];
+    if($("tm" + P + "Sound").querySelector('option[value="' + t[k + "Sound"] + '"]')) $("tm" + P + "Sound").value = t[k + "Sound"];
+    t[k + "Volume"] = safeVolume(t[k + "Volume"]);
+    $("tm" + P + "Vol").value = t[k + "Volume"]; $("tm" + P + "VolVal").textContent = t[k + "Volume"] + "%";
+  });
+}
+function thrShow(){                                     // the number is shown in the chosen unit; the setting itself is kept in seconds
+  const t = settings.timer, m = t.thresholdUnit === "m";
+  $("tmThreshold").value = m ? String(Math.round(t.threshold / 60 * 100) / 100) : String(t.threshold);
+  $("tmThreshold").max = m ? 60 : 3600;
+  $("tmThrMin").classList.toggle("on", m); $("tmThrSec").classList.toggle("on", !m);
 }
 function tmApplyTime(){ timerSet((clampInt($("tmSetMin").value, 0, 99, 0)) * 60 + clampInt($("tmSetSec").value, 0, 59, 0), false); }
 $("tmSetMin").addEventListener("change", tmApplyTime);
 $("tmSetSec").addEventListener("change", tmApplyTime);
-$("tmThreshold").addEventListener("change", e => { settings.timer.threshold = clampInt(e.target.value, 0, 3600, 60); e.target.value = settings.timer.threshold; saveSettings(); renderTimer(); });
-$("tmRing").addEventListener("change", e => { settings.timer.ring = e.target.checked; saveSettings(); });
+$("tmThreshold").addEventListener("change", e => {
+  const v = parseFloat(e.target.value), m = settings.timer.thresholdUnit === "m";
+  settings.timer.threshold = Number.isFinite(v) ? Math.max(0, Math.min(3600, Math.round(m ? v * 60 : v))) : 60;
+  saveSettings(); thrShow(); renderTimer();
+});
+$("tmThrMin").addEventListener("click", () => { settings.timer.thresholdUnit = "m"; saveSettings(); thrShow(); });
+$("tmThrSec").addEventListener("click", () => { settings.timer.thresholdUnit = "s"; saveSettings(); thrShow(); });
+[["End", "end", "timerEnd"], ["Warn", "warn", "timerWarn"]].forEach(([P, k, kind]) => {
+  $("tm" + P + "On").addEventListener("change", e => { settings.timer[k + "On"] = e.target.checked; saveSettings(); });
+  $("tm" + P + "Sound").addEventListener("change", e => { settings.timer[k + "Sound"] = e.target.value; saveSettings(); playSoundFor(kind); });
+  $("tm" + P + "Vol").addEventListener("input", e => { const v = safeVolume(e.target.value); settings.timer[k + "Volume"] = v; $("tm" + P + "VolVal").textContent = v + "%"; saveSettings(); });
+  $("tm" + P + "Vol").addEventListener("change", () => playSoundFor(kind));
+  $("tm" + P + "Test").addEventListener("click", () => playSoundFor(kind));
+});
 $("tmPresets").addEventListener("change", e => {
   const list = String(e.target.value).split(",").map(x => parseInt(x, 10)).filter(n => n > 0 && n <= 99).slice(0, 8);
   settings.timer.presets = (list.length ? list : [1, 2, 3, 5, 10, 15, 20, 30]).join(","); e.target.value = settings.timer.presets; saveSettings();
 });
 $("tmOpenEditor").addEventListener("click", openTimerEditor);
-$("tmReset").addEventListener("click", () => { const t = settings.timer; t.remaining = t.duration; t.running = false; t.endAt = 0; t.finished = false; saveSettings(); renderTimer(); });
+$("tmReset").addEventListener("click", () => { const t = settings.timer; t.remaining = t.duration; t.running = false; t.endAt = 0; t.finished = false; t.warned = false; saveSettings(); renderTimer(); });
 
 
 /* ---------- Agenda: a yellow lined note with the plan for the lesson ---------- */
@@ -3968,7 +4015,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.02 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.03.2 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -4419,6 +4466,7 @@ document.getElementById("notifyCustomMinutes").addEventListener("change", (e) =>
 document.getElementById("ringBellEnabled").addEventListener("change", (e) => {
   settings.notify.ringBell = e.target.checked; saveSettings();
 });
+$("schoolSoundsBtn").addEventListener("click", () => { renderSchoolSoundsStatus("Looking in the sounds folder…"); refreshSchoolSounds(true); });
 document.getElementById("soundSelect").addEventListener("change", (e) => {
   settings.notify.sound = e.target.value; saveSettings(); syncVolumeUI(); playSoundFor("warning");
 });
@@ -4571,10 +4619,80 @@ async function persistLibrary(){
   return await idbSet("soundLibrary", soundLibrary);
 }
 
+/* ---------- School sounds: every .mp3 in the "sounds" folder of the school's GitHub page shows up by itself ---------- */
+const SCHOOL_SOUND_EXT = /\.(mp3|wav|ogg|m4a|aac)$/i;
+function schoolSoundItems(files){
+  const seen = {};
+  return files.filter(f => SCHOOL_SOUND_EXT.test(f)).sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : (a.toLowerCase() > b.toLowerCase() ? 1 : 0)).map(f => {
+    let id = "school_" + f.toLowerCase().replace(/\.[^.]+$/, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    while(seen[id]) id += "_2";
+    seen[id] = 1;
+    return { id, file: f, name: f.replace(/\.[^.]+$/, "").replace(/_+/g, " ").trim(), url: "sounds/" + encodeURIComponent(f), loaded: false, loading: false, error: false };
+  });
+}
+async function fetchSchoolSoundFiles(){
+  const m = /^([^.]+)\.github\.io$/i.exec(location.hostname), repo = location.pathname.split("/").filter(Boolean)[0];
+  if(m && repo){                                  // 1. the folder itself, for owner.github.io/repo (nothing to maintain)
+    try{
+      const r = await fetch("https://api.github.com/repos/" + m[1] + "/" + repo + "/contents/sounds");
+      if(r.ok){ const j = await r.json(); if(Array.isArray(j)) return j.filter(x => x.type === "file").map(x => x.name); }
+    }catch(e){ /* GitHub did not answer (for example too many requests): try the list below */ }
+  }
+  const r = await fetch("sounds/index.json", { cache: "no-store" });     // 2. a list written by hand next to the files (optional): sounds/index.json
+  if(r.ok){
+    const j = await r.json();
+    const arr = (Array.isArray(j) ? j : (j.files || [])).map(x => typeof x === "string" ? x : (x && (x.file || x.name))).filter(Boolean);
+    if(arr.length) return arr;
+  }
+  throw new Error("no list");
+}
+function renderSchoolSoundsStatus(msg){
+  const el = $("schoolSoundsStatus"); if(!el) return;
+  const saved = settings.notify.schoolSounds || { at: 0, files: [] };
+  el.textContent = msg || (schoolSounds.length
+    ? schoolSounds.length + " school sound" + (schoolSounds.length > 1 ? "s" : "") + " from the sounds folder" + (saved.at ? " (looked up at " + fmtClock(hms24(new Date(saved.at)).slice(0, 5)) + ")" : "") + "."
+    : "No school sounds yet. Add .mp3 files to the sounds folder on GitHub and press the button.");
+}
+function setSchoolSounds(files){
+  schoolSounds = schoolSoundItems(files);
+  rebuildSoundSelectOptions();
+  [settings.notify.sound, settings.notify.ringSound, settings.notify.distractorSound].forEach(k => { const it = schoolSounds.find(x => x.id === k); if(it) loadSchoolSound(it); });   // the ones in use are ready at once
+  renderSchoolSoundsStatus();
+}
+async function refreshSchoolSounds(force){
+  const saved = settings.notify.schoolSounds || { at: 0, files: [] };
+  if(!force && saved.files.length && Date.now() - saved.at < 6 * 3600 * 1000){ setSchoolSounds(saved.files); return; }
+  try{
+    const files = await fetchSchoolSoundFiles();
+    const sounds = files.filter(f => SCHOOL_SOUND_EXT.test(f));
+    settings.notify.schoolSounds = { at: Date.now(), files: sounds }; saveSettings();
+    setSchoolSounds(sounds);
+  }catch(e){
+    if(saved.files.length){ setSchoolSounds(saved.files); renderSchoolSoundsStatus("Couldn't read the sounds folder just now. Using the saved list (" + schoolSounds.length + ")."); }
+    else renderSchoolSoundsStatus("Couldn't read the sounds folder. Check the internet and press the button again.");
+  }
+}
+async function loadSchoolSound(item){             // the file is fetched once (the service worker keeps it for offline) and played from memory
+  if(item.loaded || item.loading) return;
+  item.loading = true;
+  try{
+    const r = await fetch(item.url);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    ensureLibraryAudioEl("school_" + item.id.replace(/^school_/, ""), URL.createObjectURL(await r.blob()));
+    item.loaded = true; item.error = false; applyVolumeToAllSounds();
+  }catch(e){ item.error = true; }
+  item.loading = false;
+}
+
 function rebuildSoundSelectOptions(){
-  ["soundSelect","ringSoundSelect","distractorSoundSelect"].forEach(selId => {
+  ["soundSelect","ringSoundSelect","distractorSoundSelect","tmEndSound","tmWarnSound"].forEach(selId => {
     const sel = document.getElementById(selId);
-    sel.querySelectorAll('option[data-lib="1"]').forEach(o => o.remove());
+    sel.querySelectorAll('[data-lib="1"]').forEach(o => o.remove());
+    if(schoolSounds.length){
+      const g = document.createElement("optgroup"); g.label = "School sounds"; g.dataset.lib = "1";
+      schoolSounds.forEach(it => { const o = document.createElement("option"); o.value = it.id; o.textContent = it.name; g.appendChild(o); });
+      sel.appendChild(g);
+    }
     soundLibrary.forEach(item => {
       const opt = document.createElement("option");
       opt.value = item.id;
@@ -4583,7 +4701,7 @@ function rebuildSoundSelectOptions(){
       sel.appendChild(opt);
     });
   });
-  const libIds = new Set(soundLibrary.map(i => i.id));
+  const libIds = new Set(soundLibrary.map(i => i.id).concat(schoolSounds.map(i => i.id)));
   if(settings.notify.sound !== "bell" && settings.notify.sound !== "chime" && !libIds.has(settings.notify.sound)){
     settings.notify.sound = "bell"; saveSettings();
   }
@@ -4596,6 +4714,11 @@ function rebuildSoundSelectOptions(){
   document.getElementById("soundSelect").value = settings.notify.sound;
   document.getElementById("ringSoundSelect").value = settings.notify.ringSound;
   document.getElementById("distractorSoundSelect").value = settings.notify.distractorSound;
+  ["endSound", "warnSound"].forEach(k => {                 // the timer's own two sounds: a sound that no longer exists falls back to the bell
+    const v = settings.timer[k];
+    if(v !== "bell" && v !== "chime" && !libIds.has(v)){ settings.timer[k] = "bell"; saveSettings(); }
+  });
+  syncTimerSoundUI();
   syncVolumeUI();
 }
 
@@ -4686,8 +4809,7 @@ function unlockAudioOnce(){
   if(audioUnlocked) return;
   audioUnlocked = true;
   applyVolumeToAllSounds();
-  const ids = ["sound-bell", "sound-chime", ...soundLibrary.map(i => "sound-" + i.id)];
-  ids.forEach(id => {
+  allSoundIds().forEach(id => {
     const el = document.getElementById(id);
     if(el){
       try{
@@ -4804,6 +4926,7 @@ syncTime().then(refreshAll); // refine once synced (or confirmed offline), doesn
   renderPassLogUI();
   flushLogQueue();
   rebuildSoundSelectOptions(); // also re-syncs soundSelect/ringSoundSelect values + volumes
+  refreshSchoolSounds(false);
   restoreWeatherCache();
   syncStageSettingsUI();
   renderWeatherChip();
