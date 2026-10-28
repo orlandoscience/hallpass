@@ -1,6 +1,6 @@
 # Third-party notices
 
-Hall Pass Board itself is covered by the Free School Use License (see `LICENSE`). The parts below belong to other people and keep their own licenses.
+Hall Pass Board itself is covered by the OSHS Free Use License (see `LICENSE`). The parts below belong to other people and keep their own licenses.
 
 ## Patrick Hand (handwriting font)
 

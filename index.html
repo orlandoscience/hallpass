@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Hall Pass Board. Copyright (c) 2026 Shamil Ganiev. Free School Use License: free for schools, including all Discovery Education schools. See LICENSE. -->
+<!-- Hall Pass Board. Copyright (c) 2026 Shamil Ganiev. OSHS Free Use License: free for Orlando Science High School only. See LICENSE. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -13,6 +13,8 @@
 <style>
   @font-face{ font-family: "Patrick Hand"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/patrick-hand-latin-400.woff2") format("woff2"); }
   :root{
+    --lw: 50;                                    /* the left part, in percent of the screen (the settings change it) */
+    --u: calc(1vw * var(--lw) / 50);             /* 1vw as the left part sees it: its text grows and shrinks with its width */
     --bg-a: #0b1120; --bg-b: #131c34;
     --panel: #16213e;
     --panel-2: #1c2b4a;
@@ -58,10 +60,10 @@
   .hidden, [hidden]{ display: none !important; }
   /* Wide screens: the left half is pinned to the screen edges (so the hall-pass
      buttons are always reachable); only the schedule on the right scrolls. */
-  .wrap{ padding: 16px 16px 90px calc(50% + 8px); }
+  .wrap{ padding: 16px 16px 90px calc(var(--lw) * 1% + 8px); }
   .col-ambient{
     position: fixed; top: 16px; bottom: 16px; left: 16px;
-    width: calc(50% - 24px); overflow-y: auto;
+    width: calc(var(--lw) * 1% - 24px); overflow-y: auto;
   }
   @media (max-width: 900px){
     .wrap{ display: flex; flex-direction: column; padding: 20px 16px 90px; gap: 16px; }
@@ -187,6 +189,11 @@
   .countdown-offset .offset-hint{
     font-size: .65rem; color: var(--ink-dim); margin-top: 6px;
     max-width: 120px; line-height: 1.3;
+  }
+  .col-schedule{ container-type: inline-size; }
+  @container (max-width: 540px){                 /* a narrow right part: the bell shift goes under the two times */
+    .countdown{ grid-template-columns: 1fr; }
+    .countdown-offset{ border-left: none; border-top: 1px solid rgba(127,127,127,.25); padding-left: 0; padding-top: 12px; }
   }
   @media (max-width: 900px){
     .countdown{ grid-template-columns: 1fr; }
@@ -347,9 +354,10 @@
   @keyframes floaty{ from{ transform: translate(0,0) scale(1); } to{ transform: translate(34px,-26px) scale(1.12); } }
   @media (prefers-reduced-motion: reduce){ .orb{ animation: none; } }
 
-  .ambient-top{ display: grid; grid-template-columns: 30fr 40fr 30fr; grid-template-rows: clamp(80px, 12vh, 132px); gap: 10px; align-items: stretch; }   /* a fixed height: a chip or a timer appearing never moves anything */
+  .ambient-top{ display: grid; grid-template-columns: 30fr 40fr 30fr; grid-template-rows: clamp(88px, 12.4vh, 132px); gap: 10px; align-items: stretch; }   /* a fixed height: a chip or a timer appearing never moves anything */
   .ambient-top > *{ min-width: 0; min-height: 0; overflow: hidden; }
-  .wx-cell{ display: flex; justify-content: flex-end; align-items: stretch; }
+  .wx-cell{ display: flex; justify-content: flex-end; align-items: stretch; container-type: inline-size; }
+  @container (max-width: 170px){ .wx-cell .wx-chip .wx-sub{ display: none; } .wx-cell .wx-chip .wx-icon{ font-size: 1.4rem; } }   /* a narrow weather cell keeps the temperature only */
   .wx-cell .wx-chip{ margin-left: 0; width: 100%; padding: 4px 8px; gap: 6px; min-width: 0; overflow: hidden; }
   .wx-cell .wx-chip .wx-sub{ white-space: normal; font-size: .7rem; }
   .timer-cell{
@@ -359,8 +367,8 @@
   }
   .timer-cell.empty{ background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
   .timer-cell.empty > *{ visibility: hidden; }
-  .tm-time{ font-family: 'Courier New', monospace; font-weight: 800; font-size: clamp(24px, min(3.6vw, 5.8vh), 60px); line-height: 1.05; letter-spacing: .02em; }
-  .tm-label{ font-size: clamp(10px, .9vw, 15px); opacity: .9; text-align: center; }
+  .tm-time{ font-family: 'Courier New', monospace; font-weight: 800; font-size: clamp(24px, min(calc(3.6 * var(--u)), 5.8vh), 60px); line-height: 1.05; letter-spacing: .02em; }
+  .tm-label{ font-size: clamp(10px, calc(.9 * var(--u)), 15px); opacity: .9; text-align: center; }
   .tm-bar{ position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(255,255,255,.16); }
   .tm-bar i{ display: block; height: 100%; width: 100%; background: rgba(255,255,255,.75); transition: width 1s linear; }
   .timer-cell.running{ border-color: rgba(134,239,172,.8); }
@@ -378,7 +386,7 @@
   .wx-chip .wx-sub{ font-size: .78rem; opacity: .95; margin-top: 2px; }
   .wx-alert{
     border-radius: 12px; padding: 6px 14px; font-weight: 800; text-align: center;
-    font-size: clamp(13px, min(1.3vw, 2.4vh), 26px); border: 1px solid rgba(255,255,255,.4);
+    font-size: clamp(13px, min(calc(1.3 * var(--u)), 2.4vh), 26px); border: 1px solid rgba(255,255,255,.4);
     background: #b45309; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.3);
   }
   .wx-alert.sev-severe{ background: #b91c1c; }
@@ -390,21 +398,21 @@
   }
   .greet-head{
     display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .25em;
-    font-size: clamp(26px, min(3.6vw, 5.8vh), 72px); line-height: 1.1;
+    font-size: clamp(26px, min(calc(3.6 * var(--u)), 5.8vh), 72px); line-height: 1.1;
   }
   .greet-emoji{ font-size: 1em; line-height: 1; filter: drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   .greet-title{
     font-family: Georgia, 'Noto Serif', 'Times New Roman', serif; font-size: 1em; font-weight: 700;
     text-shadow: 0 3px 18px rgba(0,0,0,.35);
   }
-  .greet-sub{ font-size: clamp(15px, min(1.9vw, 3.2vh), 38px); margin-top: .2em; text-shadow: 0 2px 10px rgba(0,0,0,.3); }
+  .greet-sub{ font-size: clamp(15px, min(calc(1.9 * var(--u)), 3.2vh), 38px); margin-top: .2em; text-shadow: 0 2px 10px rgba(0,0,0,.3); }
   .stage-note{
     margin-top: .4em; padding: .2em .8em; border-radius: 999px; background: rgba(0,0,0,.32);
-    border: 1px solid rgba(255,255,255,.3); font-size: clamp(12px, min(1.3vw, 2.3vh), 26px); font-weight: 700;
+    border: 1px solid rgba(255,255,255,.3); font-size: clamp(12px, min(calc(1.3 * var(--u)), 2.3vh), 26px); font-weight: 700;
   }
   .stage{
     flex: 1; min-height: 0; width: 100%; position: relative; margin-top: .5em;
-    font-size: clamp(18px, min(2.35vw, 4vh), 48px);
+    font-size: clamp(18px, min(calc(2.35 * var(--u)), 4vh), 48px);
   }
   .stage-card{
     position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden;
@@ -450,13 +458,16 @@
     border-radius: 14px; padding: 6px 8px 6px 8px; min-width: 0;
   }
   .pass-card .pc-icon{ font-size: 1.4rem; }
+  .pass-card .pc-out{ font-size: .7rem; line-height: 1.1; }
+  .pass-card{ container-type: inline-size; }
+  @container (max-width: 140px){ .pass-card .pc-icon{ display: none; } }          /* a narrow card drops the little icon */
   .pass-card .pc-top{ display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
   .pass-card .pc-state{ font-size: .8rem; font-weight: 800; padding: 2px 10px; border-radius: 999px; background: #64748b; }
   .pass-card.state-open .pc-state{ background: #16a34a; }
   .pass-card.state-closed .pc-state{ background: #dc2626; }
   .pass-card.state-break .pc-state{ background: #2563eb; }
   .pass-card .pc-sub{ font-size: .8rem; opacity: .95; }
-  .pass-card .pc-time{ font-family: 'Courier New', monospace; font-size: clamp(18px, 2.1vw, 34px); font-weight: 700; line-height: 1.1; }
+  .pass-card .pc-time{ font-family: 'Courier New', monospace; font-size: clamp(16px, calc(2.1 * var(--u)), 34px); font-weight: 700; line-height: 1.1; }
   .pass-card .pc-out{ font-size: .78rem; opacity: .95; }
   .pass-card .pc-out[hidden]{ display: none; }
   .pass-card .pc-out.warn{ color: #fecaca; font-weight: 700; }
@@ -622,7 +633,7 @@
   .pass-hero{ display: none !important; }          /* the small indicator is the pass card in the top row, in every mode */
   .pass-hero{
     flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; gap: .25em; padding: 0 1vw; font-size: clamp(14px, min(1.5vw, 2.6vh), 32px);
+    text-align: center; gap: .25em; padding: 0 calc(1 * var(--u)); font-size: clamp(14px, min(calc(1.5 * var(--u)), 2.6vh), 32px);
   }
   .ph-badge{
     font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: .8em; opacity: .95;
@@ -630,12 +641,12 @@
   }
   .ph-title{
     font-family: Georgia, 'Noto Serif', 'Times New Roman', serif; font-weight: 700; line-height: 1.1;
-    font-size: clamp(30px, min(4.4vw, 7vh), 88px); text-shadow: 0 3px 18px rgba(0,0,0,.35);
+    font-size: clamp(30px, min(calc(4.4 * var(--u)), 7vh), 88px); text-shadow: 0 3px 18px rgba(0,0,0,.35);
   }
-  .ph-sub{ font-size: clamp(16px, min(2vw, 3.3vh), 42px); text-shadow: 0 2px 10px rgba(0,0,0,.3); min-height: 1.2em; }
+  .ph-sub{ font-size: clamp(16px, min(calc(2 * var(--u)), 3.3vh), 42px); text-shadow: 0 2px 10px rgba(0,0,0,.3); min-height: 1.2em; }
   .ph-state{
     margin-top: .5em; padding: .1em .75em; border-radius: 999px; font-weight: 900; letter-spacing: .03em; color: #fff;
-    font-size: clamp(24px, min(3.9vw, 7.2vh), 96px); line-height: 1.15; background: #64748b; white-space: nowrap; max-width: 100%;
+    font-size: clamp(24px, min(calc(3.9 * var(--u)), 7.2vh), 96px); line-height: 1.15; background: #64748b; white-space: nowrap; max-width: 100%;
     box-shadow: 0 6px 24px rgba(0,0,0,.35); border: 3px solid rgba(255,255,255,.55);
   }
   .pass-hero[data-state="open"] .ph-state{ background: #16a34a; }
@@ -643,10 +654,10 @@
   .pass-hero[data-state="break"] .ph-state{ background: #2563eb; }
   .ph-count{
     font-family: 'Courier New', monospace; font-weight: 800; line-height: 1.1; margin-top: .1em;
-    font-size: clamp(26px, min(3.6vw, 7vh), 96px); text-shadow: 0 3px 16px rgba(0,0,0,.35); white-space: nowrap; max-width: 100%;
+    font-size: clamp(26px, min(calc(3.6 * var(--u)), 7vh), 96px); text-shadow: 0 3px 16px rgba(0,0,0,.35); white-space: nowrap; max-width: 100%;
   }
   /* ================= The lesson bar: always in its own cell at the bottom of the left panel ================= */
-  .lessonbar{ flex: 0 0 auto; margin-top: auto; padding: .7vh 1.5vw .3vh; font-size: clamp(11px, 1.1vw, 19px); }
+  .lessonbar{ flex: 0 0 auto; margin-top: auto; padding: .7vh calc(1.5 * var(--u)) .3vh; font-size: clamp(11px, calc(1.1 * var(--u)), 19px); }
   .lb-bar{ position: relative; height: clamp(14px, 2.6vh, 30px); }
   .lb-zones{
     position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; overflow: hidden; border-radius: 999px;
@@ -665,6 +676,8 @@
   .lb-strip{ display: flex; margin-top: .4em; height: 2em; border-radius: 6px; overflow: hidden; }
   .lb-strip i{ display: flex; align-items: center; justify-content: center; font-style: normal; font-weight: 700; color: #0b1120; white-space: nowrap; overflow: hidden; padding: 0 .3em; }
   .lb-strip i.g0{ background: #f472b6; } .lb-strip i.g1{ background: #38bdf8; } .lb-strip i.gx{ background: #c4b5fd; } .lb-strip i.none{ background: rgba(255,255,255,.25); }
+  .lessonbar{ container-type: inline-size; }
+  @container (max-width: 470px){ .lb-strip i{ font-size: .78em; padding: 0 .12em; } }          /* a narrow left part: smaller words under the bar */
   .lb-labels{ position: relative; height: 1.7em; margin-top: .35em; font-weight: 700; font-family: 'Courier New', monospace; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
   .lb-labels.two{ height: 3.3em; }
   .lb-labels span{ position: absolute; top: 0; white-space: nowrap; transform: translateX(-50%); color: #fff; }
@@ -675,10 +688,10 @@
   .ph-legend{ font-size: .9em; opacity: .95; max-width: 42em; margin-top: .4em; text-shadow: 0 1px 8px rgba(0,0,0,.4); min-height: 1.2em; }
 
   /* ================= Agenda: a yellow lined note held by a red pin ================= */
-  .agenda{ flex: 1 1 0; min-height: 0; display: flex; padding: 2.2vh 1.6vw .8vh; }
+  .agenda{ flex: 1 1 0; min-height: 0; display: flex; padding: 2.2vh calc(1.6 * var(--u)) .8vh; }
   .ag-sheet{
     position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0;
-    background: #fff3a6; border: 1px solid #e3cf62; border-radius: 3px; padding: 3.2vh 1.5vw 1vh;
+    background: #fff3a6; border: 1px solid #e3cf62; border-radius: 3px; padding: 3.2vh calc(1.5 * var(--u)) 1vh;
     color: #3a3320; font-family: "Patrick Hand", "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
     box-shadow: 0 10px 24px rgba(0,0,0,.4), inset 0 -16px 28px rgba(190,160,30,.12); transform: rotate(-1deg);
   }
@@ -698,9 +711,9 @@
   .ag-line.done{ text-decoration: line-through; opacity: .55; }
   .pass-hero{ flex: 0 0 auto; justify-content: flex-start; gap: .1em; padding-top: .4vh; }
   .ph-badge, .ph-sub, .ph-legend{ display: none; }
-  .ph-title{ font-size: clamp(22px, min(2.8vw, 4.6vh), 56px); }
-  .ph-state{ font-size: clamp(20px, min(2.7vw, 4.8vh), 64px); margin-top: .2em; }
-  .ph-count{ font-size: clamp(20px, min(2.4vw, 4.4vh), 60px); }
+  .ph-title{ font-size: clamp(22px, min(calc(2.8 * var(--u)), 4.6vh), 56px); }
+  .ph-state{ font-size: clamp(20px, min(calc(2.7 * var(--u)), 4.8vh), 64px); margin-top: .2em; }
+  .ph-count{ font-size: clamp(20px, min(calc(2.4 * var(--u)), 4.4vh), 60px); }
   .ag-sheet{ text-align: left; }
   .ag-sheet.ag-card{ position: relative; width: 94%; height: 94%; flex: none; }
   .ag-prev{ height: 170px; margin: 8px 0; padding: 10px 6px 4px; }
@@ -766,6 +779,14 @@
   #welBands button.active{ background: var(--accent); color: #08243b; border-color: var(--accent); }
   .help-list{ margin: 4px 0 10px 18px; padding: 0; line-height: 1.5; }
   .help-list li{ margin-bottom: 8px; }
+
+  @container (max-width: 590px){                 /* a narrow right part: the name and room get their own line under the title */
+    .header-row{ grid-template-columns: minmax(0, 1fr) auto; }
+    .header-left{ grid-column: 1; grid-row: 1; }
+    .clock-cell{ grid-column: 2; grid-row: 1; }
+    .whoami{ grid-column: 1 / -1; grid-row: 2; flex-direction: row; justify-content: flex-start; align-items: baseline; gap: 10px; text-align: left; }
+    .header-right{ grid-column: 1 / -1; grid-row: 3; }
+  }
 </style>
 </head>
 <body data-theme="dark">
@@ -838,8 +859,7 @@
       </div>
       <div class="clock-cell">
         <div class="ct" id="clockTime">--:--:--</div>
-        <div class="cs" id="clockSync">syncing…</div>
-        <button id="syncNowBtn" class="sync-btn">🔄 Sync</button>
+        <div class="cs" id="clockSync">device time</div>
         <div class="cs" id="audioStatus" style="color:var(--danger); display:none;"></div>
       </div>
     </div>
@@ -1155,6 +1175,10 @@
         <div class="btn-row" id="countdownFormatButtons"></div>
       </div>
       <div class="field-row">
+        <span>Left part width (the rest is the right part)</span>
+        <span><input type="range" id="layoutLeft" min="40" max="60" step="1" style="width:9em;"> <b id="layoutLeftVal" style="display:inline-block; min-width:3em; text-align:right;">50%</b> <button type="button" id="layoutLeftReset">50 / 50</button></span>
+      </div>
+      <div class="field-row">
         <span>Day starts (arrival)</span>
         <input type="time" id="dayStartInput">
       </div>
@@ -1164,21 +1188,6 @@
       </div>
       <div class="override-note">
         These bound the "Before Classes" and "After Classes" progress bars on the schedule.
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Time Sync</h2>
-      <div class="btn-row">
-        <input type="text" id="localTimeServerInput" placeholder="e.g. http://192.168.1.50:11080/timezone/Etc/UTC">
-      </div>
-      <div class="override-note">
-        Optional. If this school network has its own time server, put its address here and
-        it's tried <strong>first</strong>, before any internet server &mdash; useful if this
-        board has no internet access but can still reach the local network, or if you'd
-        rather not depend on outside services at all. A browser can't speak raw NTP directly,
-        but it can fetch a small JSON time endpoint like this one, the same way it fetches the
-        3 internet servers below. Leave blank to skip straight to those.
       </div>
     </div>
 
@@ -1277,7 +1286,7 @@
       <div class="perm-note">The name and the room are filled in from the school's list when the code is checked. Change them here if needed: they appear at the top of the board.</div>
       <div class="perm-note">The code comes from your administrator and connects this board to your classes. Without it hall passes stay off and no student names are loaded. Trips are logged by student ID.</div>
       <div class="btn-row" style="margin-top:8px;">
-        <input type="text" id="sheetUrlInput" placeholder="Script address (already filled in for the school)">
+        <input type="text" id="sheetUrlInput" placeholder="Script address (leave empty to use the school's)">
       </div>
       <div class="btn-row" style="margin-top:10px;">
         <button id="rosterLoadBtn">Check code and load names</button>
@@ -1316,7 +1325,7 @@
       Times come from the OSHS 2026&ndash;2027 A/B block schedule and bell schedule sheet.
       Once the board has been opened online it keeps working without internet, and it updates itself outside school hours.
       <br>Version <span id="appVersion"></span>
-      <br>Hall Pass Board &copy; 2026 Shamil Ganiev. Free for schools under the Free School Use License (see LICENSE on GitHub).
+      <br>Hall Pass Board &copy; 2026 Shamil Ganiev. Free for Orlando Science High School under the OSHS Free Use License (see LICENSE on GitHub).
       <div class="perm-note" id="updateNote"></div>
       <div class="btn-row hidden" id="updateRow" style="margin-top:6px;"><button id="reloadNowBtn" type="button">Reload now</button></div>
     </div>
@@ -1441,7 +1450,7 @@ const BAND_LABELS = { "912": "9th–12th Grade", "1011": "10th–11th Grade" };
    at all for non-http(s) origins like that, even though setting it silently
    "succeeds." IndexedDB is a separate API that does work here (confirmed by
    the sound library already surviving reloads), so settings live there too. */
-const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyK0y5PNq5rJfvAAVGyctWzQhSYwjvACE3muXEAojeoQZYqvBlAdE_XXXrCC3i77kO5HA/exec";   // the school's Google script (also written in apps-script/webapplink); useless without the key
+let DEFAULT_SHEET_URL = "";                // the school's script address: read from apps-script/webapplink when the page starts (empty file = empty field)
 function getDefaultSettings(){
   return {
     theme: "dark",
@@ -1449,7 +1458,6 @@ function getDefaultSettings(){
     dayStart: "07:30",
     dayEnd: "16:00",
     activeBand: "1011",
-    localTimeServerUrl: "",
     manualOffsetSec: 0, // manual fine-tune vs the school's own bell server, in seconds (0.1 steps)
     bell: { refMs: Date.now(), refSec: 0, perDaySec: 0.6 },   // the school bell runs ahead of true time and keeps drifting: shift = refSec + perDaySec x days since refMs
     countdownFormat: "hms", // "hms" = HH:MM:SS, "ms" = MM:SS (for Time Left / Time Passed displays)
@@ -1457,6 +1465,7 @@ function getDefaultSettings(){
     extras: {                    // everything beyond the basic screen is opt-in
       hallPass: false, ding: false, sounds: false, cards: false, agenda: false, timer: false
     },
+    layout: { leftPct: 50 },                      // the width of the left part, 40..60 percent
     timer: { duration: 300, remaining: 300, running: false, endAt: 0, finished: false, threshold: 60, thresholdUnit: "s", endOn: true, endSound: "bell", endVolume: 5, warnOn: false, warnSound: "chime", warnVolume: 5, warned: false, presets: "1,2,3,5,10,15,20,30", recent: [] },   // seconds; endAt = the moment it ends while it runs
     agenda: { clearDaily: true, leadMin: 5, texts: {} },   // texts["A1"] = { t: the plan, d: the day it was written }
     stage: {                    // the rotating left screen
@@ -1480,7 +1489,8 @@ function getDefaultSettings(){
       limits: { "🚻 Restroom": 8, "🔒 Locker": 3, "💧 Water": 3, "🏢 Office": 8, "🏥 Nurse": 8, "Other": 8 },   // minutes, per type; a slot turns red after it
       testMode: false,          // rows sent to the log are marked TEST instead of LIVE
       rosterSections: {},       // { "A1": ["Full Name", ...], ... } loaded from the sheet
-      sheetUrl: DEFAULT_SHEET_URL,   // Google Apps Script web app URL: the school's, filled in; nothing is sent until the key is typed
+      sheetUrl: "",                  // an address typed by hand (empty = the school's address from apps-script/webapplink)
+      sheetUrlDefault: "",           // the last school address that was read, kept for when the board is offline
       sheetKey: "",             // the teacher code (from the administrator)
       teacher: { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" },   // who the school's script says this board belongs to
       profile: { teacher: "", name: "", room: "", nameEdited: false, roomEdited: false },    // what the top of the board says: filled in from the school's list, editable
@@ -1510,9 +1520,10 @@ async function loadSettingsFromIDB(){
     return {
       ...defaults, ...saved,
       notify: { ...defaults.notify, ...(saved.notify || {}) },
-      pass: { ...defaults.pass, ...(saved.pass || {}), sheetUrl: ((saved.pass && saved.pass.sheetUrl) || defaults.pass.sheetUrl), teacher: { ...defaults.pass.teacher, ...((saved.pass && saved.pass.teacher) || {}) }, profile: { ...defaults.pass.profile, ...((saved.pass && saved.pass.profile) || {}) } },
+      pass: { ...defaults.pass, ...(saved.pass || {}), sheetUrl: ((saved.pass && saved.pass.sheetUrl) || ""), teacher: { ...defaults.pass.teacher, ...((saved.pass && saved.pass.teacher) || {}) }, profile: { ...defaults.pass.profile, ...((saved.pass && saved.pass.profile) || {}) } },
       stage: { ...defaults.stage, ...(older ? { phases: true, weather: true, alerts: true } : {}), ...(saved.stage || {}) },
       bell: { ...defaults.bell, ...(saved.bell || {}) },
+      layout: { ...defaults.layout, ...(saved.layout || {}) },
       timer: { ...defaults.timer, ...(saved.timer || {}), recent: ((saved.timer && saved.timer.recent) || []).slice(0, 4), endOn: (saved.timer && saved.timer.endOn !== undefined) ? saved.timer.endOn : !(saved.timer && saved.timer.ring === false) },
       agenda: { ...defaults.agenda, ...(saved.agenda || {}), texts: { ...((saved.agenda && saved.agenda.texts) || {}) } },
       extras: older ? { hallPass: true, ding: true, sounds: true, cards: true } : { ...defaults.extras, ...saved.extras },
@@ -1536,7 +1547,6 @@ let soundLibrary = []; // [{ id, name, dataUrl }] — populated async from Index
 let schoolSounds = []; // [{ id, name, file, url, loaded, loading, error }] — the mp3 files of the school's "sounds" folder
 
 /* ================= Date / time helpers ================= */
-let timeOffsetMs = 0; // added to Date.now() to correct for device clock drift
 
 function bellAutoSec(ms){                       // how far the school bell has drifted by now (the part nobody has to nudge by hand)
   const b = settings.bell || {};
@@ -1547,7 +1557,7 @@ function bellAutoSec(ms){                       // how far the school bell has d
 function appNow(){
   if(DEMO.on) return new Date(DEMO.baseSim + (Date.now() - DEMO.baseReal) * DEMO.speed);
   const t = Date.now();
-  return new Date(t + timeOffsetMs + Math.round(((settings.manualOffsetSec || 0) + bellAutoSec(t)) * 1000));
+  return new Date(t + Math.round(((settings.manualOffsetSec || 0) + bellAutoSec(t)) * 1000));
 }
 
 function toISO(d){
@@ -1600,54 +1610,6 @@ function fmtCountdown(totalSeconds){
    the open-source py-localtime-api project, meant to run on a Raspberry Pi/LAN
    server for exactly this purpose) — the parser below accepts several common
    response shapes automatically. */
-function parseAnyTimeJSON(d){
-  if(!d || typeof d !== "object") return null;
-  if(typeof d.unixtime === "number") return d.unixtime * 1000;
-  if(typeof d.dateTime === "string"){
-    const s = /[Zz]$|[+-]\d\d:\d\d$/.test(d.dateTime) ? d.dateTime : d.dateTime + "Z";
-    const ms = Date.parse(s);
-    if(!isNaN(ms)) return ms;
-  }
-  if(typeof d.utc_datetime === "string"){
-    const ms = Date.parse(d.utc_datetime);
-    if(!isNaN(ms)) return ms;
-  }
-  if(typeof d.datetime === "string"){
-    const ms = Date.parse(d.datetime);
-    if(!isNaN(ms)) return ms;
-  }
-  return null;
-}
-
-const TIME_SERVERS = [
-  { name: "timeapi.io",     url: "https://timeapi.io/api/Time/current/zone?timeZone=UTC", parse: (d) => Date.parse(d.dateTime + "Z") },
-  { name: "timeapi.world",  url: "https://gateway.timeapi.world/timezone/Etc/UTC",         parse: (d) => d.unixtime * 1000 },
-  { name: "time.now",       url: "https://time.now/developer/api/timezone/Etc/UTC",        parse: (d) => d.unixtime * 1000 }
-];
-async function syncTime(){
-  const statusEl = document.getElementById("clockSync");
-  const serverList = [];
-  if(settings.localTimeServerUrl && settings.localTimeServerUrl.trim()){
-    serverList.push({ name: "local network", url: settings.localTimeServerUrl.trim(), parse: parseAnyTimeJSON });
-  }
-  serverList.push(...TIME_SERVERS);
-
-  for(const ep of serverList){
-    try{
-      const res = await fetch(ep.url, { cache: "no-store" });
-      if(!res.ok) continue;
-      const data = await res.json();
-      const serverMs = ep.parse(data);
-      if(!serverMs || isNaN(serverMs)) continue;
-      timeOffsetMs = serverMs - Date.now();
-      if(statusEl) statusEl.textContent = `synced (${ep.name})`;
-      return true;
-    }catch(e){ /* try next server */ }
-  }
-  timeOffsetMs = 0;
-  if(statusEl) statusEl.textContent = "device time";
-  return false;
-}
 
 /* ================= Calendar + schedule resolution ================= */
 function parseCalendarEntry(entry){
@@ -2848,6 +2810,16 @@ $("timerEditor").addEventListener("click", e => {
 $("teCancel").addEventListener("click", closeTimerEditor);
 $("teSet").addEventListener("click", () => { if(te.value > 0){ timerSet(te.value, false); closeTimerEditor(); } });
 $("teStart").addEventListener("click", () => { if(te.value > 0){ timerSet(te.value, true); closeTimerEditor(); } });
+function applyLayout(){                                // the proportion between the left and the right part
+  const p = Math.max(40, Math.min(60, Math.round(Number(settings.layout && settings.layout.leftPct) || 50)));
+  settings.layout.leftPct = p;
+  document.documentElement.style.setProperty("--lw", String(p));
+  lbSig = ""; heroFitSig = ""; agendaSig = "";           // the text of the left part is drawn again for its new width
+}
+function syncLayoutUI(){ $("layoutLeft").value = settings.layout.leftPct; $("layoutLeftVal").textContent = settings.layout.leftPct + "%"; }
+$("layoutLeft").addEventListener("input", e => { settings.layout.leftPct = Number(e.target.value); applyLayout(); syncLayoutUI(); refreshAll(); });
+$("layoutLeft").addEventListener("change", () => saveSettings());
+$("layoutLeftReset").addEventListener("click", () => { settings.layout.leftPct = 50; applyLayout(); syncLayoutUI(); saveSettings(); refreshAll(); });
 function syncTimerUI(){
   const t = settings.timer;
   $("tmSetMin").value = Math.floor(t.duration / 60); $("tmSetSec").value = t.duration % 60;
@@ -3503,13 +3475,27 @@ window.addEventListener("resize", () => {
    Entries are always queued first and removed only after the request goes out,
    so nothing is lost if the board is offline or no URL is set yet. */
 let flushingLog = false;
-function sheetReady(){                         // may the board talk to the script at all?
-  const u = (settings.pass.sheetUrl || "").trim();
-  if(!u) return false;
-  if(u === DEFAULT_SHEET_URL && !(settings.pass.sheetKey || "").trim()) return false;   // the school's address needs the school's key
-  return true;
+function effectiveSheetUrl(){ return (settings.pass.sheetUrl || "").trim() || DEFAULT_SHEET_URL || settings.pass.sheetUrlDefault || ""; }
+function sheetReady(){                         // may the board talk to the script at all? (it needs an address and a teacher code)
+  return !!effectiveSheetUrl() && !!(settings.pass.sheetKey || "").trim();
 }
-function sheetHint(){ return (settings.pass.sheetUrl || "").trim() ? "Type your teacher code first." : "Paste the web app URL first."; }
+function sheetHint(){ return effectiveSheetUrl() ? "Type your teacher code first." : "Paste the web app URL first."; }
+async function loadDefaultSheetUrl(){          // the school's address lives in one small file: apps-script/webapplink
+  try{
+    const r = await fetch("apps-script/webapplink", { cache: "no-store" });
+    if(r.ok){
+      const t = (await r.text()).split(/\r?\n/).map(x => x.trim()).filter(x => x && x[0] !== "#")[0] || "";       // the first line that is not empty or a # comment
+      if(/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(t)){
+        DEFAULT_SHEET_URL = settings.pass.sheetUrlDefault = t;
+        if((settings.pass.sheetUrl || "").trim() === t) settings.pass.sheetUrl = "";      // an address that was only a copy of the school's follows the file from now on
+        saveSettings(); return true;
+      }
+      if(!t){ DEFAULT_SHEET_URL = settings.pass.sheetUrlDefault = ""; saveSettings(); return true; }      // an empty file: the field stays empty
+    }
+  }catch(e){ /* offline: the last address that was read is used */ }
+  DEFAULT_SHEET_URL = settings.pass.sheetUrlDefault || "";
+  return false;
+}
 function teacherOk(){ const t = settings.pass.teacher; return !!(t && t.ok === true); }     // hall passes work only for a board the school has recognised
 function normCode(c){ return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
 function stampId(outD, inD){                      // yyyyMMdd + HHmmss out + HHmmss back, e.g. 20261027113215113412
@@ -3578,7 +3564,7 @@ function normalizeRoster(d){
 let sheetCbCount = 0;
 let SHEET_JSONP_TIMEOUT_MS = 12000;   // how long to wait for the script-tag fallback before giving up
 async function sheetGet(action, read, extra){
-  const url = (settings.pass.sheetUrl || "").trim();
+  const url = effectiveSheetUrl();
   if(!url || !sheetReady()) return null;
   const enc = v => encodeURIComponent(String(v)).replace(/[!'()*~]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
   const key = (settings.pass.sheetKey || "").trim();
@@ -3835,7 +3821,7 @@ function pinPress(digit){
   pinEntry += digit;
   $("pinMsg").textContent = "";
   if(pinEntry.length === 4 && masterCodes.indexOf(pinEntry) >= 0){ pinGranted(); return; }     // the master code
-  if(pinEntry.length >= String(settings.pin).length){ pinSubmit(); return; }
+  if(pinEntry.length >= pinLength()){ pinSubmit(); return; }
   renderPinPad(); // reshuffle after every digit
 }
 function pinBackspace(){ bumpPinIdle(); pinEntry = pinEntry.slice(0, -1); renderPinPad(); }
@@ -3850,8 +3836,9 @@ function pinGranted(){
   closePinPopup();
   openSettings();
 }
+function pinLength(){ return /^\d{4,8}$/.test(String(settings.pin)) ? String(settings.pin).length : 4; }        // no PIN set: only the master code (4 digits) opens the pad
 function pinSubmit(){
-  if(pinEntry === String(settings.pin)){ pinGranted(); return; }
+  if(/^\d{4,8}$/.test(String(settings.pin)) && pinEntry === String(settings.pin)){ pinGranted(); return; }
   pinEntry = "";
   pinFails++;
   const pop = $("pinPopup");
@@ -3921,22 +3908,8 @@ function closePinPopup(){                // every other way of dismissing the pa
   if(pending) finishCancel(pending, false);   // no correct PIN: log the arrival at the moment "Cancel pass" was tapped
 }
 function startCancelWithPin(slot, atMs){
-  if(!settings.pinEnabled){ confirmCancel(slot, atMs); return; }     // no PIN on this board: one confirmation instead
-  pinCancel = { slot, atMs };
+  pinCancel = { slot, atMs };                                         // always the pad, even when the PIN for the settings is switched off: the board's PIN or the master code
   openPinPopup("cancelPass");
-}
-function confirmCancel(slot, atMs){
-  const st = settings.pass.active[slot];
-  if(!st) return;
-  passDialogSlot = null;
-  $("passDialog").innerHTML = '<h3>Cancel this pass?</h3>' +
-    '<div class="dlg-line"><b>' + esc(shortName(st.name || "Student")) + '</b> &mdash; ' + esc(st.reason || "") + '</div>' +
-    '<div class="dlg-line">It stays in the log as cancelled.</div>' +
-    '<div class="dlg-actions"><button type="button" id="cancelNoBtn" class="clear">No</button>' +
-    '<button type="button" id="cancelYesBtn" class="grant">Yes, cancel</button></div>';
-  $("cancelNoBtn").addEventListener("click", closePassDialog);
-  $("cancelYesBtn").addEventListener("click", () => cancelPass(slot, atMs));   // the time is the first tap on Cancel
-  $("passDialogBackdrop").classList.remove("hidden");
 }
 function finishCancel(p, pinOk){
   if(!p || !settings.pass.active[p.slot]) return;
@@ -3944,7 +3917,7 @@ function finishCancel(p, pinOk){
   else completePass(p.slot, p.atMs);
 }
 function openSettings(){
-  syncTimerUI();
+  syncTimerUI(); syncLayoutUI();
   $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
   renderTeacherStatus();
   if(settings.extras.agenda){ agSyncUI(false); setTimeout(agPreview, 80); }
@@ -4015,7 +3988,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.03.2 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.04 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -4343,7 +4316,7 @@ function demoStop(){
   DEMO.backup = null;
   $("demoBar").classList.add("hidden");
   saveSettings(); renderHallPass(); renderPassLogUI(); firedNotifications = {}; stageReset(); refreshAll();
-  syncTime().then(refreshAll);
+  $("clockSync").textContent = "device time"; refreshAll();
   maybeWelcome();                                // a brand-new board goes back to the setup after the demo
 }
 function demoJump(kind){
@@ -4507,12 +4480,6 @@ document.getElementById("dayEndInput").addEventListener("change", (e) => {
   settings.dayEnd = e.target.value; saveSettings(); refreshAll();
 });
 
-document.getElementById("localTimeServerInput").value = settings.localTimeServerUrl || "";
-document.getElementById("localTimeServerInput").addEventListener("change", async (e) => {
-  settings.localTimeServerUrl = e.target.value.trim();
-  saveSettings();
-  await syncTime();
-});
 
 function renderThemeButtons(){
   const el = document.getElementById("themeButtons");
@@ -4879,20 +4846,9 @@ document.getElementById("bellResetBtn").addEventListener("click", () => {      /
 
 updatePermUI();
 document.body.setAttribute("data-theme", settings.theme);
-document.getElementById("syncNowBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("syncNowBtn");
-  const statusEl = document.getElementById("clockSync");
-  btn.classList.add("syncing");
-  btn.textContent = "🔄 Syncing…";
-  if(statusEl) statusEl.textContent = "syncing…";
-  await syncTime();
-  btn.classList.remove("syncing");
-  btn.textContent = "🔄 Sync";
-});
 
 refreshAll(); // paint immediately with device/cached time, don't wait on network
 setInterval(tick, 1000);
-syncTime().then(refreshAll); // refine once synced (or confirmed offline), doesn't block anything above
 
 /* ================= Load real settings + sound library from IndexedDB =================
    Runs independently of everything above — every button, checkbox, and input
@@ -4906,6 +4862,8 @@ syncTime().then(refreshAll); // refine once synced (or confirmed offline), doesn
   settings.overrides = loaded.overrides;
 
   await restoreSoundLibrary();
+  await loadDefaultSheetUrl();
+  applyLayout();
 
   // Re-sync every control that was set from (default) settings at load time.
   document.getElementById("notify15").checked = !!settings.notify.n15;
@@ -4916,7 +4874,6 @@ syncTime().then(refreshAll); // refine once synced (or confirmed offline), doesn
   document.getElementById("ringBellEnabled").checked = !!settings.notify.ringBell;
   document.getElementById("dayStartInput").value = settings.dayStart;
   document.getElementById("dayEndInput").value = settings.dayEnd;
-  document.getElementById("localTimeServerInput").value = settings.localTimeServerUrl || "";
   renderThemeButtons();
   renderHourFormatButtons();
   renderCountdownFormatButtons();

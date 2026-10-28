@@ -40,6 +40,8 @@ The board keeps working without internet once it has been opened online, and it 
 
 ## Extras (all off until you switch them on) and the screen
 
+**Cancelling a pass always needs a PIN**, even when the PIN for the settings is switched off: the board's PIN or the master code (if no PIN is set at all, only the master code works). **The proportion** between the left and the right part is set in *Display* (*Left part width*, 40-60%).
+
 Open the settings by double-tapping the gear button (bottom right), then your PIN if you use one (the PIN can be switched off in the settings). **Every section is always visible; the switch next to its name turns it on or off** (an off section is greyed and locked, and its extra is not used). The extras:
 
 - **Hall pass buttons and log** (two buttons to start with; they work only after the teacher code is typed, see below): students tap their name and choose where they are going (the *Leave class* button then counts down 5 seconds and the student leaves by himself; every new tap on a place starts the count again; the seconds are a setting, 0 = off), and tap again when they return. Any number of pass buttons. Each place (restroom, locker, water...) has its own limit in minutes; the pass turns red on the board after it (limits stay on the board and are not sent anywhere). A pass can be undone for 30 seconds without the PIN; after that it is cancelled with the PIN (or one confirmation if the PIN is off). Undone and cancelled passes stay in the log as Cancelled, with the time of the tap. Long class lists (study hall) are chosen by first letter. Optionally a teacher may allow passes in the closed 10/10 minutes: the board asks once, then it looks like any other pass and the log notes it. Trips can be saved to your own Google Sheet.
@@ -62,26 +64,26 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 |---|---|
 | `index.html` | The whole board (page, bell schedules, A/B calendar). |
 | `sw.js`, `manifest.webmanifest`, `icon*.png/svg` | Make it work offline and installable. |
-| `LICENSE` | The Free School Use License. |
+| `LICENSE` | The OSHS Free Use License. |
 | `apps-script/Code.gs`, `apps-script/SETUP.md` | The school's Google Apps Script (teacher codes, class lists, the log, announcements, weather warnings) and the administrator's guide. |
-| `apps-script/webapplink` | The address of the deployed script (also built into `index.html`). |
+| `apps-script/webapplink` | The address of the deployed script. **The page reads it from here when it starts** (one line, ends with `/exec`; lines starting with `#` are comments; empty = nobody is connected yet). |
 | `docs/` | Screenshots and QR codes of the page address, for slides (the page itself no longer makes QR codes). |
 
 **Teacher codes, class lists and the hall pass log**
 
 The hall pass buttons need to know whose board this is. Each teacher has a personal **teacher code**, made by the administrator in the school's Google Sheet. The code is typed once on the board (welcome screen, or Settings -> *Teacher code*), or arrives in a personal setup link that ends in `#code=...`. Without a code the buttons stay grey, no student names are loaded and nothing is logged. With a code the board receives only the students of that teacher's own classes (from the school schedule) and logs each finished trip **by student ID**, one row on the single `Log` tab of the school's sheet.
 
-The administrator's guide is in [`apps-script/SETUP.md`](apps-script/SETUP.md). In short: paste `apps-script/Code.gs` into the sheet's Apps Script, deploy it as a web app (the address is built into the page and also written in `apps-script/webapplink`; deploy a *new version* of the same deployment to keep it), then use the menu *Hall Pass*: set up tabs, import the schedule export, make teacher codes, make setup links.
+The administrator's guide is in [`apps-script/SETUP.md`](apps-script/SETUP.md). In short: paste `apps-script/Code.gs` into the sheet's Apps Script, deploy it as a web app (write the address into `apps-script/webapplink`, the page reads it from there; deploy a *new version* of the same deployment to keep the address), then use the menu *Hall Pass*: set up tabs, import the schedule export, make teacher codes, make setup links.
 
 ## License
 
-Hall Pass Board is free for schools, including all schools of Discovery Education. Copyright (c) 2026 Shamil Ganiev. You may use, copy, modify and share it for school purposes, keep the author's name, and not sell it. The full text is in [LICENSE](LICENSE). This is a plain-language school license, not a legal opinion: a school or district may want its own counsel to read it.
+Hall Pass Board is free for **Orlando Science High School (OSHS)** only. Copyright (c) 2026 Shamil Ganiev. OSHS and its staff may use, copy and modify it for the school's own purposes, must keep the author's name and may not sell it. Any other school or organization needs the author's written permission first (the code is visible so that OSHS staff, students and parents can see how it works, which is not a license). The full text is in [LICENSE](LICENSE). This is a plain-language license, not a legal opinion: the school may want its own counsel to read it.
 
 ## Privacy
 
 - Everything is stored in the browser of the board itself (IndexedDB). Nothing is sent anywhere until the teacher code is typed (and then only the student ID, the destination and the times), or you switch on the weather.
 - **This repository and the website are public. Never commit student names, rosters, schedule exports or teacher codes.** The address of the school's script is public on purpose: it answers nobody without a valid teacher code. Names live only in the school's Google Sheet and, for each teacher's own classes, on that teacher's board.
-- The weather extra contacts open-meteo.com and api.weather.gov (through your Google script). The time sync contacts public time servers.
+- The weather extra contacts open-meteo.com and api.weather.gov (through your Google script). There is no time synchronisation: the board uses the clock of the device, plus the usual bell shift buttons (and the optional *School bell drift* section).
 - Forgot the PIN? Clear the site's data in Chrome (site settings) and the welcome screen returns. This also clears that board's saved settings.
 
 ## Credits

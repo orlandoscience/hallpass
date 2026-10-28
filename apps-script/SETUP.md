@@ -16,7 +16,7 @@ One Google Sheet in the **school's account** holds everything. Teachers never op
 1. Open the school's sheet (or create one). **Extensions -> Apps Script**.
 2. Delete the old code, paste the whole of `Code.gs`, press **Save**.
 3. **Deploy -> Manage deployments**, pencil, *Version: New version*, **Deploy**. The web app address stays the same, so the boards keep working.
-   *(First time ever: Deploy -> New deployment -> Web app, Execute as **Me**, Who has access **Anyone**, copy the address into `apps-script/webapplink` and the page.)*
+   *(First time ever: Deploy -> New deployment -> Web app, Execute as **Me**, Who has access **Anyone**, copy the address into the file `apps-script/webapplink` of the GitHub repository: the page reads it from there, nothing is written into the page. Without an address the boards stay disconnected.)*
 4. Reload the sheet. A menu **Hall Pass** appears. The first run asks for permission: Review permissions -> your account -> Advanced -> Go to the project -> Allow.
 
 "Anyone" means anybody *with the address* can send a request, but the script answers nothing without a valid teacher code.
