@@ -8,6 +8,8 @@ One Google Sheet in the **school's account** holds everything. Teachers never op
 | `Schedule` | The clean copy the boards use: student ID, name, block, time, teacher, course, room, role, grade. | The import |
 | `Teachers` | One row per teacher: code, name, role, active, setup link. | "Make teacher codes" |
 | `Settings` | `site_url`, `semester2_start`, `exclude_courses`, `script_url`, `school_name` (the title on the board), `band_912_label` and `band_1011_label` (the names of the two grade groups). | You |
+| `Teacher settings` | The settings of each teacher: teacher, key, value (JSON), when it was changed. Written by the boards; you may read and fix it. | The boards |
+| `School defaults` | Settings for everybody: key, value (JSON), **Locked** (x = teachers cannot change it), note. | You |
 | `Bells` | The school's bell schedules: one row per part of the day (band, day type, day name, label, kind, start, end). | You (a sample school is put there first) |
 | `Calendar` | The school's calendar: one row per date (the day letter A or B, the type of day, an event name and its kind). | You (a sample school is put there first) |
 | `Log` | **One tab**, one row per finished trip. Never split by week. | The boards |
@@ -138,3 +140,14 @@ The page has the Orlando Science High School 2026-27 times and calendar built in
 | Event kind | `break` (a break or holiday: the board counts the days until it), `end` (the end of a marking period) or `year` (the last day of school). |
 
 **For the next school year:** paste the new calendar over the `Calendar` tab (delete the old rows first), check the `Bells` rows, run **Check setup**, and the boards follow by themselves.
+
+## The teachers' settings follow the teacher
+
+The settings of a teacher are kept on the sheet, so they come with him to **any board** (a new board, a cleaned browser, a substitute computer) as soon as his code is typed or his link is opened. They are saved when he presses **Apply** or **Save** in the board's settings (and a change made outside the settings window, such as the timer's time, follows within seconds). Several boards of one teacher agree by time: the **newest change wins** for each setting separately. Without internet the changes wait on the board and are sent when the connection is back.
+
+**What is shared:** which functions are on (passes, cards, agenda, timer, announcements, questions, Live Agenda), the number of pass buttons, the places and their limits, the 10/10 rule and the permission to go out in the closed minutes, the auto-leave seconds, the settings PIN (kept on the sheet **in plain text**, like the codes), the agenda and Live Agenda plans of every class (any length), the timer's time, red limit and the choice of its two sounds, the card choices, the clock and countdown formats, and the name and room shown at the top.
+**What stays on each board:** the theme, the width of the left part, the sounds and volumes of the alerts and the bell, the bell shift, the day overrides, and the connection (the code and the script address).
+
+**School defaults.** Put a row on the `School defaults` tab: **Key** (see the menu *Hall Pass -> Show the setting keys*), **Value** as JSON (`true`, `false`, `3`, `"text"`, a list), and an `x` under **Locked** to forbid changes. An unlocked default is taken by every teacher who has not set that setting himself (and followed later when you change it); a **locked** one is forced on every board, and a teacher who changes it sees it put back on **Apply** with a note. The easy way: configure one board the way you want it, then use **Hall Pass -> Make school defaults from a teacher...** (you type part of his name) to copy all of his settings to the defaults, and then add the **x** to the ones that must not change.
+
+**The first time** a teacher connects and the sheet knows nothing about him (and there are no school defaults), what his board already has becomes his: only the settings that differ from the built-in ones are sent. If you removed a row on the `Teacher settings` tab, that setting returns to the school default or the built-in value on his next check. The `Updated` number is a time in milliseconds; do not edit it unless you know why.

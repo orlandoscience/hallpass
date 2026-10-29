@@ -834,6 +834,13 @@
   .lv-next{ font-size: clamp(12px, calc(1.5 * var(--u)), 26px); opacity: .92; overflow-wrap: anywhere; }
   #ambient[data-live="1"] .stage, #ambient[data-live="1"] .stage-note, #ambient[data-live="1"] #agenda{ display: none !important; }
   #ambient[data-live="1"] .greeting{ flex: 0 0 auto; }
+  .copy-grid{ display: flex; gap: 18px; margin: 8px 0; }
+  .cp-col{ flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .cp-h{ font-size: .75rem; opacity: .75; text-transform: uppercase; letter-spacing: .08em; }
+  .cp-it{ display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 6px 8px; border: 1px solid rgba(127,127,127,.3); border-radius: 8px; cursor: pointer; }
+  .cp-it input{ width: 20px; height: 20px; }
+  .modal-head .head-btns{ display: flex; gap: 8px; align-items: center; }
+  .modal-head .dirty{ font-size: .7rem; font-weight: 700; color: #fbbf24; margin-left: 10px; vertical-align: middle; }
 </style>
 </head>
 <body data-theme="dark">
@@ -1060,7 +1067,7 @@
 
 <div id="settingsModal" class="modal-backdrop hidden">
   <div class="modal-window">
-    <div class="modal-head"><h1>Settings</h1><button type="button" id="settingsCloseBtn">Close</button></div>
+    <div class="modal-head"><h1>Settings <span id="settingsDirty" class="dirty hidden">&bull; not saved yet</span></h1><div class="head-btns"><button type="button" id="settingsCancelBtn">Cancel</button><button type="button" id="settingsApplyBtn">Apply</button><button type="button" id="settingsSaveBtn" class="grant">Save</button></div></div>
     <div class="modal-body" id="settingsBody">
 
     <div class="section" id="secQuick">
@@ -1325,13 +1332,13 @@
       <div class="sec-head"><h2>Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exAgenda"><span class="slider"></span></label></div>
       <div class="field-row"><span>Class (A or B day, and period)</span>
         <select id="agBlock" class="num-input"><option>A1</option><option>A2</option><option>A3</option><option>A4</option><option>B1</option><option>B2</option><option>B3</option><option>B4</option></select></div>
-      <textarea id="agText" class="area-input" rows="6" maxlength="600" style="width:100%;box-sizing:border-box;" placeholder="One item per line, for example:&#10;1. Finish the warm-up&#10;2. Read page 42&#10;3. Group work&#10;[x] Take attendance"></textarea>
+      <textarea id="agText" class="area-input" rows="6" style="width:100%;box-sizing:border-box;" placeholder="One item per line, for example:&#10;1. Finish the warm-up&#10;2. Read page 42&#10;3. Group work&#10;[x] Take attendance"></textarea>
       <div class="perm-note" id="agCount"></div>
       <div class="ag-prev" id="agPreview"><div class="ag-sheet"><i class="ag-pin"></i><div class="ag-head"></div><div class="ag-body"></div></div></div>
       <div class="toggle-row"><span>Clear it at the end of the day</span><label class="switch"><input type="checkbox" id="agClearDaily"><span class="slider"></span></label></div>
       <div class="field-row"><span>Show it from (minutes before the class starts)</span><input type="number" id="agLead" class="num-input" min="0" max="30"></div>
       <div class="field-row"><span>Seconds on screen when it is one of the cards</span><input type="number" id="agSec" class="num-input" min="8" max="90"></div>
-      <div class="btn-row" style="margin-top:8px;"><button type="button" id="agCopyDay">Copy to this day's periods</button><button type="button" id="agCopyAll">Copy to all 8 classes</button><button type="button" id="agClear">Clear this note</button></div>
+      <div class="btn-row" style="margin-top:8px;"><button type="button" id="agCopyTo">Copy to...</button><button type="button" id="agCopyDay">Copy to this day's periods</button><button type="button" id="agCopyAll">Copy to all 8 classes</button><button type="button" id="agClear">Clear this note</button></div>
       <div class="perm-note" id="agStatus"></div>
       <div class="override-note">On the basic screen the note simply stays during its class; with the rotating cards on, the note is one of the cards and gets the same time as the others. It shows during the class you pick here (and a few minutes before it). Start a line with <b>[x]</b> to cross it out. Plain text only: it is shown to students exactly as typed.</div>
     </div>
@@ -1341,9 +1348,9 @@
       <div class="override-note">A plan with times for a class. The first line is how many minutes <b>before the bell</b> it starts; then one part per line: <b>name | minutes</b>. For example <b>2</b>, then <b>Bell work | 10</b>, <b>Activity | 20</b>: two minutes before the bell the board shows Bell work with a bar that fills over 10 minutes, then Activity for 20 minutes, and so on. A sound plays at the end of each part. While it runs it takes the place of the cards and the agenda note.</div>
       <div class="field-row"><span>Class (A or B day, and period)</span>
         <select id="lvBlock" class="num-input"><option>A1</option><option>A2</option><option>A3</option><option>A4</option><option>B1</option><option>B2</option><option>B3</option><option>B4</option></select></div>
-      <textarea id="lvText" class="area-input" rows="8" maxlength="800" style="width:100%;box-sizing:border-box;" placeholder="2&#10;Bell work | 10&#10;Activity | 20&#10;Free work | 20&#10;Work with a partner | 10"></textarea>
+      <textarea id="lvText" class="area-input" rows="8" style="width:100%;box-sizing:border-box;" placeholder="2&#10;Bell work | 10&#10;Activity | 20&#10;Free work | 20&#10;Work with a partner | 10"></textarea>
       <div class="perm-note" id="lvPreview"></div>
-      <div class="btn-row" style="margin-top:8px;"><button type="button" id="lvCopyDay">Copy to this day's periods</button><button type="button" id="lvCopyAll">Copy to all 8 classes</button><button type="button" id="lvClear">Clear this plan</button></div>
+      <div class="btn-row" style="margin-top:8px;"><button type="button" id="lvSample">Write a sample</button><button type="button" id="lvCopyTo">Copy to...</button><button type="button" id="lvCopyDay">Copy to this day's periods</button><button type="button" id="lvCopyAll">Copy to all 8 classes</button><button type="button" id="lvClear">Clear this plan</button></div>
       <div class="perm-note" id="lvStatus"></div>
       <h3>Sound at the end of each part</h3>
       <div class="btn-row"><select id="lvSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="lvTest">&#9654; Test Sound</button></div>
@@ -1393,6 +1400,7 @@
       <div class="toggle-row"><span>Test mode: rows sent to the log are marked TEST</span><label class="switch"><input type="checkbox" id="passTestMode"><span class="slider"></span></label></div>
       <div class="perm-note">Board ID in the log: <b id="boardIdText"></b></div>
       <div class="perm-note" id="rosterStatus"></div>
+      <div class="perm-note" id="prefsStatus"></div>
       <div class="perm-note" id="sheetPending"></div>
       <div class="perm-note" id="sheetStatus"></div>
       <div id="passRecent" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
@@ -1561,6 +1569,7 @@ function getDefaultSettings(){
       hallPass: false, ding: false, sounds: false, cards: false, agenda: false, timer: false, ann: false, qa: false, live: false
     },
     live: { texts: {}, block: "A1", sound: "bell", volume: 5 },     // the Live Agenda: a plan with times for each class
+    prefs: null,                                  // the teacher's settings that are kept on the school's sheet: what was last agreed, what waits to be sent, what the school locked
     school: null,                                 // the school's own data as the sheet last sent it (bell schedules, calendar, names): kept for offline use
     layout: { leftPct: 50 },                      // the width of the left part, 30..70 percent
     timer: { duration: 300, remaining: 300, running: false, endAt: 0, finished: false, threshold: 60, thresholdUnit: "s", endOn: true, endSound: "bell", endVolume: 5, warnOn: false, warnSound: "chime", warnVolume: 5, warned: false, presets: "1,2,3,5,10,15,20,30", recent: [] },   // seconds; endAt = the moment it ends while it runs
@@ -1625,6 +1634,7 @@ async function loadSettingsFromIDB(){
       bell: { ...defaults.bell, ...(saved.bell || {}) },
       layout: { ...defaults.layout, ...(saved.layout || {}) },
       school: saved.school || null,
+      prefs: saved.prefs || null,
       live: { ...defaults.live, ...(saved.live || {}), texts: { ...((saved.live && saved.live.texts) || {}) } },
       timer: { ...defaults.timer, ...(saved.timer || {}), recent: ((saved.timer && saved.timer.recent) || []).slice(0, 4), endOn: (saved.timer && saved.timer.endOn !== undefined) ? saved.timer.endOn : !(saved.timer && saved.timer.ring === false) },
       agenda: { ...defaults.agenda, ...(saved.agenda || {}), texts: { ...((saved.agenda && saved.agenda.texts) || {}) } },
@@ -1638,7 +1648,26 @@ let DAY_LETTER = null;                          // A or B: the board shows A1, B
 function dispLabel(l){ const m = DAY_LETTER && /^Period\s*(\d)$/i.exec(String(l)); return m ? DAY_LETTER + m[1] : l; }
 let settings = getDefaultSettings(); // real values are loaded from IndexedDB near the end of this script
 const DEMO = { on: false, speed: 1, baseSim: 0, baseReal: 0, backup: null };   // presentation demo (see below)
+let settingsHold = false, settingsDirty = false, settingsSnap = null;      // while the settings window is open nothing is written until Apply or Save
+const RUNTIME_PATHS = ["pass.active", "pass.queue", "pass.recent", "pass.teacher", "pass.rosterSections", "pass.rosterIds", "pass.rosterGroup", "pass.groups", "pass.teachers", "pass.ann", "pass.qa", "pass.sub",
+  "stage.wxCache", "stage.messagesList", "school", "notify.schoolSounds", "setupDone", "boardId", "timer.remaining", "timer.running", "timer.endAt", "timer.finished", "timer.warned", "prefs"];     // what happens on its own is never taken back by Cancel
+function getPath(o, p){ return p.split(".").reduce((x, k) => (x == null ? undefined : x[k]), o); }
+function setPath(o, p, v){ const ks = p.split("."), last = ks.pop(); let x = o; for(const k of ks){ if(x[k] == null || typeof x[k] !== "object") x[k] = {}; x = x[k]; } if(v === undefined) delete x[last]; else x[last] = v; }
+function snapshotSettings(){ const c = JSON.parse(JSON.stringify(settings)); RUNTIME_PATHS.forEach(p => setPath(c, p, undefined)); return c; }
+function restoreSettings(snap){
+  const keep = {}; RUNTIME_PATHS.forEach(p => { keep[p] = getPath(settings, p); });
+  const c = JSON.parse(JSON.stringify(snap));
+  Object.keys(settings).forEach(k => { if(!(k in c)) delete settings[k]; });
+  Object.keys(c).forEach(k => { settings[k] = c[k]; });
+  RUNTIME_PATHS.forEach(p => { if(keep[p] !== undefined) setPath(settings, p, keep[p]); });
+}
+function showDirty(){ const el = document.getElementById("settingsDirty"); if(el) el.classList.toggle("hidden", !settingsDirty); }
 function saveSettings(){
+  if(settingsHold){ settingsDirty = true; showDirty(); return; }
+  writeSettings();
+  if(typeof prefsSchedule === "function") prefsSchedule();       // a change made outside the settings window (for example the timer's time) goes to the sheet too
+}
+function writeSettings(){
   let toSave = settings;
   if(DEMO.on && DEMO.backup){      // never keep what happened during a demo: passes, log entries, one-day overrides
     toSave = { ...settings, pass: { ...settings.pass, active: DEMO.backup.active, queue: DEMO.backup.queue, recent: DEMO.backup.recent }, overrides: DEMO.backup.overrides };
@@ -3201,6 +3230,26 @@ function lvCopy(codes){
 }
 $("lvCopyDay").addEventListener("click", () => { const L = $("lvBlock").value.charAt(0); lvCopy(["1", "2", "3", "4"].map(n => L + n)); });
 $("lvCopyAll").addEventListener("click", () => lvCopy(["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"]));
+const LV_SAMPLE = "2\nBell work | 10\nActivity | 20\nFree work | 20\nWork with a partner | 10";
+$("lvSample").addEventListener("click", () => { $("lvText").value = LV_SAMPLE; $("lvText").dispatchEvent(new Event("input", { bubbles: true })); $("lvStatus").textContent = "A sample is written. Change the names and the minutes."; });
+function openCopyDialog(kind){                    // "Copy to...": the periods with a tick each
+  const live = kind === "live", from = (live ? $("lvBlock") : $("agBlock")).value, text = (live ? $("lvText") : $("agText")).value, status = live ? $("lvStatus") : $("agStatus");
+  if(!text.trim()){ status.textContent = "Write the plan first."; return; }
+  const dlg = $("passDialog"); passDialogSlot = null;
+  dlg.innerHTML = '<h3>Copy ' + (live ? "the live agenda" : "the agenda") + ' of ' + from + ' to...</h3><div class="copy-grid" id="cpGrid">' +
+    ["A", "B"].map(L => '<div class="cp-col"><div class="cp-h">' + L + ' day</div>' + [1, 2, 3, 4].map(n => { const c = L + n; return '<label class="cp-it"><input type="checkbox" data-c="' + c + '"' + (c === from ? " disabled" : "") + '> ' + c + (c === from ? " (this one)" : "") + '</label>'; }).join("") + '</div>').join("") + '</div>' +
+    '<div class="dlg-actions"><button type="button" id="cpAll" class="clear">All</button><button type="button" id="cpDay" class="clear">This day</button><button type="button" id="cpNone" class="clear">None</button><button type="button" id="cpCancel" class="clear">Cancel</button><button type="button" id="cpGo" class="grant" disabled>Copy</button></div>';
+  const boxes = () => Array.from(dlg.querySelectorAll("#cpGrid input:not(:disabled)")), upd = () => { $("cpGo").disabled = !boxes().some(b => b.checked); };
+  dlg.querySelectorAll("#cpGrid input").forEach(b => b.addEventListener("change", upd));
+  $("cpAll").addEventListener("click", () => { boxes().forEach(b => { b.checked = true; }); upd(); });
+  $("cpNone").addEventListener("click", () => { boxes().forEach(b => { b.checked = false; }); upd(); });
+  $("cpDay").addEventListener("click", () => { boxes().forEach(b => { b.checked = b.getAttribute("data-c").charAt(0) === from.charAt(0); }); upd(); });
+  $("cpCancel").addEventListener("click", closePassDialog);
+  $("cpGo").addEventListener("click", () => { const codes = boxes().filter(b => b.checked).map(b => b.getAttribute("data-c")); closePassDialog(); if(live) lvCopy(codes); else agCopy(codes); });
+  $("passDialogBackdrop").classList.remove("hidden");
+}
+$("lvCopyTo").addEventListener("click", () => openCopyDialog("live"));
+$("agCopyTo").addEventListener("click", () => openCopyDialog("agenda"));
 $("lvClear").addEventListener("click", () => { delete settings.live.texts[$("lvBlock").value]; saveSettings(); syncLiveUI(); $("lvStatus").textContent = "Cleared."; liveSig = ""; refreshAll(); });
 $("lvSound").addEventListener("change", e => { settings.live.sound = e.target.value; saveSettings(); playSoundFor("liveEnd"); });
 $("lvVol").addEventListener("input", e => { const v = safeVolume(e.target.value); settings.live.volume = v; $("lvVolVal").textContent = v + "%"; saveSettings(); });
@@ -3276,7 +3325,7 @@ function agPreview(){
   box.classList.toggle("empty", !t);
   const fits = paintAgenda(box.firstElementChild, t || "1. Your plan appears here", "Agenda", 17);
   const lines = t ? t.split(/\r?\n/).length : 0;
-  $("agCount").textContent = (t ? lines + (lines === 1 ? " line · " : " lines · ") : "") + text.length + " of 600 characters" + (t && !fits ? ". Too long for the note: the end is cut off." : "");
+  $("agCount").textContent = (t ? lines + (lines === 1 ? " line · " : " lines · ") : "") + text.length + " characters" + (t && !fits ? ". Long: the letters shrink to fit the note, and the end may be cut off." : "");
 }
 function agSyncUI(keepBlock){
   const sel = $("agBlock");
@@ -3290,14 +3339,13 @@ function agSyncUI(keepBlock){
   agPreview();
 }
 function agStore(codes, text){
-  const v = String(text).slice(0, 600), d = toISO(appNow());
+  const v = String(text), d = toISO(appNow());
   codes.forEach(c => { if(v.trim()) settings.agenda.texts[c] = { t: v, d }; else delete settings.agenda.texts[c]; });
 }
 let agSaveTimer = 0;
 $("agBlock").addEventListener("change", () => agSyncUI(true));
 $("agText").addEventListener("input", () => {
-  const v = $("agText").value.slice(0, 600);
-  if(v !== $("agText").value) $("agText").value = v;
+  const v = $("agText").value;
   agStore([$("agBlock").value], v);
   agPreview(); agendaSig = ""; refreshAll();
   clearTimeout(agSaveTimer); agSaveTimer = setTimeout(saveSettings, 300);
@@ -4060,6 +4108,7 @@ function profileEdited(field, value){
   renderWhoAmI(); clearTimeout(profSaveTimer); profSaveTimer = setTimeout(saveSettings, 300);
 }
 function renderTeacherStatus(){
+  if(typeof renderPrefsStatus === "function") renderPrefsStatus();
   const el = $("rosterStatus"); if(!el) return;
   const t = settings.pass.teacher || {};
   if(t.ok){
@@ -4082,6 +4131,7 @@ async function refreshRoster(manual){
   if(r.data.role !== "teacher"){ teacherLost("This code is not for a classroom board."); return; }
   applyHello(r.data);
   flushLogQueue();                                                // what was waiting for this teacher goes now
+  prefsPull();                                                    // the teacher's own settings, and the school's defaults
 }
 function renderPassLogUI(){
   const q = settings.pass.queue, me = teacherOk() ? ((settings.pass.teacher || {}).name || "") : "";
@@ -4096,6 +4146,106 @@ function renderPassLogUI(){
     '<div class="lib-row"><span class="lib-name">' + esc(e.student || "(no name)") + ' &middot; ' + esc(e.reason) +
     ' &middot; ' + (e.status === "Cancelled" ? "cancelled" : esc(String(e.durationMin)) + ' min') + '</span><span>' + esc(e.timeOut) + '</span></div>').join("");
 }
+
+/* ---------- The teacher's settings follow the teacher: they are kept on the school's sheet (Teacher settings), under the school's defaults (School defaults) ---------- */
+const PREF_BLOCKS = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"];
+const PREF_FIXED = ["extras.hallPass", "extras.cards", "extras.agenda", "extras.timer", "extras.ann", "extras.qa", "extras.live",
+  "stage.phases", "stage.arc", "stage.facts", "stage.riddles", "stage.messages", "stage.calendar", "stage.weather", "stage.alerts", "stage.cardSec",
+  "pass.slots", "pass.autoLeaveSec", "pass.useWindow", "pass.closedStartMin", "pass.closedEndMin", "pass.allowOutside", "pass.maxMinutes", "pass.reasons", "pass.limits",
+  "pass.profile.name", "pass.profile.room", "pass.profile.nameEdited", "pass.profile.roomEdited", "pin", "pinEnabled", "agenda.clearDaily", "agenda.leadMin",
+  "live.sound", "timer.duration", "timer.threshold", "timer.thresholdUnit", "timer.endOn", "timer.endSound", "timer.warnOn", "timer.warnSound", "timer.presets", "countdownFormat", "hour12"];
+const PREF_LABELS = { "pass.useWindow": "the 10/10 rule", "pass.closedStartMin": "the closed first minutes", "pass.closedEndMin": "the closed last minutes", "pass.allowOutside": "passes in the closed minutes", "pass.slots": "the number of pass buttons",
+  "pass.maxMinutes": "the pass time limit", "pass.reasons": "the places to go", "pass.limits": "the limits per place", "pin": "the PIN", "pinEnabled": "the PIN switch", "extras.hallPass": "hall passes", "extras.timer": "the timer", "extras.cards": "the cards", "extras.agenda": "the agenda", "extras.live": "the Live Agenda" };
+function prefKeys(){ return PREF_FIXED.concat(PREF_BLOCKS.map(b => "agenda.texts." + b), PREF_BLOCKS.map(b => "live.texts." + b)); }
+const prefJSON = k => { const v = getPath(settings, k); return v === undefined ? "null" : JSON.stringify(v); };
+let prefDefaults = null;
+const defJSON = k => { if(!prefDefaults) prefDefaults = getDefaultSettings(); const v = getPath(prefDefaults, k); return v === undefined ? "null" : JSON.stringify(v); };
+function prefApply(k, json){ let v; try{ v = JSON.parse(json); }catch(e){ return; } if(v === null){ if(/\.texts\./.test(k)) setPath(settings, k, undefined); return; } setPath(settings, k, v); }
+function prefsState(){ if(!settings.prefs) settings.prefs = { teacher: "", synced: {}, pending: {}, locked: [], at: 0, migrated: false, note: "" }; return settings.prefs; }
+let prefsDeferred = null, prefsBusy = false, prefsTimer = 0;
+function renderPrefsStatus(){
+  const el = $("prefsStatus"); if(!el) return;
+  if(!teacherOk()){ el.textContent = ""; return; }
+  const P = settings.prefs, waiting = P ? Object.keys(P.pending || {}).length : 0, parts = [];
+  parts.push(P && P.at ? "Your settings are kept on the school's sheet (checked " + fmtClock(hms24(new Date(P.at)).slice(0, 5)) + ")." : "Your settings will be kept on the school's sheet.");
+  if(waiting) parts.push(waiting + " change" + (waiting > 1 ? "s" : "") + " waiting to be sent.");
+  if(P && P.locked && P.locked.length) parts.push("Set by the school (cannot be changed here): " + P.locked.map(k => PREF_LABELS[k] || k).join(", ") + ".");
+  if(P && P.note) parts.push(P.note);
+  el.textContent = parts.join(" ");
+}
+async function prefsPull(){
+  if(!teacherOk() || !sheetReady()) return;
+  const r = await sheetGet("prefs_get", d => (d && d.ok === true) ? { ok: true, school: d.school || {}, mine: d.mine || {} } : { error: (d && d.error) || "script error" });
+  if(!r || !r.ok) return;
+  if(settingsHold){ prefsDeferred = r; return; }               // the settings window is open: what the school says waits until it is closed
+  prefsMerge(r);
+}
+function prefsMerge(r){                           // the school's locks > what is on the sheet for this teacher (unless a newer change here is waiting) > the school's defaults > this board
+  const P = prefsState(), who = (settings.pass.teacher || {}).name || "";
+  if(P.teacher !== who){ P.teacher = who; P.synced = {}; P.pending = {}; P.migrated = false; P.note = ""; }
+  let changed = false; const locked = [], keys = prefKeys();
+  const nothing = !Object.keys(r.mine).length && !Object.keys(r.school).length;
+  keys.forEach(k => {
+    const sch = r.school[k], mine = r.mine[k], cur = prefJSON(k);
+    if(sch && sch.lock){ locked.push(k); if(cur !== sch.v){ prefApply(k, sch.v); changed = true; } P.synced[k] = { j: sch.v, t: 0 }; delete P.pending[k]; return; }
+    if(mine){
+      const pend = P.pending[k];
+      if(pend && pend.t > mine.t) return;
+      if(cur !== mine.v){ prefApply(k, mine.v); changed = true; }
+      P.synced[k] = { j: mine.v, t: mine.t }; delete P.pending[k]; return;
+    }
+    if(sch){
+      if(!P.synced[k] && !P.pending[k]){ if(cur !== sch.v){ prefApply(k, sch.v); changed = true; } P.synced[k] = { j: sch.v, t: 0 }; }
+      else if(P.synced[k] && P.synced[k].t === 0 && P.synced[k].j !== sch.v && !P.pending[k]){ prefApply(k, sch.v); changed = true; P.synced[k] = { j: sch.v, t: 0 }; }      // the school changed its default: follow it
+      return;
+    }
+    if(P.synced[k] && !P.pending[k]){ const dj = defJSON(k); if(cur !== dj){ prefApply(k, dj); changed = true; } delete P.synced[k]; }     // the row is gone from the sheet: back to the default
+  });
+  if(nothing && !P.migrated){ P.migrated = true; keys.forEach(k => { const c = prefJSON(k); if(c !== defJSON(k) && !P.pending[k]) P.pending[k] = { j: c, t: Date.now() }; }); }      // the first time: what this board already has becomes the teacher's own
+  P.locked = locked; P.at = Date.now();
+  writeSettings(); if(changed) reapplyAll(); else renderPrefsStatus();
+  prefsFlush();
+}
+function prefsPush(){                             // what was changed here and is not on the sheet yet is queued (and sent)
+  if(!teacherOk() || !sheetReady()) return;
+  const P = prefsState(), who = (settings.pass.teacher || {}).name || "";
+  if(P.teacher !== who) return;                   // the sheet has not been read yet
+  const locked = new Set(P.locked || []), reverted = []; let moved = false;
+  prefKeys().forEach(k => {
+    const cur = prefJSON(k), base = P.synced[k] ? P.synced[k].j : defJSON(k);
+    if(locked.has(k)){ if(P.synced[k] && cur !== P.synced[k].j){ prefApply(k, P.synced[k].j); reverted.push(k); } return; }
+    if(P.pending[k] && P.pending[k].j === cur) return;
+    if(cur === base){ if(P.pending[k]){ delete P.pending[k]; moved = true; } return; }
+    P.pending[k] = { j: cur, t: Date.now() }; moved = true;
+  });
+  P.note = reverted.length ? "Kept as the school set it: " + reverted.map(k => PREF_LABELS[k] || k).join(", ") + "." : "";
+  writeSettings();
+  if(reverted.length) reapplyAll(); else renderPrefsStatus();
+  if(moved || Object.keys(P.pending).length) prefsFlush();
+}
+function prefsSchedule(){ clearTimeout(prefsTimer); prefsTimer = setTimeout(prefsPush, 3000); }
+async function prefsFlush(){
+  if(prefsBusy || !teacherOk() || !sheetReady()) return;
+  const P = prefsState(); if(!Object.keys(P.pending).length){ renderPrefsStatus(); return; }
+  prefsBusy = true;
+  try{
+    for(const k of Object.keys(P.pending)){
+      const it = P.pending[k], del = it.j === "null", parts = [];
+      if(!del) for(let at = 0; at < it.j.length; at += 1200) parts.push(it.j.slice(at, at + 1200));
+      const x = Math.random().toString(36).slice(2, 12);
+      let res = null;
+      for(let i = 0; i < (del ? 1 : parts.length); i++){
+        res = await sheetGet("prefs_set", d => (d && d.ok === true) ? { ok: true, done: d.done !== false, locked: !!d.locked, stale: !!d.stale } : { error: (d && d.error) || "script error" }, del ? { k, d: 1, t: it.t } : { k, v: parts[i], n: parts.length, i, x, t: it.t });
+        if(!res || res.error) break;
+      }
+      if(!res) break;                                                                     // no connection: it waits
+      if(res.error){ if(/bad (key|value|part|transfer)|too long/.test(res.error)) delete P.pending[k]; else if(res.error === "unknown code") break; continue; }
+      if(res.locked){ if(P.synced[k]) prefApply(k, P.synced[k].j); delete P.pending[k]; continue; }
+      P.synced[k] = { j: it.j, t: it.t }; delete P.pending[k];
+    }
+  } finally { prefsBusy = false; writeSettings(); renderPrefsStatus(); }
+}
+
 
 /* ---------- Hall pass settings ---------- */
 function syncPassSettingsUI(){
@@ -4149,6 +4299,7 @@ $("teacherDisconnectBtn").addEventListener("click", () => {                     
   settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {}; settings.pass.groups = {}; settings.pass.rosterGroup = {}; settings.pass.teachers = []; settings.pass.ann = []; settings.pass.qa = [];
   settings.pass.sub = { name: "", room: "", blocks: [], date: "", startCode: "" };
   settings.pass.profile = { teacher: "", name: "", room: "", nameEdited: false, roomEdited: false }; renderProfileUI();
+  settings.prefs = null; renderPrefsStatus();
   settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" };
   $("sheetKeyInput").value = ""; saveSettings(); renderHallPass(); renderTeacherStatus();
   $("sheetStatus").textContent = "Disconnected. Trips still waiting stay on this device, marked with their teacher, until that teacher's code is typed again.";
@@ -4344,7 +4495,23 @@ function finishCancel(p, pinOk){
   if(pinOk) cancelPass(p.slot, p.atMs);
   else completePass(p.slot, p.atMs);
 }
+function reapplyAll(){                            // everything on the screen follows the settings again (after Cancel)
+  try{
+    $("notify15").checked = !!settings.notify.n15; $("notify10").checked = !!settings.notify.n10; $("notify5").checked = !!settings.notify.n5;
+    $("notifyCustomEnabled").checked = !!settings.notify.customMinEnabled; $("notifyCustomMinutes").value = settings.notify.customMinutes; $("ringBellEnabled").checked = !!settings.notify.ringBell;
+    $("dayStartInput").value = settings.dayStart; $("dayEndInput").value = settings.dayEnd;
+    renderThemeButtons(); renderHourFormatButtons(); renderCountdownFormatButtons();
+    document.body.setAttribute("data-theme", settings.theme);
+    applyExtras(); applyLayout(); syncExtrasUI(); syncPassSettingsUI(); syncStageSettingsUI(); rebuildSoundSelectOptions();
+    syncTimerUI(); syncLayoutUI(); loadEditing(); syncLiveUI(); if(settings.extras.agenda) agSyncUI(false);
+    $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
+    renderBandTabs(); renderProfileUI(); renderTeacherStatus(); renderHallPass(); renderWeatherChip(); renderOffsetDisplay();
+    stageReset(); lbSig = ""; agendaSig = ""; liveSig = ""; refreshAll();
+  }catch(e){ /* a part that is not there yet is skipped */ }
+}
+function commitSettings(){ settingsHold = false; settingsDirty = false; writeSettings(); settingsHold = true; settingsSnap = snapshotSettings(); showDirty(); if(typeof prefsPush === "function") prefsPush(); }
 function openSettings(){
+  settingsSnap = snapshotSettings(); settingsHold = true; settingsDirty = false; showDirty();
   syncTimerUI(); syncLayoutUI(); loadEditing(); syncLiveUI();
   $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
   renderTeacherStatus();
@@ -4358,7 +4525,16 @@ function openSettings(){
   $("settingsModal").classList.remove("hidden");
   $("settingsBody").scrollTop = 0;
 }
-function closeSettings(){ $("settingsModal").classList.add("hidden"); }
+function closeSettings(){                         // Save: write everything and close
+  if(settingsHold) commitSettings();
+  settingsHold = false; settingsSnap = null; $("settingsModal").classList.add("hidden");
+  if(prefsDeferred){ const r = prefsDeferred; prefsDeferred = null; prefsMerge(r); }
+}
+function cancelSettings(){                        // Cancel: take back what was changed since the window was opened
+  if(settingsHold && settingsDirty && settingsSnap){ restoreSettings(settingsSnap); reapplyAll(); }
+  settingsHold = false; settingsDirty = false; settingsSnap = null; showDirty(); writeSettings(); $("settingsModal").classList.add("hidden");
+  if(prefsDeferred){ const r = prefsDeferred; prefsDeferred = null; prefsMerge(r); }
+}
 let gearTapAt = 0;
 $("gearBtn").addEventListener("click", () => {      // a single tap does nothing; two taps within 0.6 s open the settings
   if(!$("settingsModal").classList.contains("hidden")) return;
@@ -4371,7 +4547,9 @@ $("gearBtn").addEventListener("click", () => {      // a single tap does nothing
 });
 $("pinCloseBtn").addEventListener("click", closePinPopup);
 $("pinScrim").addEventListener("click", closePinPopup);
-$("settingsCloseBtn").addEventListener("click", closeSettings);
+$("settingsSaveBtn").addEventListener("click", closeSettings);
+$("settingsApplyBtn").addEventListener("click", () => { if(settingsHold) commitSettings(); });
+$("settingsCancelBtn").addEventListener("click", cancelSettings);
 
 migrateRoster();
 syncPassSettingsUI();
@@ -4416,7 +4594,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.09 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.11 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){

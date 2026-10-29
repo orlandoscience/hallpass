@@ -13,13 +13,18 @@
 const TZ = 'America/New_York';
 const LAT = 28.5383, LON = -81.3792;   // Orlando, for the weather warnings
 const ALERTS_UA = 'OSHS-classroom-board (teacher classroom display)';   // api.weather.gov asks for this header
-const TAB = { master: 'Master', schedule: 'Schedule', teachers: 'Teachers', settings: 'Settings', log: 'Log', messages: 'Messages', names: 'Names', announcements: 'Announcements', questions: 'Questions', bells: 'Bells', calendar: 'Calendar' };
+const TAB = { master: 'Master', schedule: 'Schedule', teachers: 'Teachers', settings: 'Settings', log: 'Log', messages: 'Messages', names: 'Names', announcements: 'Announcements', questions: 'Questions', bells: 'Bells', calendar: 'Calendar', prefs: 'Teacher settings', defaults: 'School defaults' };
 const BLOCKS = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
 const LUNCH = 'LUNCH';                                       // lunch is a section too: in the cafeteria it belongs to the teacher "Lunch", in a classroom to that room's teacher
 const ALL_BLOCKS = BLOCKS.concat([LUNCH]);
 const NAMES_HEAD = ['Student ID', 'Preferred name', 'Status', 'Suggested by', 'Date', 'Note'];     // Status: ok (or empty) = used, pending = waits for an administrator
 const ANN_HEAD = ['Teacher', 'Announcement'].concat(BLOCKS, ['Updated']);                       // an x in A1..B4 = shown during that lesson
 const QA_HEAD = ['Teacher', 'Question', 'Answer'].concat(BLOCKS, ['Updated']);
+const PREFS_HEAD = ['Teacher', 'Key', 'Value', 'Updated'];                                  // one row per teacher and setting; Value is JSON; Updated is a time in milliseconds
+const DEFAULTS_HEAD = ['Key', 'Value', 'Locked', 'Note'];                              // the school's defaults; Locked = x means a teacher cannot change it
+// The settings that follow a teacher from board to board. (Theme, screen width, sounds, volumes, the bell shift and the connection stay on each board.)
+const PREF_KEY_RE = /^(extras\.(hallPass|cards|agenda|timer|ann|qa|live)|stage\.(phases|arc|facts|riddles|messages|calendar|weather|alerts|cardSec)|pass\.(slots|autoLeaveSec|useWindow|closedStartMin|closedEndMin|allowOutside|maxMinutes|reasons|limits)|pass\.profile\.(name|room|nameEdited|roomEdited)|pin|pinEnabled|agenda\.(clearDaily|leadMin)|agenda\.texts\.[AB][1-4]|live\.texts\.[AB][1-4]|live\.sound|timer\.(duration|threshold|thresholdUnit|endOn|endSound|warnOn|warnSound|presets)|countdownFormat|hour12)$/;
+const PREF_MAX = 40000;                                                                     // characters in one value (a cell holds 50,000)
 const BELLS_HEAD = ['Band', 'Day type', 'Day name', 'Label', 'Kind', 'Start', 'End'];      // Band: 912 or 1011. Kind: class, break or lunch. Times like 07:50 (24 hours)
 const CAL_HEAD = ['Date', 'Day', 'Type', 'Event', 'Event kind'];                          // Day: A or B, empty = no school. Type: regular, wednesday... Event kind: break, end or year
 
@@ -315,6 +320,8 @@ function route_(p) {
   if (a === 'hello' || a === '') return hello_(t);
   if (a === 'log') return log_(t, p);
   if (a === 'lookup') return lookup_(t, p);
+  if (a === 'prefs_get') return prefsGet_(t);
+  if (a === 'prefs_set') return prefsSet_(t, p);
   if (a === 'suggest') return suggestName_(t, p);
   if (a === 'ann_set') return saveItems_(t, p, 'ann');
   if (a === 'qa_set') return saveItems_(t, p, 'qa');
@@ -593,6 +600,114 @@ function lookup_(t, p) {                // a guest: "the last 4 digits of the ID
   return { ok: true, matches: found.slice(0, 6) };
 }
 
+function prefsGet_(t) {                 // the school's defaults and this teacher's own settings (only the keys that may be shared)
+  const cache = CacheService.getScriptCache(), key = 'prefs:' + ver_() + ':' + t.teacher, hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  const school = {}, mine = {};
+  const ds = sheet_(TAB.defaults);
+  if (ds && ds.getLastRow() > 1) ds.getRange(2, 1, ds.getLastRow() - 1, 3).getValues().forEach(function (r) {
+    const k = String(r[0]).trim(), v = String(r[1]).trim();
+    if (PREF_KEY_RE.test(k) && v !== '') school[k] = { v: v, lock: /^(x|yes|true|1)$/i.test(String(r[2]).trim()) };
+  });
+  const ps = sheet_(TAB.prefs);
+  if (ps && ps.getLastRow() > 1) ps.getRange(2, 1, ps.getLastRow() - 1, 4).getValues().forEach(function (r) {
+    if (String(r[0]).trim() !== t.teacher) return;
+    const k = String(r[1]).trim(), v = String(r[2]);
+    if (PREF_KEY_RE.test(k) && v !== '') mine[k] = { v: v, t: Number(r[3]) || 0 };
+  });
+  const res = { ok: true, school: school, mine: mine };
+  const json = JSON.stringify(res);
+  if (json.length < 90000) cache.put(key, json, 300);
+  return res;
+}
+
+function prefsSet_(t, p) {              // one setting of the teacher, in one or several parts (a long text is cut into pieces of about 1,200 characters)
+  const k = String(p.k || '').trim(), stamp = Number(p.t) || 0;
+  if (!PREF_KEY_RE.test(k)) return { ok: false, error: 'bad key' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const cache = CacheService.getScriptCache();
+    let value = '';
+    if (String(p.d) !== '1') {
+      const n = Math.max(1, Math.min(60, parseInt(p.n, 10) || 1)), i = parseInt(p.i, 10) || 0, x = String(p.x || '').replace(/[^\w\-]/g, '').slice(0, 24);
+      if (i < 0 || i >= n) return { ok: false, error: 'bad part' };
+      if (n === 1) value = String(p.v == null ? '' : p.v);
+      else {
+        if (!x) return { ok: false, error: 'bad transfer' };
+        cache.put('pf:' + t.teacher + ':' + x + ':' + i, String(p.v == null ? '' : p.v), 3600);
+        const parts = [];
+        for (let j = 0; j < n; j++) { const piece = cache.get('pf:' + t.teacher + ':' + x + ':' + j); if (piece === null) return { ok: true, done: false, have: j }; parts.push(piece); }
+        value = parts.join('');
+        for (let j = 0; j < n; j++) cache.remove('pf:' + t.teacher + ':' + x + ':' + j);
+      }
+      if (value.length > PREF_MAX) return { ok: false, error: 'too long' };
+      try { JSON.parse(value); } catch (e) { return { ok: false, error: 'bad value' }; }
+    }
+    const ds = sheet_(TAB.defaults);
+    if (ds && ds.getLastRow() > 1) {
+      const rows = ds.getRange(2, 1, ds.getLastRow() - 1, 3).getValues();
+      for (let r = 0; r < rows.length; r++) if (String(rows[r][0]).trim() === k && /^(x|yes|true|1)$/i.test(String(rows[r][2]).trim())) return { ok: true, done: true, locked: true };
+    }
+    const sh = ensureTab_(TAB.prefs, PREFS_HEAD).sh, last = sh.getLastRow();
+    let at = 0;
+    if (last > 1) {
+      const rows = sh.getRange(2, 1, last - 1, 4).getValues();
+      for (let r = 0; r < rows.length; r++) if (String(rows[r][0]).trim() === t.teacher && String(rows[r][1]).trim() === k) { at = r + 2; if (Number(rows[r][3]) > stamp) return { ok: true, done: true, stale: true }; break; }
+    }
+    if (String(p.d) === '1') {
+      if (at) { sh.getRange(at, 1, 1, 4).clearContent(); }
+    } else if (at) {
+      sh.getRange(at, 3).setNumberFormat('@'); sh.getRange(at, 3, 1, 2).setValues([[value, stamp]]);
+    } else {
+      sh.getRange(last + 1, 1, 1, 4).setNumberFormat('@');
+      sh.getRange(last + 1, 1, 1, 4).setValues([[t.teacher, k, value, stamp]]);
+    }
+    bumpVer_();
+    return { ok: true, done: true };
+  } finally { lock.releaseLock(); }
+}
+
+function showPrefKeys() {
+  say_('The settings that can be shared (Key; the Value on the School defaults tab is written as JSON):\n' +
+       'extras.hallPass / cards / agenda / timer / ann / qa / live   (true or false)\n' +
+       'stage.phases / arc / facts / riddles / messages / calendar / weather / alerts   (true or false), stage.cardSec (seconds)\n' +
+       'pass.slots, pass.autoLeaveSec, pass.closedStartMin, pass.closedEndMin, pass.maxMinutes   (numbers)\n' +
+       'pass.useWindow, pass.allowOutside   (true or false)   |   pass.reasons (a list), pass.limits (minutes per reason)\n' +
+       'pass.profile.name, pass.profile.room   (text, e.g. "Room 214")\n' +
+       'pin (text, e.g. "1234"), pinEnabled (true or false)\n' +
+       'agenda.clearDaily, agenda.leadMin, agenda.texts.A1 ... B4   |   live.texts.A1 ... B4, live.sound\n' +
+       'timer.duration / threshold (seconds), timer.thresholdUnit ("s" or "m"), timer.endOn / warnOn, timer.endSound / warnSound, timer.presets ("1,2,5,10")\n' +
+       'countdownFormat ("hms" or "ms"), hour12 (true or false)\n\n' +
+       'Locked = x on the School defaults tab means the teachers cannot change that setting.');
+}
+
+function makeDefaultsFromTeacher() {    // copy one teacher's settings to the School defaults (not locked)
+  const ui = SpreadsheetApp.getUi();
+  const r1 = ui.prompt('School defaults', 'A part of the teacher\'s name (for example the last name). All of that teacher\'s shared settings become the defaults for everybody who has not set their own:', ui.ButtonSet.OK_CANCEL);
+  if (r1.getSelectedButton() !== ui.Button.OK) return;
+  const q = String(r1.getResponseText()).trim().toUpperCase();
+  if (q.length < 2) { say_('Type at least 2 letters.'); return; }
+  const ps = sheet_(TAB.prefs);
+  if (!ps || ps.getLastRow() < 2) { say_('There are no teacher settings yet.'); return; }
+  const rows = ps.getRange(2, 1, ps.getLastRow() - 1, 4).getValues(), names = {};
+  rows.forEach(function (r) { const n = String(r[0]).trim(); if (n && n.toUpperCase().indexOf(q) >= 0) names[n] = (names[n] || 0) + 1; });
+  const list = Object.keys(names);
+  if (list.length !== 1) { say_(list.length ? 'More than one teacher matches (' + list.join(', ') + '). Type more of the name.' : 'No teacher with saved settings matches "' + q + '".'); return; }
+  const who = list[0], mine = rows.filter(function (r) { return String(r[0]).trim() === who && PREF_KEY_RE.test(String(r[1]).trim()) && String(r[2]) !== ''; });
+  if (ui.alert('Make defaults from ' + who + '?', mine.length + ' settings will be written to the School defaults tab (settings of the same name there are replaced; Locked is left as it is). Teachers who changed a setting themselves keep their own.', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  const sh = ensureTab_(TAB.defaults, DEFAULTS_HEAD).sh, last = sh.getLastRow(), have = {};
+  if (last > 1) sh.getRange(2, 1, last - 1, 4).getValues().forEach(function (r, i) { have[String(r[0]).trim()] = i + 2; });
+  let next = last + 1;
+  mine.forEach(function (r) {
+    const k = String(r[1]).trim(), at = have[k];
+    if (at) { sh.getRange(at, 2).setNumberFormat('@'); sh.getRange(at, 2).setValue(String(r[2])); }
+    else { sh.getRange(next, 1, 1, 2).setNumberFormat('@'); sh.getRange(next, 1, 1, 4).setValues([[k, String(r[2]), '', 'from ' + who]]); next++; }
+  });
+  bumpVer_();
+  say_('Done: ' + mine.length + ' settings from ' + who + ' are now the school defaults. Put an x in the Locked column of the ones the teachers must not change.');
+}
+
 function suggestName_(t, p) {          // a teacher suggests a preferred first name; it is used only after an administrator approves it
   if (t.role !== 'teacher') return { ok: false, error: 'this code cannot suggest names' };
   const id = String(p.s || '').trim(), nm = safeText_(p.n, 30);
@@ -731,6 +846,9 @@ function onOpen() {
     .addItem('Add a preferred name...', 'addPreferredName')
     .addItem('Approve waiting preferred names', 'approveNames')
     .addSeparator()
+    .addItem('Make school defaults from a teacher...', 'makeDefaultsFromTeacher')
+    .addItem('Show the setting keys', 'showPrefKeys')
+    .addSeparator()
     .addItem('Check setup', 'checkSetup')
     .addItem('Clear the Master tab', 'clearMaster')
     .addToUi();
@@ -749,7 +867,7 @@ function ensureTab_(name, head) {
 
 function setupTabs() {
   const made = [];
-  [[TAB.master, null], [TAB.schedule, SCHEDULE_HEAD], [TAB.teachers, TEACHERS_HEAD], [TAB.names, NAMES_HEAD], [TAB.announcements, ANN_HEAD], [TAB.questions, QA_HEAD], [TAB.bells, BELLS_HEAD], [TAB.calendar, CAL_HEAD]].forEach(function (x) {
+  [[TAB.master, null], [TAB.schedule, SCHEDULE_HEAD], [TAB.teachers, TEACHERS_HEAD], [TAB.names, NAMES_HEAD], [TAB.announcements, ANN_HEAD], [TAB.questions, QA_HEAD], [TAB.bells, BELLS_HEAD], [TAB.calendar, CAL_HEAD], [TAB.prefs, PREFS_HEAD], [TAB.defaults, DEFAULTS_HEAD]].forEach(function (x) {
     const r = ensureTab_(x[0], x[1]); if (r.made) made.push(x[0]);
     if (r.sh.getLastRow() <= 1 && (x[0] === TAB.bells || x[0] === TAB.calendar)) {        // the sample school, to be replaced by yours
       const data = x[0] === TAB.bells ? DEFAULT_BELLS : DEFAULT_CALENDAR;
