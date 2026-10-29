@@ -9,7 +9,10 @@ One Google Sheet in the **school's account** holds everything. Teachers never op
 | `Teachers` | One row per teacher: code, name, role, active, setup link. | "Make teacher codes" |
 | `Settings` | `site_url`, `semester2_start`, `exclude_courses`. | You |
 | `Log` | **One tab**, one row per finished trip. Never split by week. | The boards |
-| `Messages` | Optional announcements: A = text, B = show from, C = show until. | You |
+| `Messages` | Optional school-wide announcements: A = text, B = show from, C = show until. | You |
+| `Names` | Preferred first names: student ID, preferred name, status (`ok` or empty = used, `pending` = waits for you, `no` = refused), who suggested it, date, note. | You (menu) and the teachers' boards (suggestions) |
+| `Announcements` | The teachers' own announcements: teacher, text, and an `x` under each lesson (A1..B4) it is shown in. | The teachers, from their boards; you can read and edit |
+| `Questions` | The teachers' own quick questions: teacher, question, answer, and an `x` under each lesson. | The teachers, from their boards; you can read and edit |
 
 ## 1. Put the script in the sheet
 
@@ -96,3 +99,13 @@ On a board, tap the **teacher's name** at the top of the right half. The board a
 ## Guests by the last 4 digits of the ID
 
 In the "Someone else" window the teacher can type the last 4 digits of any student's ID and press *Look up*: the script answers with the names (First L.) and grade of the students whose ID ends with them, from the whole school (up to 6). Tapping one fills in the name and the student ID for the log. This needs the teacher code. A name can still be typed by hand.
+
+## Preferred names
+
+A student who does not want to be called by the official first name: put a row on the `Names` tab, or use the menu **Hall Pass -> Add a preferred name...**: type a part of the last name (or the last 4 digits of the ID), pick the student from the numbered list, type the name. The boards then show the preferred first name with the first letter of the official last name ("Alex B.") in every list: all classes, lunch, the guest look-up and the substitute lists. It applies to every teacher at once, within a few minutes (the menu action makes it immediate). The Log keeps only the student ID, so the official name is seen only on the `Schedule` tab.
+
+Teachers can **suggest** a name from their board (Settings -> *Preferred names*: the last 4 digits, look up, type the name, send). It lands on the `Names` tab with Status `pending` and is **not used until you approve it**: menu **Hall Pass -> Approve waiting preferred names** (or set Status to `ok` by hand; set `no` to refuse). One teacher can have at most 10 suggestions waiting. Only the first name can be changed.
+
+## Announcements and questions of a teacher
+
+In their board's Settings the teachers write their own **announcements** (up to 8, 140 characters) and **questions with answers** (up to 12) and tick the lessons each is for. **Save to the school sheet** stores them on the `Announcements` and `Questions` tabs under the teacher's name, so you (the administrators) can read them there, and the board shows them as cards for the ticked lessons. Saving again replaces that teacher's rows and only his. You can also edit the rows by hand (an `x` under a lesson, any other text or empty = not shown). Text that starts with `=`, `+`, `-` or `@` is made harmless.

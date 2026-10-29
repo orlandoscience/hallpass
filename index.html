@@ -795,6 +795,20 @@
     .whoami{ grid-column: 1 / -1; grid-row: 2; flex-direction: row; justify-content: flex-start; align-items: baseline; gap: 10px; text-align: left; }
     .header-right{ grid-column: 1 / -1; grid-row: 3; }
   }
+
+  /* nothing in the settings is wider than the section it is in: a long list text is cut with ... */
+  .modal-body .section{ min-width: 0; }
+  .modal-body .section select, .modal-body .section input[type="text"], .modal-body .section input[type="number"], .modal-body .section textarea{ max-width: 100%; min-width: 0; box-sizing: border-box; }
+  .modal-body .section select{ width: 100%; text-overflow: ellipsis; }
+  .modal-body .section .field-row > span > select{ width: auto; max-width: 100%; }
+  .modal-body .section .field-row{ flex-wrap: wrap; }
+  .modal-body .section .field-row > span{ min-width: 0; max-width: 100%; }
+  .ed-item{ border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 8px; margin: 8px 0; }
+  .ed-item textarea, .ed-item input[type="text"]{ width: 100%; margin: 3px 0; font: inherit; }
+  .ed-flags{ display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0; }
+  .ed-flags label{ display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: .85rem; cursor: pointer; }
+  .ed-btns{ display: flex; gap: 8px; justify-content: flex-end; }
+  .sc-item{ margin: .3em 0; }
 </style>
 </head>
 <body data-theme="dark">
@@ -1247,6 +1261,32 @@
       <div class="override-note">The timer sits in the middle of the top row on the left. Closing the settings does not start it, it only shows it. On the board: tap to start, tap again to pause. When it shows 00:00, or when you hold it for a moment, the editor opens.</div>
     </div>
 
+    <div class="section" data-switch="exAnn">
+      <div class="sec-head"><h2>Announcements</h2><label class="switch sec-switch"><input type="checkbox" id="exAnn"><span class="slider"></span></label></div>
+      <div class="override-note">Short messages for your students, shown as a card on the left (it needs the rotating cards). Tick the lessons each one is for. They are saved on the school's sheet under your name; the administrators can read them there.</div>
+      <div id="annList"></div>
+      <div class="btn-row"><button type="button" id="annAdd">+ Add</button><button type="button" id="annSave" class="grant">Save to the school sheet</button></div>
+      <div class="perm-note" id="annStatus"></div>
+    </div>
+
+    <div class="section" data-switch="exQa">
+      <div class="sec-head"><h2>Questions</h2><label class="switch sec-switch"><input type="checkbox" id="exQa"><span class="slider"></span></label></div>
+      <div class="override-note">Your own quick questions with answers (the answer appears after 30 seconds on the card). For a lesson that has questions ticked, these are shown instead of the general ones. They are saved on the school's sheet under your name.</div>
+      <div id="qaList"></div>
+      <div class="btn-row"><button type="button" id="qaAdd">+ Add</button><button type="button" id="qaSave" class="grant">Save to the school sheet</button></div>
+      <div class="perm-note" id="qaStatus"></div>
+    </div>
+
+    <div class="section">
+      <h2>Preferred names</h2>
+      <div class="override-note">A student who wants another first name on the boards: type the last 4 digits of the student ID, look the student up, type the name and send it. It shows on every board after an administrator approves it.</div>
+      <div class="lookup-row"><input type="text" id="pnDigits" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Last 4 digits"><button type="button" id="pnLookup">Look up</button></div>
+      <div class="chips" id="pnRes"></div>
+      <div class="field-row"><span>Preferred first name</span><input type="text" id="pnName" maxlength="30" autocomplete="off" disabled></div>
+      <div class="btn-row"><button type="button" id="pnSend" class="grant" disabled>Send for approval</button></div>
+      <div class="perm-note" id="pnMsg">Needs your teacher code.</div>
+    </div>
+
     <div class="section" data-switch="exAgenda">
       <div class="sec-head"><h2>Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exAgenda"><span class="slider"></span></label></div>
       <div class="field-row"><span>Class (A or B day, and period)</span>
@@ -1471,7 +1511,7 @@ function getDefaultSettings(){
     countdownFormat: "hms", // "hms" = HH:MM:SS, "ms" = MM:SS (for Time Left / Time Passed displays)
     setupDone: false,            // the welcome screen has been completed on this device
     extras: {                    // everything beyond the basic screen is opt-in
-      hallPass: false, ding: false, sounds: false, cards: false, agenda: false, timer: false
+      hallPass: false, ding: false, sounds: false, cards: false, agenda: false, timer: false, ann: false, qa: false
     },
     layout: { leftPct: 50 },                      // the width of the left part, 40..60 percent
     timer: { duration: 300, remaining: 300, running: false, endAt: 0, finished: false, threshold: 60, thresholdUnit: "s", endOn: true, endSound: "bell", endVolume: 5, warnOn: false, warnSound: "chime", warnVolume: 5, warned: false, presets: "1,2,3,5,10,15,20,30", recent: [] },   // seconds; endAt = the moment it ends while it runs
@@ -1504,6 +1544,7 @@ function getDefaultSettings(){
       profile: { teacher: "", name: "", room: "", nameEdited: false, roomEdited: false },    // what the top of the board says: filled in from the school's list, editable
       rosterIds: {},            // student IDs for the names in rosterSections: { A1: { "Jane D.": "0012345678" } }
       rosterGroup: {},          // which group (time) each student is in, for classes with two times and for lunch: { A3: { "Jane D.": 0 } }
+      ann: [], qa: [],          // this teacher's own announcements [{ t, b: ["A1"] }] and questions [{ q, a, b }], kept on the school's sheet
       teachers: [],             // the names of all teachers, to choose a substitute from
       sub: { name: "", room: "", blocks: [], date: "", startCode: "" },       // a substitute teacher on this board (see subActive)
       groups: {},               // classes whose students have different times: { A3: [{ s: 660, e: 748, g: [12] }, ...] } (minutes after midnight, grades)
@@ -2502,7 +2543,7 @@ function wxNextCard(now){
 }
 
 /* ---------- Stage: what the title block says, and which card is showing ---------- */
-const stage = { mode: "", idx: -1, card: null, shownAt: 0, factToggle: 0, calIdx: 0, msgIdx: 0, swap: null };
+const stage = { mode: "", idx: -1, card: null, shownAt: 0, factToggle: 0, calIdx: 0, msgIdx: 0, qaIdx: 0, swap: null };
 function stageReset(){ stage.mode = ""; }
 
 function lessonPhase(row, nowSec){
@@ -2569,16 +2610,16 @@ function stageContext(now, info){
 }
 
 const STAGE_ORDER = {
-  class:    ["agenda", "arc", "fact", "calendar", "riddle", "message", "weather"],
-  break:    ["agenda", "fact", "riddle", "calendar", "message", "weather", "arc"],
-  lunch:    ["agenda", "fact", "riddle", "calendar", "message", "weather", "arc"],
-  before:   ["agenda", "fact", "calendar", "riddle", "message", "weather", "arc"],
+  class:    ["agenda", "ann", "arc", "fact", "calendar", "riddle", "message", "weather"],
+  break:    ["agenda", "ann", "fact", "riddle", "calendar", "message", "weather", "arc"],
+  lunch:    ["agenda", "ann", "fact", "riddle", "calendar", "message", "weather", "arc"],
+  before:   ["agenda", "ann", "fact", "calendar", "riddle", "message", "weather", "arc"],
   after:    ["wxNext", "message", "calendar", "fact", "riddle", "arc"],
   noschool: ["fact", "calendar", "weather", "riddle", "message"]
 };
 function kindEnabled(k){
   const s = settings.stage;
-  return k === "agenda" ? !!settings.extras.agenda : k === "arc" ? s.arc : k === "fact" ? s.facts : k === "riddle" ? s.riddles : k === "message" ? s.messages
+  return k === "agenda" ? !!settings.extras.agenda : k === "ann" ? !!settings.extras.ann : k === "arc" ? s.arc : k === "fact" ? s.facts : k === "riddle" ? s.riddles : k === "message" ? s.messages
        : k === "calendar" ? s.calendar : (k === "weather" || k === "wxNext") ? s.weather : true;
 }
 function arcPoint(f){
@@ -2603,8 +2644,14 @@ function makeCard(kind, ctx, now){
     const text = useFact ? nextFrom("fact", FACTS) : nextFrom("phrase", PHRASES);
     return { kind, dur, html: '<div class="sc-label">' + (useFact ? "Did you know?" : "Thought for today") + '</div><div class="sc-text sc-serif">' + esc(text) + '</div>' };
   }
-  if(kind === "riddle"){                          // a quick question: the answer shows after 30 seconds
-    const r = nextFrom("riddle", QUESTIONS);
+  if(kind === "ann"){                             // the teacher's own announcements for this lesson (written in the settings, kept on the school's sheet)
+    const code = agendaCodeFor(ctx), list = code ? (settings.pass.ann || []).filter(x => (x.b || []).indexOf(code) >= 0) : [];
+    if(!list.length) return null;
+    return { kind, dur, html: '<div class="sc-label">\ud83d\udce3 Announcement</div>' + list.slice(0, 3).map(x => '<div class="sc-text sc-announce sc-item">' + esc(x.t) + '</div>').join("") };
+  }
+  if(kind === "riddle"){                          // a quick question: the answer shows after 30 seconds (the teacher's own questions for this lesson first, then the general ones)
+    const ownCode = settings.extras.qa ? agendaCodeFor(ctx) : null, own = ownCode ? (settings.pass.qa || []).filter(x => (x.b || []).indexOf(ownCode) >= 0) : [];
+    const r = own.length ? own[stage.qaIdx++ % own.length] : nextFrom("riddle", QUESTIONS);
     return { kind, dur: 42000,
       html: '<div class="sc-label">Quick question</div><div class="sc-text sc-announce">' + esc(r.q) + '</div>' +
             '<div class="sc-bar"><i id="riddleBar"></i></div><div class="sc-ans" id="riddleAns">→ <b>' + esc(r.a) + '</b></div>',
@@ -2876,6 +2923,87 @@ $("tmPresets").addEventListener("change", e => {
 });
 $("tmOpenEditor").addEventListener("click", openTimerEditor);
 $("tmReset").addEventListener("click", () => { const t = settings.timer; t.remaining = t.duration; t.running = false; t.endAt = 0; t.finished = false; t.warned = false; saveSettings(); renderTimer(); });
+
+
+/* ---------- The teacher's own announcements and questions, and preferred-name suggestions ---------- */
+var LESSONS = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"], EDIT_MAX = { ann: 8, qa: 12 };
+var editing = { ann: [], qa: [] };
+function addButtonsState(){                       // a full list cannot be added to (unless its section is locked anyway)
+  ["ann", "qa"].forEach(k => { const b = $(k + "Add"); if(b && editing && !b.closest(".section").classList.contains("locked")) b.disabled = editing[k].length >= EDIT_MAX[k]; });
+}
+function loadEditing(){
+  editing.ann = (settings.pass.ann || []).map(x => ({ t: x.t, b: (x.b || []).slice() }));
+  editing.qa = (settings.pass.qa || []).map(x => ({ q: x.q, a: x.a, b: (x.b || []).slice() }));
+  renderEditor("ann"); renderEditor("qa");
+}
+function renderEditor(kind){
+  const box = $(kind + "List"), items = editing[kind], isAnn = kind === "ann";
+  box.innerHTML = items.length ? items.map((it, i) => '<div class="ed-item" data-i="' + i + '">' +
+      (isAnn ? '<textarea class="ed-t" rows="2" maxlength="140" placeholder="Announcement (up to 140 characters)"></textarea>'
+             : '<input type="text" class="ed-q" maxlength="100" placeholder="Question"><input type="text" class="ed-a" maxlength="100" placeholder="Answer">') +
+      '<div class="ed-flags">' + LESSONS.map(b => '<label><input type="checkbox" data-b="' + b + '">' + b + '</label>').join("") + '</div>' +
+      '<div class="ed-btns"><button type="button" class="ed-mine">All my lessons</button><button type="button" class="ed-del">Delete</button></div></div>').join("")
+    : '<div class="perm-note">Nothing yet. Press + Add.</div>';
+  box.querySelectorAll(".ed-item").forEach(el => {              // the typed text goes in as a value, never as markup
+    const it = items[+el.getAttribute("data-i")];
+    if(isAnn) el.querySelector(".ed-t").value = it.t; else { el.querySelector(".ed-q").value = it.q; el.querySelector(".ed-a").value = it.a; }
+    el.querySelectorAll("input[data-b]").forEach(c => { c.checked = it.b.indexOf(c.getAttribute("data-b")) >= 0; });
+  });
+  syncSectionLocks();
+}
+["ann", "qa"].forEach(kind => {
+  const box = $(kind + "List");
+  const itemOf = e => { const el = e.target.closest(".ed-item"); return el ? editing[kind][+el.getAttribute("data-i")] : null; };
+  box.addEventListener("input", e => { const it = itemOf(e); if(!it) return; if(e.target.classList.contains("ed-t")) it.t = e.target.value; if(e.target.classList.contains("ed-q")) it.q = e.target.value; if(e.target.classList.contains("ed-a")) it.a = e.target.value; });
+  box.addEventListener("change", e => { const it = itemOf(e); if(!it || !e.target.getAttribute("data-b")) return; const b = e.target.getAttribute("data-b"), at = it.b.indexOf(b); if(e.target.checked && at < 0) it.b.push(b); if(!e.target.checked && at >= 0) it.b.splice(at, 1); });
+  box.addEventListener("click", e => {
+    const el = e.target.closest(".ed-item"); if(!el) return;
+    const i = +el.getAttribute("data-i");
+    if(e.target.classList.contains("ed-del")){ editing[kind].splice(i, 1); renderEditor(kind); }
+    if(e.target.classList.contains("ed-mine")){ editing[kind][i].b = Object.keys(settings.pass.rosterSections || {}).filter(k => LESSONS.indexOf(k) >= 0); renderEditor(kind); }
+  });
+  $(kind + "Add").addEventListener("click", () => { if(editing[kind].length >= EDIT_MAX[kind]) return; editing[kind].push(kind === "ann" ? { t: "", b: [] } : { q: "", a: "", b: [] }); renderEditor(kind); $(kind + "Status").textContent = ""; });
+  $(kind + "Save").addEventListener("click", () => saveEditor(kind));
+});
+async function saveEditor(kind){
+  const st = $(kind + "Status"), isAnn = kind === "ann";
+  if(!teacherOk()){ st.textContent = "Type your teacher code first (the section \"Teacher code\" above)."; return; }
+  const data = editing[kind].map(x => isAnn ? { t: String(x.t || "").trim(), b: x.b } : { q: String(x.q || "").trim(), a: String(x.a || "").trim(), b: x.b }).filter(x => isAnn ? x.t : (x.q && x.a));
+  st.textContent = "Saving...";
+  const r = await sheetGet(isAnn ? "ann_set" : "qa_set", d => (d && d.ok === true) ? { ok: true, saved: d.saved } : { error: (d && d.error) || "script error" }, { data: JSON.stringify(data) });
+  if(!r){ st.textContent = "Could not save: no connection. Try again."; return; }
+  if(!r.ok){ st.textContent = "Could not save (" + r.error + ")."; return; }
+  settings.pass[kind] = data.map(x => ({ ...x, b: x.b.slice() })); saveSettings(); loadEditing();
+  $(kind + "Status").textContent = "Saved (" + data.length + "). The administrators can read it on the school sheet.";
+}
+let pnPick = null;
+$("pnLookup").addEventListener("click", async () => {
+  const dg = $("pnDigits").value.replace(/\D/g, ""), msg = t => { $("pnMsg").textContent = t; };
+  $("pnRes").innerHTML = ""; pnPick = null; $("pnName").disabled = $("pnSend").disabled = true;
+  if(dg.length !== 4){ msg("Type exactly 4 digits."); return; }
+  if(!teacherOk()){ msg("Needs your teacher code."); return; }
+  msg("Looking...");
+  const r = await sheetGet("lookup", d => (d && d.ok === true) ? { ok: true, matches: d.matches || [] } : { error: (d && d.error) || "script error" }, { d: dg });
+  if(!r){ msg("No connection to the school. Try again."); return; }
+  if(!r.ok){ msg("Could not look it up (" + r.error + ")."); return; }
+  if(!r.matches.length){ msg("Nobody has an ID ending in " + dg + "."); return; }
+  msg(r.matches.length > 1 ? "Tap the right student:" : "Is this the student?");
+  $("pnRes").innerHTML = r.matches.map(m => '<button type="button" class="chip" data-sid="' + esc(m.id) + '">' + esc(m.n) + (m.grade ? ' (grade ' + esc(m.grade) + ')' : '') + '</button>').join("");
+  const pick = ch => { pnPick = ch.getAttribute("data-sid"); $("pnRes").querySelectorAll(".chip").forEach(c => c.classList.toggle("sel", c === ch)); $("pnName").disabled = false; $("pnSend").disabled = !$("pnName").value.trim(); $("pnName").focus(); };
+  $("pnRes").querySelectorAll(".chip").forEach(ch => ch.addEventListener("click", () => pick(ch)));
+  if(r.matches.length === 1) pick($("pnRes").querySelector(".chip"));
+});
+$("pnName").addEventListener("input", () => { $("pnSend").disabled = !pnPick || !$("pnName").value.trim(); });
+$("pnSend").addEventListener("click", async () => {
+  const nm = $("pnName").value.trim().replace(/\s+/g, " "), msg = t => { $("pnMsg").textContent = t; };
+  if(!pnPick || !nm) return;
+  $("pnSend").disabled = true; msg("Sending...");
+  const r = await sheetGet("suggest", d => (d && d.ok === true) ? { ok: true, dup: !!d.dup } : { error: (d && d.error) || "script error" }, { s: pnPick, n: nm });
+  if(!r){ msg("No connection to the school. Try again."); $("pnSend").disabled = false; return; }
+  if(!r.ok){ msg(r.error === "bad name" ? "That name cannot be used (no digits or signs)." : "Could not send (" + r.error + ")."); $("pnSend").disabled = false; return; }
+  msg(r.dup ? "That suggestion is already there." : "Sent. It shows on the boards after an administrator approves it.");
+  $("pnRes").innerHTML = ""; $("pnName").value = ""; $("pnName").disabled = true; $("pnDigits").value = ""; pnPick = null;
+});
 
 
 /* ---------- Agenda: a yellow lined note with the plan for the lesson ---------- */
@@ -3651,6 +3779,8 @@ function applyHello(d){                          // the school's script answered
   settings.pass.rosterIds = ids;
   settings.pass.groups = {}; settings.pass.rosterGroup = {};
   settings.pass.teachers = Array.isArray(d.teachers) ? d.teachers.map(String).filter(Boolean) : [];
+  settings.pass.ann = (Array.isArray(d.announcements) ? d.announcements : []).filter(x => x && x.t).map(x => ({ t: String(x.t), b: (x.b || []).map(String) }));
+  settings.pass.qa = (Array.isArray(d.questions) ? d.questions : []).filter(x => x && x.q && x.a).map(x => ({ q: String(x.q), a: String(x.a), b: (x.b || []).map(String) }));
   (d.sections || []).forEach(sec => {
     const k = String(sec.block), gm = {};
     (sec.students || []).forEach(x => { if(x && x.n && x.g !== undefined && x.g !== null) gm[String(x.n)] = Number(x.g); });
@@ -3827,7 +3957,7 @@ $("sheetKeyInput").addEventListener("change", e => {
   saveSettings(); renderHallPass(); renderTeacherStatus(); refreshRoster(true); flushLogQueue();
 });
 $("teacherDisconnectBtn").addEventListener("click", () => {                     // forget the code and the student lists on this board
-  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {}; settings.pass.groups = {}; settings.pass.rosterGroup = {}; settings.pass.teachers = [];
+  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {}; settings.pass.groups = {}; settings.pass.rosterGroup = {}; settings.pass.teachers = []; settings.pass.ann = []; settings.pass.qa = [];
   settings.pass.sub = { name: "", room: "", blocks: [], date: "", startCode: "" };
   settings.pass.profile = { teacher: "", name: "", room: "", nameEdited: false, roomEdited: false }; renderProfileUI();
   settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" };
@@ -4026,7 +4156,7 @@ function finishCancel(p, pinOk){
   else completePass(p.slot, p.atMs);
 }
 function openSettings(){
-  syncTimerUI(); syncLayoutUI();
+  syncTimerUI(); syncLayoutUI(); loadEditing();
   $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
   renderTeacherStatus();
   if(settings.extras.agenda){ agSyncUI(false); setTimeout(agPreview, 80); }
@@ -4097,7 +4227,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.05 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.06 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -4314,7 +4444,7 @@ function renderLessonBar(bar){
 window.addEventListener("resize", () => { lbSig = ""; });
 
 /* ---------- Extras: what is switched on besides the basic screen ---------- */
-const EXTRA_TOGGLES = { exHallPass: "hallPass", exDing: "ding", exSounds: "sounds", exCards: "cards", exAgenda: "agenda", exTimer: "timer" };
+const EXTRA_TOGGLES = { exHallPass: "hallPass", exDing: "ding", exSounds: "sounds", exCards: "cards", exAgenda: "agenda", exTimer: "timer", exAnn: "ann", exQa: "qa" };
 function syncExtrasUI(){ Object.keys(EXTRA_TOGGLES).forEach(id => { $(id).checked = !!settings.extras[EXTRA_TOGGLES[id]]; }); syncSectionLocks(); }
 function syncTopRow(){ $("ambientTop").classList.remove("hidden"); }      // the three cells are always there (an unused one is just empty)
 function syncSectionLocks(){                      // a section whose switch is off is shown, but locked
@@ -4324,6 +4454,7 @@ function syncSectionLocks(){                      // a section whose switch is o
     sec.classList.toggle("locked", !on);
     sec.querySelectorAll("input, button, select, textarea").forEach(el => { if(!el.closest(".sec-head")) el.disabled = !on; });
   });
+  addButtonsState();
 }
 function syncSettingsVisibility(){ syncSectionLocks(); }
 document.addEventListener("change", e => { if(e.target.closest && e.target.closest("#settingsBody .sec-switch")) syncSectionLocks(); });
@@ -4348,7 +4479,7 @@ Object.keys(EXTRA_TOGGLES).forEach(id => {
 });
 function applyPreset(full){
   const x = settings.extras, st = settings.stage, n = settings.notify;
-  x.hallPass = x.ding = x.sounds = x.cards = x.agenda = x.timer = full;
+  x.hallPass = x.ding = x.sounds = x.cards = x.agenda = x.timer = x.ann = x.qa = full;
   st.phases = st.weather = st.alerts = full;
   if(full){ st.arc = st.facts = st.riddles = st.messages = st.calendar = true; }
   else { n.n15 = n.n10 = n.n5 = n.customMinEnabled = n.ringBell = false; }

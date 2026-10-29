@@ -13,10 +13,13 @@
 const TZ = 'America/New_York';
 const LAT = 28.5383, LON = -81.3792;   // Orlando, for the weather warnings
 const ALERTS_UA = 'OSHS-classroom-board (teacher classroom display)';   // api.weather.gov asks for this header
-const TAB = { master: 'Master', schedule: 'Schedule', teachers: 'Teachers', settings: 'Settings', log: 'Log', messages: 'Messages' };
+const TAB = { master: 'Master', schedule: 'Schedule', teachers: 'Teachers', settings: 'Settings', log: 'Log', messages: 'Messages', names: 'Names', announcements: 'Announcements', questions: 'Questions' };
 const BLOCKS = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
 const LUNCH = 'LUNCH';                                       // lunch is a section too: in the cafeteria it belongs to the teacher "Lunch", in a classroom to that room's teacher
 const ALL_BLOCKS = BLOCKS.concat([LUNCH]);
+const NAMES_HEAD = ['Student ID', 'Preferred name', 'Status', 'Suggested by', 'Date', 'Note'];     // Status: ok (or empty) = used, pending = waits for an administrator
+const ANN_HEAD = ['Teacher', 'Announcement'].concat(BLOCKS, ['Updated']);                       // an x in A1..B4 = shown during that lesson
+const QA_HEAD = ['Teacher', 'Question', 'Answer'].concat(BLOCKS, ['Updated']);
 const SCHEDULE_HEAD = ['Student ID', 'Name', 'Block', 'Time', 'Teacher', 'Course', 'Room', 'Role', 'Grade'];
 const TEACHERS_HEAD = ['Code', 'Teacher', 'Role', 'Active', 'Link', 'Note'];
 const LOG_HEAD = ['Exit ID', 'Student ID', 'Section', 'Teacher', 'Room', 'Where', 'Out', 'Back', 'Minutes', 'Status', 'Outside window', 'Mode', 'Board', 'Guest name', 'Substitute', 'Sub room'];
@@ -52,6 +55,9 @@ function route_(p) {
   if (a === 'hello' || a === '') return hello_(t);
   if (a === 'log') return log_(t, p);
   if (a === 'lookup') return lookup_(t, p);
+  if (a === 'suggest') return suggestName_(t, p);
+  if (a === 'ann_set') return saveItems_(t, p, 'ann');
+  if (a === 'qa_set') return saveItems_(t, p, 'qa');
   return { ok: false, error: 'unknown action' };
 }
 
@@ -94,8 +100,8 @@ function splitName_(full) {            // "SMITH, JOHN PAUL" or "John Smith"
   return { first: titleCase_(first.split(/\s+/)[0] || ''), last: titleCase_(last) };
 }
 
-function uniqueNames_(students) {      // "First L."; two of the same get more of the last name, then the end of the ID
-  const out = students.map(function (s) { const n = splitName_(s.name); return { id: s.id, first: n.first, last: n.last.replace(/[\s'\-]/g, ''), label: '' }; });
+function uniqueNames_(students, pref) {      // "First L."; two of the same get more of the last name, then the end of the ID. A preferred first name (Names tab) replaces the official one
+  const out = students.map(function (s) { const n = splitName_(s.name); return { id: s.id, first: (pref && pref[s.id]) ? pref[s.id] : n.first, last: n.last.replace(/[\s'\-]/g, ''), label: '' }; });
   const label = function (o, k) { return o.first + (o.last ? ' ' + o.last.slice(0, k) + (k >= o.last.length ? '' : '.') : ''); };
   let pending = out.slice();
   for (let k = 1; k <= 4 && pending.length; k++) {
@@ -168,14 +174,50 @@ function teacherNames_() {              // the names of all teachers (no codes, 
   return names.sort();
 }
 
+function ver_() {                       // changes whenever the names or the teacher's own announcements change: old answers stop being used
+  const c = CacheService.getScriptCache();
+  let v = c.get('ver');
+  if (!v) { v = String(Date.now()); c.put('ver', v, 21600); }
+  return v;
+}
+function bumpVer_() { const c = CacheService.getScriptCache(); c.put('ver', String(Date.now()) + Math.floor(Math.random() * 1000), 21600); c.remove('names'); }
+
+function names_() {                     // student ID -> preferred first name (only the rows that are approved)
+  const cache = CacheService.getScriptCache(), hit = cache.get('names');
+  if (hit) return JSON.parse(hit);
+  const sh = sheet_(TAB.names), map = {};
+  if (sh && sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues().forEach(function (r) {
+    const id = String(r[0]).trim(), nm = safeText_(r[1], 30), status = String(r[2] || '').trim().toLowerCase();
+    if (id && nm && (status === '' || status === 'ok' || status === 'yes' || status === 'approved')) map[id] = nm;
+  });
+  cache.put('names', JSON.stringify(map), 60);
+  return map;
+}
+
+function flagsOf_(row, from) { return BLOCKS.filter(function (b, i) { const v = String(row[from + i] == null ? '' : row[from + i]).trim().toLowerCase(); return v !== '' && v !== '0' && v !== 'no' && v !== 'false'; }); }
+
+function readItems_(tab, teacher, kind) {  // this teacher's announcements ({t, b}) or questions ({q, a, b}); b = the lessons they are shown in
+  const sh = sheet_(tab), out = [];
+  if (!sh || sh.getLastRow() < 2) return out;
+  const cols = kind === 'ann' ? ANN_HEAD.length : QA_HEAD.length;
+  sh.getRange(2, 1, sh.getLastRow() - 1, cols).getValues().forEach(function (r) {
+    if (String(r[0]).trim() !== teacher) return;
+    if (kind === 'ann') { const t = safeText_(r[1], 140); if (t) out.push({ t: t, b: flagsOf_(r, 2) }); }
+    else { const q = safeText_(r[1], 100), a = safeText_(r[2], 100); if (q && a) out.push({ q: q, a: a, b: flagsOf_(r, 3) }); }
+  });
+  return out;
+}
+
 function hello_(t) {
-  const cache = CacheService.getScriptCache(), key = 'hello:' + t.teacher + ':' + t.role;
+  const cache = CacheService.getScriptCache(), key = 'hello:' + ver_() + ':' + t.teacher + ':' + t.role;
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
   const display = t.teacher.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
-  const res = { ok: true, teacher: t.teacher, display: display, role: t.role, semester: semester_(), sections: [], teachers: teacherNames_() };
+  const res = { ok: true, teacher: t.teacher, display: display, role: t.role, semester: semester_(), sections: [], teachers: teacherNames_(), announcements: [], questions: [] };
   if (t.role === 'teacher') {
-    const sem = res.semester, byBlock = {};
+    const pref = names_(), sem = res.semester, byBlock = {};
+    res.announcements = readItems_(TAB.announcements, t.teacher, 'ann');
+    res.questions = readItems_(TAB.questions, t.teacher, 'qa');
     readSchedule_().forEach(function (r) {
       if (r.teacher !== t.teacher) return;
       if (r.role === 'S1' && sem !== 1) return;
@@ -186,7 +228,7 @@ function hello_(t) {
       const rows = byBlock[b];
       if (!rows) return;
       const sec = { block: b, time: rows[0].time, room: rows[0].room, course: rows[0].course,
-                    students: uniqueNames_(rows.map(function (r) { return { id: r.id, name: r.name }; })) };
+                    students: uniqueNames_(rows.map(function (r) { return { id: r.id, name: r.name }; }), pref) };
       if (b === LUNCH) { const rg = parseRange_(rows[0].time); if (rg) { sec.start = rg[0]; sec.end = rg[1]; } }       // lunch times (a lunch with one time is found by them)
       const gr = sectionGroups_(rows);
       if (gr) {
@@ -206,16 +248,70 @@ function hello_(t) {
 function lookup_(t, p) {                // a guest: "the last 4 digits of the ID" -> the names (usually one) that end that way
   const d = String(p.d || '').replace(/\D/g, '');
   if (d.length !== 4) return { ok: false, error: 'type the last 4 digits' };
-  const seen = {}, found = [];
+  const seen = {}, found = [], pref = names_();
   readSchedule_().forEach(function (r) {
     if (r.id.slice(-4) !== d) return;
     const g = seen[r.id];
     if (g) { if (r.grade > g.grade) g.grade = r.grade; return; }
     const n = splitName_(r.name);
-    seen[r.id] = { id: r.id, n: n.first + (n.last ? ' ' + n.last.charAt(0) + '.' : ''), grade: r.grade || 0 };
+    seen[r.id] = { id: r.id, n: (pref[r.id] || n.first) + (n.last ? ' ' + n.last.charAt(0) + '.' : ''), grade: r.grade || 0 };
     found.push(seen[r.id]);
   });
   return { ok: true, matches: found.slice(0, 6) };
+}
+
+function suggestName_(t, p) {          // a teacher suggests a preferred first name; it is used only after an administrator approves it
+  if (t.role !== 'teacher') return { ok: false, error: 'this code cannot suggest names' };
+  const id = String(p.s || '').trim(), nm = safeText_(p.n, 30);
+  if (!/^\d{4,14}$/.test(id)) return { ok: false, error: 'bad student id' };
+  if (!nm || /[0-9<>@=]/.test(nm)) return { ok: false, error: 'bad name' };
+  if (!readSchedule_().some(function (r) { return r.id === id; })) return { ok: false, error: 'unknown student' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = ensureTab_(TAB.names, NAMES_HEAD).sh, last = sh.getLastRow();
+    let mine = 0;
+    if (last > 1) {
+      const rows = sh.getRange(2, 1, last - 1, NAMES_HEAD.length).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i], status = String(r[2] || '').trim().toLowerCase();
+        if (String(r[0]).trim() === id && String(r[1]).trim().toLowerCase() === nm.toLowerCase() && status !== 'no') return { ok: true, dup: true };
+        if (status === 'pending' && String(r[3]) === t.teacher) mine++;
+      }
+    }
+    if (mine >= 10) return { ok: false, error: 'too many waiting suggestions' };
+    sh.getRange(last + 1, 1).setNumberFormat('@');
+    sh.getRange(last + 1, 1, 1, NAMES_HEAD.length).setValues([[id, nm, 'pending', t.teacher, today_(), '']]);
+    return { ok: true };
+  } finally { lock.releaseLock(); }
+}
+
+function saveItems_(t, p, kind) {       // a teacher saves his own announcements or questions (all of them at once); admins see them on the sheet
+  if (t.role !== 'teacher') return { ok: false, error: 'this code cannot save' };
+  let data;
+  try { data = JSON.parse(String(p.data || '[]')); } catch (e) { return { ok: false, error: 'bad data' }; }
+  if (!Array.isArray(data)) return { ok: false, error: 'bad data' };
+  const ann = kind === 'ann', tab = ann ? TAB.announcements : TAB.questions, head = ann ? ANN_HEAD : QA_HEAD, cols = head.length, max = ann ? 8 : 12, rows = [];
+  data.slice(0, max).forEach(function (x) {
+    if (!x || typeof x !== 'object') return;
+    const text = safeText_(ann ? x.t : x.q, ann ? 140 : 100), answer = ann ? '' : safeText_(x.a, 100);
+    if (!text || (!ann && !answer)) return;
+    const flags = BLOCKS.map(function (b) { return (Array.isArray(x.b) && x.b.indexOf(b) >= 0) ? 'x' : ''; });
+    rows.push((ann ? [t.teacher, text] : [t.teacher, text, answer]).concat(flags, [today_()]));
+  });
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = ensureTab_(tab, head).sh, last = sh.getLastRow(), keep = [];
+    if (last > 1) {
+      sh.getRange(2, 1, last - 1, cols).getValues().forEach(function (r) { if (String(r[0]).trim() !== t.teacher) keep.push(r.slice(0, cols)); });
+      sh.getRange(2, 1, last - 1, cols).clearContent();
+    }
+    const all = keep.concat(rows);
+    if (all.length) sh.getRange(2, 1, all.length, cols).setValues(all);
+    bumpVer_();
+    return { ok: true, saved: rows.length };
+  } finally { lock.releaseLock(); }
 }
 
 function readSchedule_() {
@@ -299,6 +395,9 @@ function onOpen() {
     .addItem('3. Make teacher codes', 'makeTeacherCodes')
     .addItem('4. Make setup links', 'makeSetupLinks')
     .addSeparator()
+    .addItem('Add a preferred name...', 'addPreferredName')
+    .addItem('Approve waiting preferred names', 'approveNames')
+    .addSeparator()
     .addItem('Check setup', 'checkSetup')
     .addItem('Clear the Master tab', 'clearMaster')
     .addToUi();
@@ -317,7 +416,7 @@ function ensureTab_(name, head) {
 
 function setupTabs() {
   const made = [];
-  [[TAB.master, null], [TAB.schedule, SCHEDULE_HEAD], [TAB.teachers, TEACHERS_HEAD]].forEach(function (x) {
+  [[TAB.master, null], [TAB.schedule, SCHEDULE_HEAD], [TAB.teachers, TEACHERS_HEAD], [TAB.names, NAMES_HEAD], [TAB.announcements, ANN_HEAD], [TAB.questions, QA_HEAD]].forEach(function (x) {
     const r = ensureTab_(x[0], x[1]); if (r.made) made.push(x[0]);
   });
   const st = ensureTab_(TAB.settings, null);
@@ -382,6 +481,51 @@ function importSchedule() {
        'Lunch rows: ' + lunchRooms + ' eaten in a classroom (given to that room\'s teacher), ' + lunchCafe + ' in the cafeteria (teacher "Lunch").\n' +
        'Skipped ' + skipped + ' rows that are not in a class block A1-B4 or lunch' + (skipped ? ' (' + Object.keys(skippedBy).map(function (k) { return k + ': ' + skippedBy[k]; }).join(', ') + ')' : '') + (excluded ? ', and ' + excluded + ' rows of excluded courses' : '') + '.\n' +
        'Parent e-mails and the other Master columns were NOT copied. Next: "3. Make teacher codes", then clear the Master tab.');
+}
+
+function addPreferredName() {           // find the student by a part of the last name (or the last 4 digits), then type the name he wants to be called
+  const ui = SpreadsheetApp.getUi();
+  const r1 = ui.prompt('Preferred name', 'A part of the last name, or the last 4 digits of the student ID:', ui.ButtonSet.OK_CANCEL);
+  if (r1.getSelectedButton() !== ui.Button.OK) return;
+  const q = String(r1.getResponseText()).trim().toUpperCase();
+  if (q.length < 2) { say_('Type at least 2 letters or 4 digits.'); return; }
+  const seen = {}, list = [];
+  readSchedule_().forEach(function (r) {
+    if (seen[r.id]) return;
+    if (/^\d{4}$/.test(q) ? r.id.slice(-4) === q : r.name.toUpperCase().indexOf(q) >= 0) { seen[r.id] = 1; list.push(r); }
+  });
+  if (!list.length) { say_('Nobody found for \"' + q + '\".'); return; }
+  list.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
+  const shown = list.slice(0, 9);
+  const text = shown.map(function (r, i) { return (i + 1) + '. ' + titleCase_(r.name) + ' (grade ' + (r.grade || '?') + ', ID ...' + r.id.slice(-4) + ')'; }).join('\n') + (list.length > 9 ? '\n(' + (list.length - 9) + ' more: type more letters next time)' : '');
+  const r2 = ui.prompt('Which student?', text + '\n\nType the number:', ui.ButtonSet.OK_CANCEL);
+  if (r2.getSelectedButton() !== ui.Button.OK) return;
+  const k = parseInt(r2.getResponseText(), 10);
+  if (!(k >= 1 && k <= shown.length)) { say_('That was not one of the numbers. Nothing was saved.'); return; }
+  const who = shown[k - 1];
+  const r3 = ui.prompt('Preferred first name', 'The name that ' + titleCase_(who.name) + ' wants to be called:', ui.ButtonSet.OK_CANCEL);
+  if (r3.getSelectedButton() !== ui.Button.OK) return;
+  const nm = safeText_(r3.getResponseText(), 30);
+  if (!nm || /[0-9<>@=]/.test(nm)) { say_('That name cannot be used. Nothing was saved.'); return; }
+  const sh = ensureTab_(TAB.names, NAMES_HEAD).sh, last = sh.getLastRow();
+  sh.getRange(last + 1, 1).setNumberFormat('@');
+  sh.getRange(last + 1, 1, 1, NAMES_HEAD.length).setValues([[who.id, nm, 'ok', 'administrator', today_(), '']]);
+  bumpVer_();
+  say_('Saved: boards will show \"' + nm + '\" instead of the official first name (within a few minutes).');
+}
+
+function approveNames() {               // the suggestions that teachers sent from the boards
+  const sh = sheet_(TAB.names);
+  if (!sh || sh.getLastRow() < 2) { say_('There are no suggestions.'); return; }
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, NAMES_HEAD.length).getValues(), waiting = [];
+  rows.forEach(function (r, i) { if (String(r[2]).trim().toLowerCase() === 'pending') waiting.push(i); });
+  if (!waiting.length) { say_('There are no waiting suggestions.'); return; }
+  const ui = SpreadsheetApp.getUi();
+  const text = waiting.slice(0, 12).map(function (i) { return '...' + String(rows[i][0]).slice(-4) + '  ->  ' + rows[i][1] + '  (from ' + rows[i][3] + ')'; }).join('\n') + (waiting.length > 12 ? '\n(and ' + (waiting.length - 12) + ' more)' : '');
+  if (ui.alert('Approve ' + waiting.length + ' waiting preferred name(s)?', text + '\n\nYES approves them all. To refuse one, set its Status to "no" on the Names tab first.', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  waiting.forEach(function (i) { sh.getRange(i + 2, 3).setValue('ok'); });
+  bumpVer_();
+  say_('Approved ' + waiting.length + '.');
 }
 
 function randomCode_() {
