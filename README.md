@@ -30,6 +30,10 @@ The **pass indicator** ("PASSES OPEN, closes in 20:27") is always the small one 
 
 **Announcements and questions (your own):** switch on *Announcements* or *Questions* in the settings, write them there and tick the lessons they are for; *Save to the school sheet* keeps them under your name on the school's sheet (administrators can read them). Announcements are a card on the left; for a lesson that has your questions, the question card uses them instead of the general ones. **Preferred names:** in *Settings -> Preferred names* a teacher can suggest the name a student wants to be called (last 4 digits of the ID, look up, type, send); it is used on all boards after an administrator approves it. In the settings nothing is ever wider than its own section: a long text in a list is cut with ...
 
+**The school's own times and calendar:** the bell schedules, the A/B calendar, the event names and the title come from the `Bells`, `Calendar` and `Settings` tabs of the school's sheet (a sample, Orlando Science High School 2026-27, is put there first and is also built into the page for boards that are not connected yet). A board keeps what it last received, so it works without internet. See `apps-script/SETUP.md`.
+
+**Live Agenda:** a plan with times for a class (*Settings -> Live Agenda*). First line: how many minutes before the bell it starts; then one part per line, `name | minutes` (for example `2`, `Bell work | 10`, `Activity | 20`). The board shows the part that is on now, a countdown and a bar that fills, and what comes next; at the end of every part a sound of its own plays (chosen in the same section). While it runs it takes the place of the cards and the agenda note. Copy a plan to this day's periods or to all 8 classes. **The little weather box** at the top is always there (the switch only controls the big weather cards). **A finished timer** goes away when it is tapped (switch it on again in the settings). **The left part** can be made 30% to 70% of the screen.
+
 **Substitute teacher:** tap the teacher's name at the top of the right half, enter the PIN (or the master code), then the substitute's name (choose from the school's teachers or type one) and optionally the room and ticks for the other lessons of that day. It shows at the top in colour for its lessons and is written in the log (columns *Substitute* and *Sub room*).
 
 **Lunch and classes with two times:** lunch is a section too (in the cafeteria it belongs to the teacher *Lunch*, in a classroom to that room's teacher). For a class whose students have two different times (block 3), passes are closed for everybody in every red zone of the lesson bar, and the list of names shows only the students who are in the room by their own time.
@@ -73,15 +77,15 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 | `index.html` | The whole board (page, bell schedules, A/B calendar). |
 | `sw.js`, `manifest.webmanifest`, `icon*.png/svg` | Make it work offline and installable. |
 | `LICENSE` | The OSHS Free Use License. |
+| `DEPLOY.md` | How to put the system into use and how to change over to a new document next year. |
 | `apps-script/Code.gs`, `apps-script/SETUP.md` | The school's Google Apps Script (teacher codes, class lists, the log, announcements, weather warnings) and the administrator's guide. |
-| `apps-script/webapplink` | The address of the deployed script. **The page reads it from here when it starts** (one line, ends with `/exec`; lines starting with `#` are comments; empty = nobody is connected yet). |
 | `docs/` | Screenshots and QR codes of the page address, for slides (the page itself no longer makes QR codes). |
 
 **Teacher codes, class lists and the hall pass log**
 
 The hall pass buttons need to know whose board this is. Each teacher has a personal **teacher code**, made by the administrator in the school's Google Sheet. The code is typed once on the board (welcome screen, or Settings -> *Teacher code*), or arrives in a personal setup link that ends in `#code=...`. Without a code the buttons stay grey, no student names are loaded and nothing is logged. With a code the board receives only the students of that teacher's own classes (from the school schedule) and logs each finished trip **by student ID**, one row on the single `Log` tab of the school's sheet.
 
-The administrator's guide is in [`apps-script/SETUP.md`](apps-script/SETUP.md). In short: paste `apps-script/Code.gs` into the sheet's Apps Script, deploy it as a web app (write the address into `apps-script/webapplink`, the page reads it from there; deploy a *new version* of the same deployment to keep the address), then use the menu *Hall Pass*: set up tabs, import the schedule export, make teacher codes, make setup links.
+The administrator's guide is in [`apps-script/SETUP.md`](apps-script/SETUP.md). In short: paste `apps-script/Code.gs` into the sheet's Apps Script, deploy it as a web app (put its address into the `script_url` row of the `Settings` tab: it goes **only** into the personal setup links you e-mail to the teachers, never into the public page; deploy a *new version* of the same deployment to keep the address), then use the menu *Hall Pass*: set up tabs, import the schedule export, make teacher codes, make setup links. The full step-by-step guide, with what you need and the yearly changeover, is in [`DEPLOY.md`](DEPLOY.md).
 
 ## License
 

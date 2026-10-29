@@ -7,7 +7,9 @@ One Google Sheet in the **school's account** holds everything. Teachers never op
 | `Master` | The school's schedule export, pasted once. It may contain parent e-mails, so it is **cleared after the import**. | You |
 | `Schedule` | The clean copy the boards use: student ID, name, block, time, teacher, course, room, role, grade. | The import |
 | `Teachers` | One row per teacher: code, name, role, active, setup link. | "Make teacher codes" |
-| `Settings` | `site_url`, `semester2_start`, `exclude_courses`. | You |
+| `Settings` | `site_url`, `semester2_start`, `exclude_courses`, `script_url`, `school_name` (the title on the board), `band_912_label` and `band_1011_label` (the names of the two grade groups). | You |
+| `Bells` | The school's bell schedules: one row per part of the day (band, day type, day name, label, kind, start, end). | You (a sample school is put there first) |
+| `Calendar` | The school's calendar: one row per date (the day letter A or B, the type of day, an event name and its kind). | You (a sample school is put there first) |
 | `Log` | **One tab**, one row per finished trip. Never split by week. | The boards |
 | `Messages` | Optional school-wide announcements: A = text, B = show from, C = show until. | You |
 | `Names` | Preferred first names: student ID, preferred name, status (`ok` or empty = used, `pending` = waits for you, `no` = refused), who suggested it, date, note. | You (menu) and the teachers' boards (suggestions) |
@@ -19,7 +21,7 @@ One Google Sheet in the **school's account** holds everything. Teachers never op
 1. Open the school's sheet (or create one). **Extensions -> Apps Script**.
 2. Delete the old code, paste the whole of `Code.gs`, press **Save**.
 3. **Deploy -> Manage deployments**, pencil, *Version: New version*, **Deploy**. The web app address stays the same, so the boards keep working.
-   *(First time ever: Deploy -> New deployment -> Web app, Execute as **Me**, Who has access **Anyone**, copy the address into the file `apps-script/webapplink` of the GitHub repository: the page reads it from there, nothing is written into the page. Without an address the boards stay disconnected.)*
+   *(First time ever: Deploy -> New deployment -> Web app, Execute as **Me**, Who has access **Anyone**, copy the address into the `script_url` row of the `Settings` tab. It is **not** written anywhere public: **4. Make setup links** puts it into each teacher's personal link (`...#code=CODE&u=ADDRESS`), which you send by e-mail; the board takes it from the link once and the link is cleared from the address bar. Without an address the boards stay disconnected.)*
 4. Reload the sheet. A menu **Hall Pass** appears. The first run asks for permission: Review permissions -> your account -> Advanced -> Go to the project -> Allow.
 
 "Anyone" means anybody *with the address* can send a request, but the script answers nothing without a valid teacher code.
@@ -109,3 +111,30 @@ Teachers can **suggest** a name from their board (Settings -> *Preferred names*:
 ## Announcements and questions of a teacher
 
 In their board's Settings the teachers write their own **announcements** (up to 8, 140 characters) and **questions with answers** (up to 12) and tick the lessons each is for. **Save to the school sheet** stores them on the `Announcements` and `Questions` tabs under the teacher's name, so you (the administrators) can read them there, and the board shows them as cards for the ticked lessons. Saving again replaces that teacher's rows and only his. You can also edit the rows by hand (an `x` under a lesson, any other text or empty = not shown). Text that starts with `=`, `+`, `-` or `@` is made harmless.
+
+## Bell schedules and the calendar (so the page is not tied to one school)
+
+The page has the Orlando Science High School 2026-27 times and calendar built in only as a **sample**. The real ones come from your two tabs: after **Hall Pass -> 1. Set up tabs** they are filled with that sample (the first time only; running it again never overwrites your edits), you replace the rows with yours, and every connected board takes them within an hour (at once after *Check code and load names*, and the board keeps them for when the internet is down). **Check setup** tells you how many school days and events it understood and how many rows it did **not** understand.
+
+**`Bells` tab** (one row per part of the day):
+
+| Column | What to write |
+|---|---|
+| Band | `912` or `1011`: the two groups of grades that have different bells (their names are `band_912_label` and `band_1011_label` on the `Settings` tab). If both groups have the same bells, write every row twice. |
+| Day type | One word, for example `regular`, `wednesday`, `earlyrelease`. The calendar uses the same word. |
+| Day name | How the day is called in the lists (the same on every row of that type), for example `Block Day`. |
+| Label | `Period 1`, `Period 2` ... for the classes (these are shown as A1, B2 ... and used by the lists of students), `Break`, `Lunch`, or anything else you want shown (for example `Clubs`). |
+| Kind | `class`, `break` or `lunch` (anything else counts as `class`). |
+| Start, End | Times like `07:50` (24 hours); `7:50 AM` also works. **Format these two columns as plain text** (Format -> Number -> Plain text) so Google does not change them. Rows may be in any order. |
+
+**`Calendar` tab** (one row per date; a date that is not on the tab is a day without school):
+
+| Column | What to write |
+|---|---|
+| Date | `2026-09-07` or `9/7/2026`. |
+| Day | `A` or `B` for a school day; **empty = no school** (a holiday, a break). |
+| Type | The day type from the `Bells` tab (`regular`, `wednesday` ...). Empty = `regular`. |
+| Event | Optional name, shown by the board's calendar cards ("Labor Day", "the 1st marking period"). |
+| Event kind | `break` (a break or holiday: the board counts the days until it), `end` (the end of a marking period) or `year` (the last day of school). |
+
+**For the next school year:** paste the new calendar over the `Calendar` tab (delete the old rows first), check the `Bells` rows, run **Check setup**, and the boards follow by themselves.

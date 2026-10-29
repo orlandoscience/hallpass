@@ -13,13 +13,273 @@
 const TZ = 'America/New_York';
 const LAT = 28.5383, LON = -81.3792;   // Orlando, for the weather warnings
 const ALERTS_UA = 'OSHS-classroom-board (teacher classroom display)';   // api.weather.gov asks for this header
-const TAB = { master: 'Master', schedule: 'Schedule', teachers: 'Teachers', settings: 'Settings', log: 'Log', messages: 'Messages', names: 'Names', announcements: 'Announcements', questions: 'Questions' };
+const TAB = { master: 'Master', schedule: 'Schedule', teachers: 'Teachers', settings: 'Settings', log: 'Log', messages: 'Messages', names: 'Names', announcements: 'Announcements', questions: 'Questions', bells: 'Bells', calendar: 'Calendar' };
 const BLOCKS = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
 const LUNCH = 'LUNCH';                                       // lunch is a section too: in the cafeteria it belongs to the teacher "Lunch", in a classroom to that room's teacher
 const ALL_BLOCKS = BLOCKS.concat([LUNCH]);
 const NAMES_HEAD = ['Student ID', 'Preferred name', 'Status', 'Suggested by', 'Date', 'Note'];     // Status: ok (or empty) = used, pending = waits for an administrator
 const ANN_HEAD = ['Teacher', 'Announcement'].concat(BLOCKS, ['Updated']);                       // an x in A1..B4 = shown during that lesson
 const QA_HEAD = ['Teacher', 'Question', 'Answer'].concat(BLOCKS, ['Updated']);
+const BELLS_HEAD = ['Band', 'Day type', 'Day name', 'Label', 'Kind', 'Start', 'End'];      // Band: 912 or 1011. Kind: class, break or lunch. Times like 07:50 (24 hours)
+const CAL_HEAD = ['Date', 'Day', 'Type', 'Event', 'Event kind'];                          // Day: A or B, empty = no school. Type: regular, wednesday... Event kind: break, end or year
+
+// The sample the tabs are filled with the first time: Orlando Science High School 2026-27. Replace it with your own.
+const DEFAULT_BELLS = [
+  ["912","regular","Block Day","Period 1","class","07:50","09:22"],
+  ["912","regular","Block Day","Break","break","09:22","09:27"],
+  ["912","regular","Block Day","Period 2","class","09:27","10:55"],
+  ["912","regular","Block Day","Break","break","10:55","11:00"],
+  ["912","regular","Block Day","Period 3","class","11:00","12:28"],
+  ["912","regular","Block Day","Break","break","12:28","12:33"],
+  ["912","regular","Block Day","Lunch","lunch","12:33","13:13"],
+  ["912","regular","Block Day","Break","break","13:13","13:18"],
+  ["912","regular","Block Day","Period 4","class","13:18","14:50"],
+  ["912","regular","Block Day","Break","break","14:50","14:55"],
+  ["912","regular","Block Day","Clubs","class","14:55","15:30"],
+  ["912","wednesday","Wednesday","Period 1","class","07:50","09:05"],
+  ["912","wednesday","Wednesday","Break","break","09:05","09:10"],
+  ["912","wednesday","Wednesday","Period 2","class","09:10","10:22"],
+  ["912","wednesday","Wednesday","Break","break","10:22","10:27"],
+  ["912","wednesday","Wednesday","Period 3","class","10:27","11:40"],
+  ["912","wednesday","Wednesday","Break","break","11:40","11:45"],
+  ["912","wednesday","Wednesday","Lunch","lunch","11:45","12:25"],
+  ["912","wednesday","Wednesday","Break","break","12:25","12:30"],
+  ["912","wednesday","Wednesday","Period 4","class","12:30","13:45"],
+  ["912","wednesday","Wednesday","Break","break","13:45","13:50"],
+  ["912","wednesday","Wednesday","Clubs","class","13:50","14:25"],
+  ["1011","regular","Block Day","Period 1","class","07:50","09:22"],
+  ["1011","regular","Block Day","Break","break","09:22","09:27"],
+  ["1011","regular","Block Day","Period 2","class","09:27","10:55"],
+  ["1011","regular","Block Day","Break","break","10:55","11:00"],
+  ["1011","regular","Block Day","Lunch","lunch","11:00","11:40"],
+  ["1011","regular","Block Day","Break","break","11:40","11:45"],
+  ["1011","regular","Block Day","Period 3","class","11:45","13:13"],
+  ["1011","regular","Block Day","Break","break","13:13","13:18"],
+  ["1011","regular","Block Day","Period 4","class","13:18","14:50"],
+  ["1011","regular","Block Day","Break","break","14:50","14:55"],
+  ["1011","regular","Block Day","Clubs","class","14:55","15:30"],
+  ["1011","wednesday","Wednesday","Period 1","class","07:50","09:05"],
+  ["1011","wednesday","Wednesday","Break","break","09:05","09:10"],
+  ["1011","wednesday","Wednesday","Period 2","class","09:10","10:22"],
+  ["1011","wednesday","Wednesday","Break","break","10:22","10:27"],
+  ["1011","wednesday","Wednesday","Lunch","lunch","10:27","11:07"],
+  ["1011","wednesday","Wednesday","Break","break","11:07","11:12"],
+  ["1011","wednesday","Wednesday","Period 3","class","11:12","12:25"],
+  ["1011","wednesday","Wednesday","Break","break","12:25","12:30"],
+  ["1011","wednesday","Wednesday","Period 4","class","12:30","13:45"],
+  ["1011","wednesday","Wednesday","Break","break","13:45","13:50"],
+  ["1011","wednesday","Wednesday","Clubs","class","13:50","14:25"]
+];
+const DEFAULT_CALENDAR = [
+  ["2026-08-11","A","regular","",""],
+  ["2026-08-12","B","wednesday","",""],
+  ["2026-08-13","A","regular","",""],
+  ["2026-08-14","B","regular","",""],
+  ["2026-08-17","A","regular","",""],
+  ["2026-08-18","B","regular","",""],
+  ["2026-08-19","A","wednesday","",""],
+  ["2026-08-20","B","regular","",""],
+  ["2026-08-21","A","regular","",""],
+  ["2026-08-24","B","regular","",""],
+  ["2026-08-25","A","regular","",""],
+  ["2026-08-26","B","wednesday","",""],
+  ["2026-08-27","A","regular","",""],
+  ["2026-08-28","B","regular","",""],
+  ["2026-08-31","A","regular","",""],
+  ["2026-09-01","B","regular","",""],
+  ["2026-09-02","A","wednesday","",""],
+  ["2026-09-03","B","regular","",""],
+  ["2026-09-04","A","regular","",""],
+  ["2026-09-07","","","Labor Day","break"],
+  ["2026-09-08","B","regular","",""],
+  ["2026-09-09","A","wednesday","",""],
+  ["2026-09-10","B","regular","",""],
+  ["2026-09-11","A","regular","",""],
+  ["2026-09-14","B","regular","",""],
+  ["2026-09-15","A","regular","",""],
+  ["2026-09-16","B","wednesday","",""],
+  ["2026-09-17","A","regular","",""],
+  ["2026-09-18","B","regular","",""],
+  ["2026-09-21","A","regular","",""],
+  ["2026-09-22","B","regular","",""],
+  ["2026-09-23","A","wednesday","",""],
+  ["2026-09-24","B","regular","",""],
+  ["2026-09-25","A","regular","",""],
+  ["2026-09-28","B","regular","",""],
+  ["2026-09-29","A","regular","",""],
+  ["2026-09-30","B","wednesday","",""],
+  ["2026-10-01","A","regular","",""],
+  ["2026-10-02","B","regular","",""],
+  ["2026-10-05","A","regular","",""],
+  ["2026-10-06","B","regular","",""],
+  ["2026-10-07","A","wednesday","",""],
+  ["2026-10-08","B","regular","",""],
+  ["2026-10-09","A","regular","the 1st marking period","end"],
+  ["2026-10-12","","","the Oct 12 student holiday","break"],
+  ["2026-10-13","B","regular","",""],
+  ["2026-10-14","A","wednesday","",""],
+  ["2026-10-15","B","regular","",""],
+  ["2026-10-16","A","regular","",""],
+  ["2026-10-19","B","regular","",""],
+  ["2026-10-20","A","regular","",""],
+  ["2026-10-21","B","wednesday","",""],
+  ["2026-10-22","A","regular","",""],
+  ["2026-10-23","B","regular","",""],
+  ["2026-10-26","A","regular","",""],
+  ["2026-10-27","B","regular","",""],
+  ["2026-10-28","A","wednesday","",""],
+  ["2026-10-29","B","regular","",""],
+  ["2026-10-30","A","regular","",""],
+  ["2026-11-02","B","regular","",""],
+  ["2026-11-03","A","regular","",""],
+  ["2026-11-04","B","wednesday","",""],
+  ["2026-11-05","A","regular","",""],
+  ["2026-11-06","B","regular","",""],
+  ["2026-11-09","A","regular","",""],
+  ["2026-11-10","B","regular","",""],
+  ["2026-11-11","A","wednesday","",""],
+  ["2026-11-12","B","regular","",""],
+  ["2026-11-13","A","regular","",""],
+  ["2026-11-16","B","regular","",""],
+  ["2026-11-17","A","regular","",""],
+  ["2026-11-18","B","wednesday","",""],
+  ["2026-11-19","A","regular","",""],
+  ["2026-11-20","B","regular","",""],
+  ["2026-11-23","","","Thanksgiving Break","break"],
+  ["2026-11-24","","","",""],
+  ["2026-11-25","","","",""],
+  ["2026-11-26","","","",""],
+  ["2026-11-27","","","",""],
+  ["2026-11-30","A","regular","",""],
+  ["2026-12-01","B","regular","",""],
+  ["2026-12-02","A","wednesday","",""],
+  ["2026-12-03","B","regular","",""],
+  ["2026-12-04","A","regular","",""],
+  ["2026-12-07","B","regular","",""],
+  ["2026-12-08","A","regular","",""],
+  ["2026-12-09","B","wednesday","",""],
+  ["2026-12-10","A","regular","",""],
+  ["2026-12-11","B","regular","",""],
+  ["2026-12-14","A","regular","",""],
+  ["2026-12-15","B","regular","",""],
+  ["2026-12-16","A","wednesday","",""],
+  ["2026-12-17","B","regular","",""],
+  ["2026-12-18","A","regular","the 2nd marking period","end"],
+  ["2026-12-21","","","Winter Break","break"],
+  ["2026-12-22","","","",""],
+  ["2026-12-23","","","",""],
+  ["2026-12-24","","","",""],
+  ["2026-12-25","","","",""],
+  ["2026-12-28","","","",""],
+  ["2026-12-29","","","",""],
+  ["2026-12-30","","","",""],
+  ["2026-12-31","","","",""],
+  ["2027-01-01","","","",""],
+  ["2027-01-04","","","",""],
+  ["2027-01-05","B","regular","",""],
+  ["2027-01-06","A","wednesday","",""],
+  ["2027-01-07","B","regular","",""],
+  ["2027-01-08","A","regular","",""],
+  ["2027-01-11","B","regular","",""],
+  ["2027-01-12","A","regular","",""],
+  ["2027-01-13","B","wednesday","",""],
+  ["2027-01-14","A","regular","",""],
+  ["2027-01-15","B","regular","",""],
+  ["2027-01-18","","","MLK Day","break"],
+  ["2027-01-19","A","regular","",""],
+  ["2027-01-20","B","wednesday","",""],
+  ["2027-01-21","A","regular","",""],
+  ["2027-01-22","B","regular","",""],
+  ["2027-01-25","A","regular","",""],
+  ["2027-01-26","B","regular","",""],
+  ["2027-01-27","A","wednesday","",""],
+  ["2027-01-28","B","regular","",""],
+  ["2027-01-29","A","regular","",""],
+  ["2027-02-01","B","regular","",""],
+  ["2027-02-02","A","regular","",""],
+  ["2027-02-03","B","wednesday","",""],
+  ["2027-02-04","A","regular","",""],
+  ["2027-02-05","B","regular","",""],
+  ["2027-02-08","A","regular","",""],
+  ["2027-02-09","B","regular","",""],
+  ["2027-02-10","A","wednesday","",""],
+  ["2027-02-11","B","regular","",""],
+  ["2027-02-12","A","regular","",""],
+  ["2027-02-15","","","Presidents' Day","break"],
+  ["2027-02-16","B","regular","",""],
+  ["2027-02-17","A","wednesday","",""],
+  ["2027-02-18","B","regular","",""],
+  ["2027-02-19","A","regular","",""],
+  ["2027-02-22","B","regular","",""],
+  ["2027-02-23","A","regular","",""],
+  ["2027-02-24","B","wednesday","",""],
+  ["2027-02-25","A","regular","",""],
+  ["2027-02-26","B","regular","",""],
+  ["2027-03-01","A","regular","",""],
+  ["2027-03-02","B","regular","",""],
+  ["2027-03-03","A","wednesday","",""],
+  ["2027-03-04","B","regular","",""],
+  ["2027-03-05","A","regular","",""],
+  ["2027-03-08","B","regular","",""],
+  ["2027-03-09","A","regular","",""],
+  ["2027-03-10","B","wednesday","",""],
+  ["2027-03-11","A","regular","the 3rd marking period","end"],
+  ["2027-03-12","","","",""],
+  ["2027-03-15","","","Spring Break","break"],
+  ["2027-03-16","","","",""],
+  ["2027-03-17","","","",""],
+  ["2027-03-18","","","",""],
+  ["2027-03-19","","","",""],
+  ["2027-03-22","B","regular","",""],
+  ["2027-03-23","A","regular","",""],
+  ["2027-03-24","B","wednesday","",""],
+  ["2027-03-25","A","regular","",""],
+  ["2027-03-26","B","regular","",""],
+  ["2027-03-29","A","regular","",""],
+  ["2027-03-30","B","regular","",""],
+  ["2027-03-31","A","wednesday","",""],
+  ["2027-04-01","B","regular","",""],
+  ["2027-04-02","A","regular","",""],
+  ["2027-04-05","B","regular","",""],
+  ["2027-04-06","A","regular","",""],
+  ["2027-04-07","B","wednesday","",""],
+  ["2027-04-08","A","regular","",""],
+  ["2027-04-09","B","regular","",""],
+  ["2027-04-12","A","regular","",""],
+  ["2027-04-13","B","regular","",""],
+  ["2027-04-14","A","wednesday","",""],
+  ["2027-04-15","B","regular","",""],
+  ["2027-04-16","A","regular","",""],
+  ["2027-04-19","B","regular","",""],
+  ["2027-04-20","A","regular","",""],
+  ["2027-04-21","B","wednesday","",""],
+  ["2027-04-22","A","regular","",""],
+  ["2027-04-23","","","the Apr 23 student holiday","break"],
+  ["2027-04-26","B","regular","",""],
+  ["2027-04-27","A","regular","",""],
+  ["2027-04-28","B","wednesday","",""],
+  ["2027-04-29","A","regular","",""],
+  ["2027-04-30","B","regular","",""],
+  ["2027-05-03","A","regular","",""],
+  ["2027-05-04","B","regular","",""],
+  ["2027-05-05","A","wednesday","",""],
+  ["2027-05-06","B","regular","",""],
+  ["2027-05-07","A","regular","",""],
+  ["2027-05-10","B","regular","",""],
+  ["2027-05-11","A","regular","",""],
+  ["2027-05-12","B","wednesday","",""],
+  ["2027-05-13","A","regular","",""],
+  ["2027-05-14","B","regular","",""],
+  ["2027-05-17","A","regular","",""],
+  ["2027-05-18","B","regular","",""],
+  ["2027-05-19","A","wednesday","",""],
+  ["2027-05-20","B","regular","",""],
+  ["2027-05-21","A","regular","",""],
+  ["2027-05-24","B","regular","",""],
+  ["2027-05-25","A","regular","",""],
+  ["2027-05-26","B","wednesday","the school year","year"]
+];
+
 const SCHEDULE_HEAD = ['Student ID', 'Name', 'Block', 'Time', 'Teacher', 'Course', 'Room', 'Role', 'Grade'];
 const TEACHERS_HEAD = ['Code', 'Teacher', 'Role', 'Active', 'Link', 'Note'];
 const LOG_HEAD = ['Exit ID', 'Student ID', 'Section', 'Teacher', 'Room', 'Where', 'Out', 'Back', 'Minutes', 'Status', 'Outside window', 'Mode', 'Board', 'Guest name', 'Substitute', 'Sub room'];
@@ -174,6 +434,77 @@ function teacherNames_() {              // the names of all teachers (no codes, 
   return names.sort();
 }
 
+function pad2_(n) { n = Number(n); return (n < 10 ? '0' : '') + n; }
+
+function hhmm_(v) {                      // 07:50, 7:50, 7:50 AM, a time cell or a fraction of a day -> "07:50" ('' if it is not a time)
+  if (v instanceof Date) {
+    const p = Utilities.formatDate(v, TZ, 'HH:mm:ss').split(':').map(Number), total = p[0] * 60 + p[1] + (p[2] >= 30 ? 1 : 0);
+    return pad2_(Math.floor(total / 60) % 24) + ':' + pad2_(total % 60);
+  }
+  if (typeof v === 'number') { if (!(v >= 0 && v < 1)) return ''; const m = Math.round(v * 1440); return pad2_(Math.floor(m / 60) % 24) + ':' + pad2_(m % 60); }
+  const m = /^\s*(\d{1,2})[:.](\d{2})\s*([AaPp][Mm])?\s*$/.exec(String(v));
+  if (!m) return '';
+  let h = Number(m[1]); const mi = Number(m[2]);
+  if (mi > 59 || h > 23) return '';
+  if (m[3]) { if (h < 1 || h > 12) return ''; h = h % 12 + (/p/i.test(m[3]) ? 12 : 0); }
+  return pad2_(h) + ':' + pad2_(mi);
+}
+
+function isoDate_(v) {                   // a date cell, 2026-09-07 or 9/7/2026 -> "2026-09-07" ('' if it is not a date)
+  if (v instanceof Date) return Utilities.formatDate(v, TZ, 'yyyy-MM-dd');
+  const t = String(v).trim();
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
+  if (m) return m[1] + '-' + pad2_(m[2]) + '-' + pad2_(m[3]);
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t);
+  return m ? m[3] + '-' + pad2_(m[1]) + '-' + pad2_(m[2]) : '';
+}
+
+function capital_(w) { return w.charAt(0).toUpperCase() + w.slice(1); }
+
+function buildSchool_() {               // the school's own bell schedules, calendar and names, from the Bells and Calendar tabs (null if there are none)
+  const bs = sheet_(TAB.bells);
+  if (!bs || bs.getLastRow() < 2) return null;
+  const tables = {}, problems = [];
+  bs.getRange(2, 1, bs.getLastRow() - 1, BELLS_HEAD.length).getValues().forEach(function (r, i) {
+    const band = String(r[0]).replace(/\D/g, ''), type = String(r[1]).trim().toLowerCase().replace(/[^a-z0-9]/g, ''), kind = String(r[4]).trim().toLowerCase();
+    const label = safeText_(r[3], 30), a = hhmm_(r[5]), b = hhmm_(r[6]);
+    if (!band && !type && !label && !String(r[5]).trim()) return;                       // an empty line
+    if ((band !== '912' && band !== '1011') || !type || !label || !a || !b || a >= b) { problems.push('Bells row ' + (i + 2)); return; }
+    const tb = (tables[band] = tables[band] || {}), tt = (tb[type] = tb[type] || { label: '', rows: [] });
+    if (!tt.label) tt.label = safeText_(r[2], 30);
+    tt.rows.push({ label: label, type: (kind === 'break' || kind === 'lunch') ? kind : 'class', start: a, end: b });
+  });
+  Object.keys(tables).forEach(function (b) {
+    Object.keys(tables[b]).forEach(function (t) {
+      const x = tables[b][t];
+      x.rows.sort(function (p, q) { return p.start < q.start ? -1 : p.start > q.start ? 1 : 0; });
+      if (!x.label) x.label = capital_(t);
+    });
+  });
+  if (!tables['912'] && !tables['1011']) return null;
+  const calendar = {}, events = [], cs = sheet_(TAB.calendar);
+  if (cs && cs.getLastRow() > 1) cs.getRange(2, 1, cs.getLastRow() - 1, CAL_HEAD.length).getValues().forEach(function (r, i) {
+    if (!String(r[0]).trim() && !String(r[1]).trim() && !String(r[3]).trim()) return;
+    const iso = isoDate_(r[0]);
+    if (!iso) { problems.push('Calendar row ' + (i + 2)); return; }
+    const letter = String(r[1]).trim().toUpperCase(), type = String(r[2]).trim().toLowerCase().replace(/[^a-z0-9]/g, '') || 'regular';
+    calendar[iso] = (letter === 'A' || letter === 'B') ? letter + ' Day ' + capital_(type) : null;
+    const name = safeText_(r[3], 60), kind = String(r[4]).trim().toLowerCase();
+    if (name) { const ev = { name: name, date: iso, kind: kind === 'end' || kind === 'year' ? 'end' : 'break' }; if (kind === 'year') ev.year = true; events.push(ev); }
+  });
+  events.sort(function (p, q) { return p.date < q.date ? -1 : p.date > q.date ? 1 : 0; });
+  return { name: safeText_(setting_('school_name', 'OSHS Bell Schedule'), 60), bands: { '912': safeText_(setting_('band_912_label', '9th-12th Grade'), 30), '1011': safeText_(setting_('band_1011_label', '10th-11th Grade'), 30) },
+           tables: tables, calendar: calendar, events: events, problems: problems.length };
+}
+
+function school_() {
+  const cache = CacheService.getScriptCache(), key = 'school:' + ver_(), hit = cache.get(key);
+  if (hit) return hit === 'null' ? null : JSON.parse(hit);
+  const out = buildSchool_();
+  cache.put(key, out ? JSON.stringify(out) : 'null', 120);
+  return out;
+}
+
 function ver_() {                       // changes whenever the names or the teacher's own announcements change: old answers stop being used
   const c = CacheService.getScriptCache();
   let v = c.get('ver');
@@ -240,6 +571,8 @@ function hello_(t) {
       res.sections.push(sec);
     });
   }
+  const sc = school_();
+  if (sc) res.school = sc;
   const json = JSON.stringify(res);
   if (json.length < 90000) cache.put(key, json, 300);
   return res;
@@ -416,15 +749,24 @@ function ensureTab_(name, head) {
 
 function setupTabs() {
   const made = [];
-  [[TAB.master, null], [TAB.schedule, SCHEDULE_HEAD], [TAB.teachers, TEACHERS_HEAD], [TAB.names, NAMES_HEAD], [TAB.announcements, ANN_HEAD], [TAB.questions, QA_HEAD]].forEach(function (x) {
+  [[TAB.master, null], [TAB.schedule, SCHEDULE_HEAD], [TAB.teachers, TEACHERS_HEAD], [TAB.names, NAMES_HEAD], [TAB.announcements, ANN_HEAD], [TAB.questions, QA_HEAD], [TAB.bells, BELLS_HEAD], [TAB.calendar, CAL_HEAD]].forEach(function (x) {
     const r = ensureTab_(x[0], x[1]); if (r.made) made.push(x[0]);
+    if (r.sh.getLastRow() <= 1 && (x[0] === TAB.bells || x[0] === TAB.calendar)) {        // the sample school, to be replaced by yours
+      const data = x[0] === TAB.bells ? DEFAULT_BELLS : DEFAULT_CALENDAR;
+      r.sh.getRange(2, 1, data.length, data[0].length).setNumberFormat('@');                // text: dates and times stay as typed
+      r.sh.getRange(2, 1, data.length, data[0].length).setValues(data);
+    }
   });
   const st = ensureTab_(TAB.settings, null);
   if (st.made || st.sh.getLastRow() === 0) {
-    st.sh.getRange(1, 1, 3, 3).setValues([
+    st.sh.getRange(1, 1, 7, 3).setValues([
       ['site_url', 'https://orlandoscience.github.io/hallpass/', 'The address of the board (used for the setup links)'],
       ['semester2_start', '', 'The first day of the second semester, like 2027-01-11. Until then the first-semester classes are used.'],
-      ['exclude_courses', '', 'Courses that are not classrooms, separated by commas (a part of the name is enough). Their students are not imported.']]);
+      ['exclude_courses', '', 'Courses that are not classrooms, separated by commas (a part of the name is enough). Their students are not imported.'],
+      ['script_url', '', 'The address of this script: Deploy -> Manage deployments -> the web app URL that ends in /exec. It goes into the setup links, so teachers never have to paste it. Do not publish it.'],
+      ['school_name', 'OSHS Bell Schedule', 'The title at the top of the board.'],
+      ['band_912_label', '9th-12th Grade', 'The name of the first group of grades on the board (its bell schedule is on the Bells tab under 912).'],
+      ['band_1011_label', '10th-11th Grade', 'The name of the second group of grades (Bells tab, 1011).']]);
     if (st.made) made.push(TAB.settings);
   }
   if (!sheet_(TAB.log)) { logSheet_(); made.push(TAB.log); }
@@ -552,13 +894,17 @@ function makeTeacherCodes() {
   say_(rows.length ? 'Added ' + rows.length + ' teachers with new codes. Next: "4. Make setup links".' : 'Every teacher in the Schedule already has a code.');
 }
 
+const SCRIPT_URL_RE = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/;
+
 function makeSetupLinks() {
   const t = sheet_(TAB.teachers);
   if (!t || t.getLastRow() < 2) { say_('There are no teachers yet. Use "3. Make teacher codes" first.'); return; }
   const base = String(setting_('site_url', 'https://orlandoscience.github.io/hallpass/')).replace(/#.*$/, '');
-  const v = t.getRange(2, 1, t.getLastRow() - 1, 1).getValues().map(function (r) { return [norm_(r[0]) ? base + '#code=' + norm_(r[0]) : '']; });
+  const url = String(setting_('script_url', '')).trim(), hasUrl = SCRIPT_URL_RE.test(url);
+  const v = t.getRange(2, 1, t.getLastRow() - 1, 1).getValues().map(function (r) { return [norm_(r[0]) ? base + '#code=' + norm_(r[0]) + (hasUrl ? '&u=' + encodeURIComponent(url) : '') : '']; });
   t.getRange(2, 5, v.length, 1).setValues(v);
-  say_('Setup links written to column E of the Teachers tab. Each teacher opens their own link once on the classroom board. Do not publish the links.');
+  say_('Setup links written to column E of the Teachers tab. Each teacher opens their own link once on the classroom board. Do not publish the links.' +
+       (hasUrl ? '\nThey carry the script address too, so nobody has to paste it.' : '\nWARNING: the Settings tab has no valid script_url (the web app address that ends in /exec), so these links carry only the code and the teachers would have to paste the address. Add it and run this step again.'));
 }
 
 function checkSetup() {
@@ -571,6 +917,13 @@ function checkSetup() {
   const coded = {}; Object.keys(tc).forEach(function (k) { coded[tc[k].teacher] = 1; });
   const without = Object.keys(tn).filter(function (n) { return !coded[n]; });
   lines.push('Teachers tab: ' + Object.keys(tc).length + ' codes, ' + active.length + ' active.' + (without.length ? ' ' + without.length + ' teachers in the Schedule have no code yet.' : ''));
+  lines.push('Script address: ' + (SCRIPT_URL_RE.test(String(setting_('script_url', '')).trim()) ? 'set (it goes into the setup links).' : 'NOT set: add script_url to the Settings tab, or the setup links carry only the code.'));
+  const sc = buildSchool_();
+  if (!sc) lines.push('Bells and calendar: none on the Bells tab, boards use the built-in sample.');
+  else {
+    const days = Object.keys(sc.calendar).filter(function (k) { return sc.calendar[k]; }).sort();
+    lines.push('Bells and calendar: ' + Object.keys(sc.tables).length + ' grade group(s), ' + days.length + ' school days (' + (days[0] || '?') + ' to ' + (days[days.length - 1] || '?') + '), ' + sc.events.length + ' events' + (sc.problems ? ', ' + sc.problems + ' rows NOT understood (check the Bells and Calendar tabs)' : '') + '.');
+  }
   const sem = setting_('semester2_start', '');
   lines.push('Semester: now ' + semester_() + (sem ? ' (second semester starts ' + sem + ')' : ' (set semester2_start on the Settings tab)') + '.');
   const lg = sheet_(TAB.log);

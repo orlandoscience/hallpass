@@ -199,6 +199,11 @@
     max-width: 120px; line-height: 1.3;
   }
   .col-schedule{ container-type: inline-size; }
+  @container (max-width: 380px){                 /* a very narrow right part: the two times go one under the other, smaller */
+    .countdown-main{ grid-template-columns: 1fr; gap: 6px; }
+    .cd-half.cd-divider{ border-left: none; padding-left: 0; border-top: 1px solid rgba(127,127,127,.25); padding-top: 8px; }
+    .countdown .cd-time{ font-size: clamp(22px, 8cqw, 40px); }
+  }
   @container (max-width: 540px){                 /* a narrow right part: the bell shift goes under the two times */
     .countdown{ grid-template-columns: 1fr; }
     .countdown-offset{ border-left: none; border-top: 1px solid rgba(127,127,127,.25); padding-left: 0; padding-top: 12px; }
@@ -365,7 +370,8 @@
   .ambient-top{ display: grid; grid-template-columns: 30fr 40fr 30fr; grid-template-rows: clamp(88px, 12.4vh, 132px); gap: 10px; align-items: stretch; }   /* a fixed height: a chip or a timer appearing never moves anything */
   .ambient-top > *{ min-width: 0; min-height: 0; overflow: hidden; }
   .wx-cell{ display: flex; justify-content: flex-end; align-items: stretch; container-type: inline-size; }
-  @container (max-width: 170px){ .wx-cell .wx-chip .wx-sub{ display: none; } .wx-cell .wx-chip .wx-icon{ font-size: 1.4rem; } }   /* a narrow weather cell keeps the temperature only */
+  @container (max-width: 170px){ .wx-cell .wx-chip .wx-sub{ display: none; } .wx-cell .wx-chip .wx-icon{ font-size: 1.4rem; } }
+  @container (max-width: 125px){ .wx-cell .wx-chip .wx-icon{ display: none; } .wx-cell .wx-chip .wx-now{ font-size: .8rem; } }      /* the narrowest weather cell: just the temperature */   /* a narrow weather cell keeps the temperature only */
   .wx-cell .wx-chip{ margin-left: 0; width: 100%; padding: 4px 8px; gap: 6px; min-width: 0; overflow: hidden; }
   .wx-cell .wx-chip .wx-sub{ white-space: normal; font-size: .7rem; }
   .timer-cell{
@@ -685,7 +691,8 @@
   .lb-strip i{ display: flex; align-items: center; justify-content: center; font-style: normal; font-weight: 700; color: #0b1120; white-space: nowrap; overflow: hidden; padding: 0 .3em; }
   .lb-strip i.g0{ background: #f472b6; } .lb-strip i.g1{ background: #38bdf8; } .lb-strip i.gx{ background: #c4b5fd; } .lb-strip i.none{ background: rgba(255,255,255,.25); }
   .lessonbar{ container-type: inline-size; }
-  @container (max-width: 470px){ .lb-strip i{ font-size: .78em; padding: 0 .12em; } }          /* a narrow left part: smaller words under the bar */
+  @container (max-width: 470px){ .lb-strip i{ font-size: .78em; padding: 0 .12em; } }
+  @container (max-width: 360px){ .lb-strip i{ font-size: .6em; padding: 0 .05em; letter-spacing: -.02em; } }          /* a narrow left part: smaller words under the bar */
   .lb-labels{ position: relative; height: 1.7em; margin-top: .35em; font-weight: 700; font-family: 'Courier New', monospace; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
   .lb-labels.two{ height: 3.3em; }
   .lb-labels span{ position: absolute; top: 0; white-space: nowrap; transform: translateX(-50%); color: #fff; }
@@ -809,6 +816,24 @@
   .ed-flags label{ display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: .85rem; cursor: pointer; }
   .ed-btns{ display: flex; gap: 8px; justify-content: flex-end; }
   .sc-item{ margin: .3em 0; }
+
+  /* ---- the Live Agenda: the part of the lesson that is on now, with a bar that fills ---- */
+  .live{
+    flex: 1 1 auto; min-height: 0; margin: .6vh calc(1.2 * var(--u)) 0; padding: calc(1.2 * var(--u)) calc(1.6 * var(--u));
+    border-radius: 18px; background: rgba(0,0,0,.32); border: 1px solid rgba(255,255,255,.32); box-shadow: 0 6px 24px rgba(0,0,0,.28);
+    display: flex; flex-direction: column; justify-content: center; text-align: center; gap: .7vh; overflow: hidden;
+  }
+  .lv-label{ font-size: clamp(11px, calc(1.1 * var(--u)), 18px); letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+  .lv-name{ font-weight: 800; font-size: clamp(24px, calc(4.2 * var(--u)), 80px); line-height: 1.1; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; box-sizing: border-box; padding: 0 .15em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .lv-time{ font-family: 'Courier New', monospace; font-weight: 800; font-size: clamp(28px, calc(5.2 * var(--u)), 96px); line-height: 1; }
+  .lv-bar{ height: clamp(16px, 3.4vh, 38px); border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; border: 2px solid rgba(255,255,255,.55); }
+  .lv-bar i{ display: block; height: 100%; width: 0; background: linear-gradient(90deg, #38bdf8, #22c55e); transition: width 1s linear; }
+  .lv-steps{ display: flex; gap: 3px; height: .7em; margin-top: .2em; }
+  .lv-steps i{ display: block; border-radius: 4px; background: rgba(255,255,255,.2); min-width: 4px; }
+  .lv-steps i.done{ background: rgba(255,255,255,.75); } .lv-steps i.cur{ background: #38bdf8; }
+  .lv-next{ font-size: clamp(12px, calc(1.5 * var(--u)), 26px); opacity: .92; overflow-wrap: anywhere; }
+  #ambient[data-live="1"] .stage, #ambient[data-live="1"] .stage-note, #ambient[data-live="1"] #agenda{ display: none !important; }
+  #ambient[data-live="1"] .greeting{ flex: 0 0 auto; }
 </style>
 </head>
 <body data-theme="dark">
@@ -852,6 +877,15 @@
       <div class="stage" id="stage"><div class="stage-card" id="stageCard"></div></div>
     </div>
 
+    <div class="live hidden" id="liveAgenda">
+      <div class="lv-label" id="lvLabel">Live agenda</div>
+      <div class="lv-name" id="lvName"></div>
+      <div class="lv-time" id="lvTime">00:00</div>
+      <div class="lv-bar"><i id="lvFill"></i></div>
+      <div class="lv-steps" id="lvSteps"></div>
+      <div class="lv-next" id="lvNext"></div>
+    </div>
+
     <div class="agenda hidden" id="agenda"><div class="ag-sheet" id="agSheet"><i class="ag-pin"></i><div class="ag-head" id="agHead"></div><div class="ag-body" id="agBody"></div></div></div>
 
     <div class="lessonbar hidden" id="lessonBar">
@@ -871,7 +905,7 @@
 
     <div class="header-row">
       <div class="header-left">
-        <h1>🔔 OSHS Bell Schedule</h1>
+        <h1 id="schoolTitle">🔔 OSHS Bell Schedule</h1>
         <div class="today-line" id="todayLine">--</div>
       </div>
       <div class="whoami" id="whoAmI" hidden></div>
@@ -1198,7 +1232,7 @@
       </div>
       <div class="field-row">
         <span>Left part width (the rest is the right part)</span>
-        <span><input type="range" id="layoutLeft" min="40" max="60" step="1" style="width:9em;"> <b id="layoutLeftVal" style="display:inline-block; min-width:3em; text-align:right;">50%</b> <button type="button" id="layoutLeftReset">50 / 50</button></span>
+        <span><input type="range" id="layoutLeft" min="30" max="70" step="1" style="width:9em;"> <b id="layoutLeftVal" style="display:inline-block; min-width:3em; text-align:right;">50%</b> <button type="button" id="layoutLeftReset">50 / 50</button></span>
       </div>
       <div class="field-row">
         <span>Day starts (arrival)</span>
@@ -1217,7 +1251,7 @@
     <div class="section" data-switch="exCards">
       <div class="sec-head"><h2>Left screen</h2><label class="switch sec-switch"><input type="checkbox" id="exCards"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Lesson phases (Warm-up, Focus time, Wrap up, Last 2 minutes)</span><label class="switch"><input type="checkbox" id="stPhases"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Orlando weather</span><label class="switch"><input type="checkbox" id="stWeather"><span class="slider"></span></label></div>
+      <div class="toggle-row"><span>Weather cards (the little weather box at the top is always there)</span><label class="switch"><input type="checkbox" id="stWeather"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>Severe weather warnings</span><label class="switch"><input type="checkbox" id="stAlerts"><span class="slider"></span></label></div>
       <div class="btn-row" style="margin-top:8px;"><button id="stLoadWxBtn">Refresh weather</button></div>
       <div class="perm-note" id="wxStatus"></div>
@@ -1302,6 +1336,20 @@
       <div class="override-note">On the basic screen the note simply stays during its class; with the rotating cards on, the note is one of the cards and gets the same time as the others. It shows during the class you pick here (and a few minutes before it). Start a line with <b>[x]</b> to cross it out. Plain text only: it is shown to students exactly as typed.</div>
     </div>
 
+    <div class="section" data-switch="exLive">
+      <div class="sec-head"><h2>Live Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exLive"><span class="slider"></span></label></div>
+      <div class="override-note">A plan with times for a class. The first line is how many minutes <b>before the bell</b> it starts; then one part per line: <b>name | minutes</b>. For example <b>2</b>, then <b>Bell work | 10</b>, <b>Activity | 20</b>: two minutes before the bell the board shows Bell work with a bar that fills over 10 minutes, then Activity for 20 minutes, and so on. A sound plays at the end of each part. While it runs it takes the place of the cards and the agenda note.</div>
+      <div class="field-row"><span>Class (A or B day, and period)</span>
+        <select id="lvBlock" class="num-input"><option>A1</option><option>A2</option><option>A3</option><option>A4</option><option>B1</option><option>B2</option><option>B3</option><option>B4</option></select></div>
+      <textarea id="lvText" class="area-input" rows="8" maxlength="800" style="width:100%;box-sizing:border-box;" placeholder="2&#10;Bell work | 10&#10;Activity | 20&#10;Free work | 20&#10;Work with a partner | 10"></textarea>
+      <div class="perm-note" id="lvPreview"></div>
+      <div class="btn-row" style="margin-top:8px;"><button type="button" id="lvCopyDay">Copy to this day's periods</button><button type="button" id="lvCopyAll">Copy to all 8 classes</button><button type="button" id="lvClear">Clear this plan</button></div>
+      <div class="perm-note" id="lvStatus"></div>
+      <h3>Sound at the end of each part</h3>
+      <div class="btn-row"><select id="lvSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="lvTest">&#9654; Test Sound</button></div>
+      <div class="volume-row"><span style="min-width:80px;">Volume</span><input type="range" id="lvVol" min="0" max="100" value="5" style="flex:1;"><span id="lvVolVal" style="min-width:42px; text-align:right;">5%</span></div>
+    </div>
+
     <div class="section" data-switch="exHallPass">
       <div class="sec-head"><h2>Hall pass</h2><label class="switch sec-switch"><input type="checkbox" id="exHallPass"><span class="slider"></span></label></div>
       <div class="field-row">
@@ -1334,7 +1382,7 @@
       <div class="perm-note">The name and the room are filled in from the school's list when the code is checked. Change them here if needed: they appear at the top of the board.</div>
       <div class="perm-note">The code comes from your administrator and connects this board to your classes. Without it hall passes stay off and no student names are loaded. Trips are logged by student ID.</div>
       <div class="btn-row" style="margin-top:8px;">
-        <input type="text" id="sheetUrlInput" placeholder="Script address (leave empty to use the school's)">
+        <input type="text" id="sheetUrlInput" placeholder="Script address (pasted, or from your setup link)">
       </div>
       <div class="btn-row" style="margin-top:10px;">
         <button id="rosterLoadBtn">Check code and load names</button>
@@ -1370,7 +1418,7 @@
 
     <div class="footer-note">
       All settings are saved on this device (browser IndexedDB), so they survive reloads.
-      Times come from the OSHS 2026&ndash;2027 A/B block schedule and bell schedule sheet.
+      Times come from the school's own bell schedule and calendar (its sheet; a built-in sample is used until the board is connected).
       Once the board has been opened online it keeps working without internet, and it updates itself outside school hours.
       <br>Version <span id="appVersion"></span>
       <br>Hall Pass Board &copy; 2026 Shamil Ganiev. Free for Orlando Science High School under the OSHS Free Use License (see LICENSE on GitHub).
@@ -1490,7 +1538,7 @@ window.SCHEDULE_TABLES = {
   }
 };
 
-const BAND_LABELS = { "912": "9th–12th Grade", "1011": "10th–11th Grade" };
+let BAND_LABELS = { "912": "9th–12th Grade", "1011": "10th–11th Grade" };
 
 /* ================= Settings storage =================
    IndexedDB, not cookies — this page is opened via a content:// URI (through
@@ -1498,7 +1546,6 @@ const BAND_LABELS = { "912": "9th–12th Grade", "1011": "10th–11th Grade" };
    at all for non-http(s) origins like that, even though setting it silently
    "succeeds." IndexedDB is a separate API that does work here (confirmed by
    the sound library already surviving reloads), so settings live there too. */
-let DEFAULT_SHEET_URL = "";                // the school's script address: read from apps-script/webapplink when the page starts (empty file = empty field)
 function getDefaultSettings(){
   return {
     theme: "dark",
@@ -1511,9 +1558,11 @@ function getDefaultSettings(){
     countdownFormat: "hms", // "hms" = HH:MM:SS, "ms" = MM:SS (for Time Left / Time Passed displays)
     setupDone: false,            // the welcome screen has been completed on this device
     extras: {                    // everything beyond the basic screen is opt-in
-      hallPass: false, ding: false, sounds: false, cards: false, agenda: false, timer: false, ann: false, qa: false
+      hallPass: false, ding: false, sounds: false, cards: false, agenda: false, timer: false, ann: false, qa: false, live: false
     },
-    layout: { leftPct: 50 },                      // the width of the left part, 40..60 percent
+    live: { texts: {}, block: "A1", sound: "bell", volume: 5 },     // the Live Agenda: a plan with times for each class
+    school: null,                                 // the school's own data as the sheet last sent it (bell schedules, calendar, names): kept for offline use
+    layout: { leftPct: 50 },                      // the width of the left part, 30..70 percent
     timer: { duration: 300, remaining: 300, running: false, endAt: 0, finished: false, threshold: 60, thresholdUnit: "s", endOn: true, endSound: "bell", endVolume: 5, warnOn: false, warnSound: "chime", warnVolume: 5, warned: false, presets: "1,2,3,5,10,15,20,30", recent: [] },   // seconds; endAt = the moment it ends while it runs
     agenda: { clearDaily: true, leadMin: 5, texts: {} },   // texts["A1"] = { t: the plan, d: the day it was written }
     stage: {                    // the rotating left screen
@@ -1537,8 +1586,7 @@ function getDefaultSettings(){
       limits: { "🚻 Restroom": 8, "🔒 Locker": 3, "💧 Water": 3, "🏢 Office": 8, "🏥 Nurse": 8, "Other": 8 },   // minutes, per type; a slot turns red after it
       testMode: false,          // rows sent to the log are marked TEST instead of LIVE
       rosterSections: {},       // { "A1": ["Full Name", ...], ... } loaded from the sheet
-      sheetUrl: "",                  // an address typed by hand (empty = the school's address from apps-script/webapplink)
-      sheetUrlDefault: "",           // the last school address that was read, kept for when the board is offline
+      sheetUrl: "",                  // the address of the school's script: pasted here, or brought by the personal setup link (#code=...&u=...)
       sheetKey: "",             // the teacher code (from the administrator)
       teacher: { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" },   // who the school's script says this board belongs to
       profile: { teacher: "", name: "", room: "", nameEdited: false, roomEdited: false },    // what the top of the board says: filled in from the school's list, editable
@@ -1576,6 +1624,8 @@ async function loadSettingsFromIDB(){
       stage: { ...defaults.stage, ...(older ? { phases: true, weather: true, alerts: true } : {}), ...(saved.stage || {}) },
       bell: { ...defaults.bell, ...(saved.bell || {}) },
       layout: { ...defaults.layout, ...(saved.layout || {}) },
+      school: saved.school || null,
+      live: { ...defaults.live, ...(saved.live || {}), texts: { ...((saved.live && saved.live.texts) || {}) } },
       timer: { ...defaults.timer, ...(saved.timer || {}), recent: ((saved.timer && saved.timer.recent) || []).slice(0, 4), endOn: (saved.timer && saved.timer.endOn !== undefined) ? saved.timer.endOn : !(saved.timer && saved.timer.ring === false) },
       agenda: { ...defaults.agenda, ...(saved.agenda || {}), texts: { ...((saved.agenda && saved.agenda.texts) || {}) } },
       extras: older ? { hallPass: true, ding: true, sounds: true, cards: true } : { ...defaults.extras, ...saved.extras },
@@ -1978,11 +2028,11 @@ function showAudioError(msg){
   showAudioError._t = setTimeout(() => { el.style.display = "none"; }, 8000);
 }
 function playSoundFor(kind){
-  const soundKey = kind === "timerEnd" ? settings.timer.endSound : kind === "timerWarn" ? settings.timer.warnSound
+  const soundKey = kind === "liveEnd" ? settings.live.sound : kind === "timerEnd" ? settings.timer.endSound : kind === "timerWarn" ? settings.timer.warnSound
     : kind === "ring" ? settings.notify.ringSound
     : kind === "distractor" ? settings.notify.distractorSound
     : settings.notify.sound;
-  const vol = kind === "timerEnd" ? settings.timer.endVolume : kind === "timerWarn" ? settings.timer.warnVolume
+  const vol = kind === "liveEnd" ? settings.live.volume : kind === "timerEnd" ? settings.timer.endVolume : kind === "timerWarn" ? settings.timer.warnVolume
     : kind === "ring" ? settings.notify.ringVolume
     : kind === "distractor" ? settings.notify.distractorVolume
     : settings.notify.volume;
@@ -2240,7 +2290,7 @@ const PHRASES = [
 const QUESTIONS = [{"q": "How many continents are there?", "a": "Seven"}, {"q": "What is the largest planet in our solar system?", "a": "Jupiter"}, {"q": "Which gas do plants take in from the air?", "a": "Carbon dioxide"}, {"q": "How many sides does a hexagon have?", "a": "Six"}, {"q": "What is the capital of Australia?", "a": "Canberra"}, {"q": "What is the chemical symbol for gold?", "a": "Au"}, {"q": "Which ocean is the largest?", "a": "The Pacific"}, {"q": "What is 12 × 12?", "a": "144"}, {"q": "Who wrote \"Romeo and Juliet\"?", "a": "William Shakespeare"}, {"q": "What is the hardest natural substance?", "a": "Diamond"}, {"q": "How many bones does an adult human have?", "a": "206"}, {"q": "What is the smallest prime number?", "a": "2"}, {"q": "Which planet is known as the Red Planet?", "a": "Mars"}, {"q": "Which river flows through Cairo?", "a": "The Nile"}, {"q": "What do bees make?", "a": "Honey"}, {"q": "How many minutes are in a day?", "a": "1,440"}, {"q": "At what temperature does water boil at sea level, in °C?", "a": "100 °C"}, {"q": "What force pulls things toward the Earth?", "a": "Gravity"}, {"q": "Which part of a cell holds the DNA?", "a": "The nucleus"}, {"q": "What is the square root of 81?", "a": "9"}, {"q": "Who painted the Mona Lisa?", "a": "Leonardo da Vinci"}, {"q": "In what year did people first walk on the Moon?", "a": "1969"}, {"q": "How many players of one team are on a basketball court?", "a": "Five"}, {"q": "What is the capital of Japan?", "a": "Tokyo"}, {"q": "What do we call a word with the opposite meaning?", "a": "An antonym"}, {"q": "At what temperature does water freeze, in °F?", "a": "32 °F"}, {"q": "Which organ pumps blood around the body?", "a": "The heart"}, {"q": "Which US state is nicknamed the Lone Star State?", "a": "Texas"}, {"q": "How many days are in a leap year?", "a": "366"}, {"q": "What is the largest mammal on Earth?", "a": "The blue whale"}, {"q": "Which planet is closest to the Sun?", "a": "Mercury"}, {"q": "What language is mainly spoken in Brazil?", "a": "Portuguese"}, {"q": "What is 15% of 200?", "a": "30"}, {"q": "Which gas do people need to breathe to live?", "a": "Oxygen"}, {"q": "Riddle: what gets wetter the more it dries?", "a": "A towel"}, {"q": "Riddle: what has hands but cannot clap?", "a": "A clock"}];
 
 // first day OFF for "break" events, last day for "end" events (from the OCPS 2026-2027 calendar)
-const CAL_EVENTS = [
+let CAL_EVENTS = [
   { name: "Labor Day", date: "2026-09-07", kind: "break" },
   { name: "the 1st marking period", date: "2026-10-09", kind: "end" },
   { name: "the Oct 12 student holiday", date: "2026-10-12", kind: "break" },
@@ -2289,7 +2339,45 @@ function nextFrom(name, arr){
 }
 
 /* ---------- School calendar numbers ---------- */
-const SCHOOL_DAYS = Object.keys(CALENDAR).filter(k => CALENDAR[k]).sort();
+let SCHOOL_DAYS = Object.keys(CALENDAR).filter(k => CALENDAR[k]).sort();
+
+/* ---------- The school's own data (bell schedules, calendar, names) comes from its sheet; the built-in sample is the fallback ---------- */
+const BUILTIN_SCHOOL = { name: "OSHS Bell Schedule", bands: { ...BAND_LABELS }, tables: window.SCHEDULE_TABLES, calendar: window.CALENDAR, events: CAL_EVENTS };
+function cleanSchool(sc){                         // only what looks right is taken: times as HH:MM, days as "A Day Regular" or empty, dates as yyyy-mm-dd
+  if(!sc || typeof sc !== "object" || !sc.tables || typeof sc.tables !== "object" || !sc.calendar || typeof sc.calendar !== "object") return null;
+  const hm = /^([01]\d|2[0-3]):[0-5]\d$/, iso = /^\d{4}-\d{2}-\d{2}$/, tables = {};
+  ["912", "1011"].forEach(b => {
+    const src = sc.tables[b]; if(!src || typeof src !== "object") return;
+    Object.keys(src).forEach(t => {
+      if(!/^[a-z0-9]+$/.test(t) || !src[t] || !Array.isArray(src[t].rows)) return;
+      const rows = src[t].rows.filter(r => r && hm.test(String(r.start)) && hm.test(String(r.end)) && r.start < r.end && r.label)
+        .map(r => ({ label: String(r.label).slice(0, 30), type: r.type === "break" || r.type === "lunch" ? r.type : "class", start: String(r.start), end: String(r.end) }));
+      if(rows.length) (tables[b] = tables[b] || {})[t] = { label: String(src[t].label || t).slice(0, 30), rows };
+    });
+  });
+  if(!tables["912"] && !tables["1011"]) return null;
+  const calendar = {};
+  Object.keys(sc.calendar).forEach(d => { const v = sc.calendar[d]; if(iso.test(d) && (v === null || /^[AB] Day [A-Za-z0-9]+$/.test(String(v)))) calendar[d] = v === null ? null : String(v); });
+  if(!Object.keys(calendar).some(d => calendar[d])) return null;
+  const events = (Array.isArray(sc.events) ? sc.events : []).filter(e => e && e.name && iso.test(String(e.date))).map(e => ({ name: String(e.name).slice(0, 60), date: String(e.date), kind: e.kind === "end" ? "end" : "break", ...(e.year ? { year: true } : {}) }));
+  const bands = { ...BUILTIN_SCHOOL.bands };
+  if(sc.bands && typeof sc.bands === "object") ["912", "1011"].forEach(b => { if(sc.bands[b]) bands[b] = String(sc.bands[b]).slice(0, 30); });
+  return { name: String(sc.name || BUILTIN_SCHOOL.name).slice(0, 60), bands, tables, calendar, events };
+}
+function installSchool(c){                        // c = a cleaned school (or the built-in one)
+  window.SCHEDULE_TABLES = c.tables; window.CALENDAR = c.calendar; CAL_EVENTS = c.events; BAND_LABELS = c.bands;
+  SCHOOL_DAYS = Object.keys(c.calendar).filter(k => c.calendar[k]).sort();
+  const h = document.getElementById("schoolTitle"); if(h) h.textContent = "\ud83d\udd14 " + c.name;
+  document.title = c.name;
+  if(!c.tables[settings.activeBand]) settings.activeBand = c.tables["1011"] ? "1011" : "912";
+  try{ renderBandTabs(); }catch(e){}
+}
+function applySchool(sc){                         // true if the school's data was taken; with nothing usable the built-in sample is used
+  const c = cleanSchool(sc);
+  if(!c){ if(window.SCHEDULE_TABLES !== BUILTIN_SCHOOL.tables) installSchool(BUILTIN_SCHOOL); return false; }
+  installSchool(c);
+  return true;
+}
 function addDaysISO(iso, n){
   const [y, m, d] = iso.split("-").map(Number);
   return toISO(new Date(y, m - 1, d + n));
@@ -2389,7 +2477,6 @@ function tBoth(f){
   return Math.round(f) + "°F (" + Math.round((f - 32) * 5 / 9) + "°C)";
 }
 async function fetchWeather(manual){
-  if(!settings.stage.weather) return;
   const st = $("wxStatus");
   const url = "https://api.open-meteo.com/v1/forecast?latitude=" + WX.lat + "&longitude=" + WX.lon +
     "&current=temperature_2m,apparent_temperature,weather_code,is_day" +
@@ -2420,7 +2507,8 @@ function wxStaleLabel(){
 function renderWeatherChip(){
   const chip = $("wxChip");
   let html = "";
-  if(settings.stage.weather && WX.data){
+  if(!WX.data) html = '<div class="wx-icon">\u2601\ufe0f</div><div class="wx-sub">weather&hellip;</div>';      // the box is always there; until there is data it says so
+  else {
     const c = WX.data.current, d = WX.data.daily, w = wxInfo(c.weather_code, c.is_day);
     html = '<div class="wx-icon">' + w.emoji + '</div><div><div class="wx-now">' + esc(tBoth(c.temperature_2m)) + '</div>' +
            '<div class="wx-sub">H ' + esc(tBoth(d.temperature_2m_max[0])) + ' · L ' + esc(tBoth(d.temperature_2m_min[0])) + esc(wxStaleLabel()) + '</div></div>';
@@ -2428,11 +2516,11 @@ function renderWeatherChip(){
   if(html === WX.chipHtml) return;
   WX.chipHtml = html;
   chip.innerHTML = html;
-  chip.classList.toggle("hidden", !html);
+  chip.classList.remove("hidden");
   syncTopRow();
 }
 async function fetchAlerts(){
-  if(!settings.stage.weather || !settings.stage.alerts){ WX.alerts = []; renderAlertBanner(); return; }
+  if(!settings.stage.alerts){ WX.alerts = []; renderAlertBanner(); return; }
   let list = null;
   if(sheetReady()){
     const r = await sheetGet("alerts", d => {
@@ -2461,7 +2549,7 @@ const SEV_RANK = { Extreme: 4, Severe: 3, Moderate: 2, Minor: 1 };
 function renderAlertBanner(){
   const el = $("wxAlert");
   const nowMs = appNow().getTime();
-  const live = (settings.stage.weather && settings.stage.alerts ? WX.alerts : []).filter(a => !a.ends || Date.parse(a.ends) > nowMs)
+  const live = (settings.stage.alerts ? WX.alerts : []).filter(a => !a.ends || Date.parse(a.ends) > nowMs)
     .sort((a, b) => (SEV_RANK[b.severity] || 0) - (SEV_RANK[a.severity] || 0));
   let html = "", cls = "wx-alert hidden";
   if(live.length){
@@ -2766,6 +2854,8 @@ function renderAmbient(now, info){
   renderAgenda(ctx, info, now);
   renderTimer();
   subTick(now);
+  renderLive(now, info);
+  liveSoundTick(now, info);
   const hm = heroModel(now, info);
   renderLessonBar(lessonBarModel(hm, ctx, info));
   if(settings.extras.cards) stageTick(ctx, now);
@@ -2796,7 +2886,7 @@ function renderTimer(){
   const warn = (t.running || state === "paused") && left > 0 && left <= (Number(t.threshold) || 0);
   cell.className = "timer-cell " + state + (warn ? " warn" : "");
   setIfChanged("tmTime", fmtTimer(left));
-  setIfChanged("tmLabel", { running: "tap to pause", paused: "paused \u00b7 tap to resume", idle: "tap to start", zero: "tap to set", done: "time's up \u00b7 tap to set" }[state]);
+  setIfChanged("tmLabel", { running: "tap to pause", paused: "paused \u00b7 tap to resume", idle: "tap to start", zero: "tap to set", done: "time's up \u00b7 tap to close" }[state]);
   $("tmBar").style.width = (t.duration > 0 ? Math.min(100, left / t.duration * 100) : 0).toFixed(1) + "%";
 }
 function timerStart(){
@@ -2819,9 +2909,14 @@ function timerSet(sec, start){                          // a new time: it is onl
   if(start && sec > 0) timerStart(); else { saveSettings(); renderTimer(); }
   syncTimerUI();
 }
+function dismissTimer(){                        // the time is up and it was tapped: the timer goes away (it comes back with its switch in the settings)
+  const t = settings.timer;
+  t.finished = false; t.warned = false; t.remaining = t.duration;
+  settings.extras.timer = false; saveSettings(); syncExtrasUI(); applyExtras();
+}
 function timerTap(){
   if(!settings.extras.timer) return;
-  if(timerLeft() <= 0){ openTimerEditor(); return; }     // 00:00: set a time
+  if(timerLeft() <= 0){ if(settings.timer.finished) dismissTimer(); else openTimerEditor(); return; }     // time is up: tap = away; 00:00 that was never set: set a time
   if(settings.timer.running) timerPause(); else timerStart();
 }
 let tmPress = 0, tmLong = false;
@@ -2870,7 +2965,7 @@ $("teCancel").addEventListener("click", closeTimerEditor);
 $("teSet").addEventListener("click", () => { if(te.value > 0){ timerSet(te.value, false); closeTimerEditor(); } });
 $("teStart").addEventListener("click", () => { if(te.value > 0){ timerSet(te.value, true); closeTimerEditor(); } });
 function applyLayout(){                                // the proportion between the left and the right part
-  const p = Math.max(40, Math.min(60, Math.round(Number(settings.layout && settings.layout.leftPct) || 50)));
+  const p = Math.max(30, Math.min(70, Math.round(Number(settings.layout && settings.layout.leftPct) || 50)));
   settings.layout.leftPct = p;
   document.documentElement.style.setProperty("--lw", String(p));
   lbSig = ""; heroFitSig = ""; agendaSig = "";           // the text of the left part is drawn again for its new width
@@ -3004,6 +3099,113 @@ $("pnSend").addEventListener("click", async () => {
   msg(r.dup ? "That suggestion is already there." : "Sent. It shows on the boards after an administrator approves it.");
   $("pnRes").innerHTML = ""; $("pnName").value = ""; $("pnName").disabled = true; $("pnDigits").value = ""; pnPick = null;
 });
+
+
+/* ---------- Live Agenda: a plan with times for the lesson ---------- */
+function parseLive(text){                        // "2" then "Name | minutes" per line -> { lead, tasks, errors }
+  const lines = String(text || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean), out = { lead: 0, tasks: [], errors: [] };
+  let n = 0;
+  if(lines.length && /^\d+(?:[.,]\d+)?$/.test(lines[0])){ out.lead = Math.max(0, Math.min(60, parseFloat(lines[0].replace(",", ".")))); n = 1; }
+  lines.slice(n).forEach((ln, i) => {
+    const at = ln.lastIndexOf("|");
+    const name = at < 0 ? "" : ln.slice(0, at).trim(), min = at < 0 ? NaN : parseFloat(ln.slice(at + 1).trim().replace(",", "."));
+    if(!name || !(min > 0) || min > 180){ out.errors.push("line " + (i + n + 1) + ": " + (at < 0 ? "no | and minutes" : !name ? "no name" : "minutes must be above 0 and at most 180")); return; }
+    if(out.tasks.length >= 12){ out.errors.push("line " + (i + n + 1) + ": at most 12 parts"); return; }
+    out.tasks.push({ name: name.slice(0, 60), min });
+  });
+  return out;
+}
+function livePlan(code){ const p = parseLive((settings.live.texts || {})[code]); return p.tasks.length ? p : null; }
+function lessonStartSec(code, info){              // when the bell rings for this lesson today (null if this lesson is not on today's day type)
+  if(!info || info.letter !== code.charAt(0)) return null;
+  const g = (settings.pass.groups || {})[code];
+  if(g && g.length) return Math.min.apply(null, g.map(x => x.s)) * 60;
+  const row = rowsFor(settings.activeBand, info.timeType).find(r => r.type === "class" && new RegExp("Period " + code.charAt(1) + "$").test(r.label));
+  return row ? rowStartSec(row) : null;
+}
+function liveSegments(plan, start){
+  let t = start - plan.lead * 60;
+  return plan.tasks.map(k => { const seg = { name: k.name, min: k.min, a: t, b: t + k.min * 60 }; t = seg.b; return seg; });
+}
+function liveCodes(now){ const cur = currentSectionCode(now), nxt = nextSectionCode(now), c = []; if(cur) c.push(cur); if(nxt && nxt !== cur) c.push(nxt); return c; }
+function liveFind(now, info){                     // the plan that is running at this moment, or null
+  if(!settings.extras.live) return null;
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  for(const code of liveCodes(now)){
+    const plan = livePlan(code), start = plan ? lessonStartSec(code, info) : null;
+    if(start === null) continue;
+    const segs = liveSegments(plan, start);
+    if(nowSec >= segs[0].a && nowSec < segs[segs.length - 1].b) return { code, segs, nowSec };
+  }
+  return null;
+}
+let liveSig = "";
+const liveFired = {};
+function renderLive(now, info){
+  const amb = $("ambient"), box = $("liveAgenda"), f = liveFind(now, info);
+  const was = amb.getAttribute("data-live") === "1";
+  if(!f){ if(was){ amb.setAttribute("data-live", "0"); heroFitSig = ""; } box.classList.add("hidden"); liveSig = ""; return; }
+  if(!was){ amb.setAttribute("data-live", "1"); heroFitSig = ""; }
+  box.classList.remove("hidden");
+  const i = f.segs.findIndex(z => f.nowSec < z.b), z = f.segs[i], left = z.b - f.nowSec, next = f.segs[i + 1];
+  const sig = f.code + "|" + f.segs.map(x => x.name + ":" + x.min).join(",");
+  if(sig !== liveSig){ liveSig = sig; $("lvSteps").innerHTML = f.segs.map(x => '<i style="flex-grow:' + x.min + '"></i>').join(""); }
+  Array.from($("lvSteps").children).forEach((el, k) => { el.className = k < i ? "done" : (k === i ? "cur" : ""); });
+  setIfChanged("lvLabel", "Live agenda \u00b7 part " + (i + 1) + " of " + f.segs.length);
+  setIfChanged("lvName", z.name);
+  setIfChanged("lvTime", fmtMS(left));
+  setIfChanged("lvNext", next ? "Next: " + next.name + " \u00b7 " + next.min + " min" : "The last part");
+  $("lvFill").style.width = (Math.max(0, Math.min(1, (f.nowSec - z.a) / (z.b - z.a))) * 100).toFixed(1) + "%";
+}
+function liveSoundTick(now, info){                // a sound when a part has just ended (not for one that ended long ago, e.g. before a page reload)
+  if(!settings.extras.live) return;
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds(), iso = toISO(now);
+  liveCodes(now).forEach(code => {
+    const plan = livePlan(code), start = plan ? lessonStartSec(code, info) : null;
+    if(start === null) return;
+    liveSegments(plan, start).forEach((z, k) => {
+      const key = code + "|" + iso + "|" + k;
+      if(nowSec >= z.b && nowSec - z.b < 5 && !liveFired[key]){ liveFired[key] = true; playSoundFor("liveEnd"); }
+    });
+  });
+}
+function liveSummary(text, code){
+  const p = parseLive(text);
+  if(!p.tasks.length) return p.errors.length ? "Nothing usable yet: " + p.errors.slice(0, 2).join("; ") + "." : "Empty. Write the minutes before the bell, then one part per line: name | minutes.";
+  const total = p.tasks.reduce((x, k) => x + k.min, 0), info = effectiveBandInfo(settings.activeBand, toISO(appNow())), start = lessonStartSec(code, info);
+  let msg = p.tasks.length + " part" + (p.tasks.length > 1 ? "s" : "") + ", " + (Math.round(total * 10) / 10) + " min in all, starts " + p.lead + " min before the bell";
+  if(start !== null) msg += ", ends " + clockOfSec(start - p.lead * 60 + total * 60).replace(/\s?[AP]M$/i, "");
+  if(p.errors.length) msg += ". Not understood: " + p.errors.slice(0, 2).join("; ");
+  return msg + ".";
+}
+function syncLiveUI(){
+  const code = $("lvBlock").value || settings.live.block || "A1";
+  $("lvBlock").value = code; $("lvText").value = settings.live.texts[code] || "";
+  $("lvPreview").textContent = liveSummary($("lvText").value, code);
+  $("lvVol").value = settings.live.volume; $("lvVolVal").textContent = settings.live.volume + "%";
+}
+let lvSaveTimer = 0;
+$("lvBlock").addEventListener("change", () => { settings.live.block = $("lvBlock").value; saveSettings(); syncLiveUI(); $("lvStatus").textContent = ""; });
+$("lvText").addEventListener("input", () => {
+  const code = $("lvBlock").value, v = $("lvText").value;
+  if(v.trim()) settings.live.texts[code] = v; else delete settings.live.texts[code];
+  $("lvPreview").textContent = liveSummary(v, code); $("lvStatus").textContent = "";
+  clearTimeout(lvSaveTimer); lvSaveTimer = setTimeout(saveSettings, 300); liveSig = ""; refreshAll();
+});
+function lvCopy(codes){
+  const v = $("lvText").value, from = $("lvBlock").value;
+  if(!v.trim()){ $("lvStatus").textContent = "Write the plan first."; return; }
+  codes.forEach(c => { settings.live.texts[c] = v; });
+  saveSettings(); $("lvStatus").textContent = "Copied to " + codes.filter(c => c !== from).join(", ") + (codes.every(c => c === from) ? "nothing else" : "") + ".";
+  refreshAll();
+}
+$("lvCopyDay").addEventListener("click", () => { const L = $("lvBlock").value.charAt(0); lvCopy(["1", "2", "3", "4"].map(n => L + n)); });
+$("lvCopyAll").addEventListener("click", () => lvCopy(["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"]));
+$("lvClear").addEventListener("click", () => { delete settings.live.texts[$("lvBlock").value]; saveSettings(); syncLiveUI(); $("lvStatus").textContent = "Cleared."; liveSig = ""; refreshAll(); });
+$("lvSound").addEventListener("change", e => { settings.live.sound = e.target.value; saveSettings(); playSoundFor("liveEnd"); });
+$("lvVol").addEventListener("input", e => { const v = safeVolume(e.target.value); settings.live.volume = v; $("lvVolVal").textContent = v + "%"; saveSettings(); });
+$("lvVol").addEventListener("change", () => playSoundFor("liveEnd"));
+$("lvTest").addEventListener("click", () => playSoundFor("liveEnd"));
 
 
 /* ---------- Agenda: a yellow lined note with the plan for the lesson ---------- */
@@ -3652,27 +3854,11 @@ window.addEventListener("resize", () => {
    Entries are always queued first and removed only after the request goes out,
    so nothing is lost if the board is offline or no URL is set yet. */
 let flushingLog = false;
-function effectiveSheetUrl(){ return (settings.pass.sheetUrl || "").trim() || DEFAULT_SHEET_URL || settings.pass.sheetUrlDefault || ""; }
+function effectiveSheetUrl(){ return (settings.pass.sheetUrl || "").trim(); }       // typed in the settings, or brought by the personal setup link
 function sheetReady(){                         // may the board talk to the script at all? (it needs an address and a teacher code)
   return !!effectiveSheetUrl() && !!(settings.pass.sheetKey || "").trim();
 }
 function sheetHint(){ return effectiveSheetUrl() ? "Type your teacher code first." : "Paste the web app URL first."; }
-async function loadDefaultSheetUrl(){          // the school's address lives in one small file: apps-script/webapplink
-  try{
-    const r = await fetch("apps-script/webapplink", { cache: "no-store" });
-    if(r.ok){
-      const t = (await r.text()).split(/\r?\n/).map(x => x.trim()).filter(x => x && x[0] !== "#")[0] || "";       // the first line that is not empty or a # comment
-      if(/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(t)){
-        DEFAULT_SHEET_URL = settings.pass.sheetUrlDefault = t;
-        if((settings.pass.sheetUrl || "").trim() === t) settings.pass.sheetUrl = "";      // an address that was only a copy of the school's follows the file from now on
-        saveSettings(); return true;
-      }
-      if(!t){ DEFAULT_SHEET_URL = settings.pass.sheetUrlDefault = ""; saveSettings(); return true; }      // an empty file: the field stays empty
-    }
-  }catch(e){ /* offline: the last address that was read is used */ }
-  DEFAULT_SHEET_URL = settings.pass.sheetUrlDefault || "";
-  return false;
-}
 function teacherOk(){ const t = settings.pass.teacher; return !!(t && t.ok === true); }     // hall passes work only for a board the school has recognised
 function normCode(c){ return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
 function stampId(outD, inD){                      // yyyyMMdd + HHmmss out + HHmmss back, e.g. 20261027113215113412
@@ -3779,6 +3965,9 @@ function applyHello(d){                          // the school's script answered
   settings.pass.rosterIds = ids;
   settings.pass.groups = {}; settings.pass.rosterGroup = {};
   settings.pass.teachers = Array.isArray(d.teachers) ? d.teachers.map(String).filter(Boolean) : [];
+  { const had = JSON.stringify(settings.school), took = d.school ? applySchool(d.school) : applySchool(null);
+    settings.school = took ? d.school : null;
+    if(JSON.stringify(settings.school) !== had) setTimeout(refreshAll, 0); }               // new times or days: draw everything again
   settings.pass.ann = (Array.isArray(d.announcements) ? d.announcements : []).filter(x => x && x.t).map(x => ({ t: String(x.t), b: (x.b || []).map(String) }));
   settings.pass.qa = (Array.isArray(d.questions) ? d.questions : []).filter(x => x && x.q && x.a).map(x => ({ q: String(x.q), a: String(x.a), b: (x.b || []).map(String) }));
   (d.sections || []).forEach(sec => {
@@ -4156,7 +4345,7 @@ function finishCancel(p, pinOk){
   else completePass(p.slot, p.atMs);
 }
 function openSettings(){
-  syncTimerUI(); syncLayoutUI(); loadEditing();
+  syncTimerUI(); syncLayoutUI(); loadEditing(); syncLiveUI();
   $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
   renderTeacherStatus();
   if(settings.extras.agenda){ agSyncUI(false); setTimeout(agPreview, 80); }
@@ -4227,7 +4416,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.06 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.09 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -4444,7 +4633,7 @@ function renderLessonBar(bar){
 window.addEventListener("resize", () => { lbSig = ""; });
 
 /* ---------- Extras: what is switched on besides the basic screen ---------- */
-const EXTRA_TOGGLES = { exHallPass: "hallPass", exDing: "ding", exSounds: "sounds", exCards: "cards", exAgenda: "agenda", exTimer: "timer", exAnn: "ann", exQa: "qa" };
+const EXTRA_TOGGLES = { exHallPass: "hallPass", exDing: "ding", exSounds: "sounds", exCards: "cards", exAgenda: "agenda", exTimer: "timer", exAnn: "ann", exQa: "qa", exLive: "live" };
 function syncExtrasUI(){ Object.keys(EXTRA_TOGGLES).forEach(id => { $(id).checked = !!settings.extras[EXTRA_TOGGLES[id]]; }); syncSectionLocks(); }
 function syncTopRow(){ $("ambientTop").classList.remove("hidden"); }      // the three cells are always there (an unused one is just empty)
 function syncSectionLocks(){                      // a section whose switch is off is shown, but locked
@@ -4479,7 +4668,7 @@ Object.keys(EXTRA_TOGGLES).forEach(id => {
 });
 function applyPreset(full){
   const x = settings.extras, st = settings.stage, n = settings.notify;
-  x.hallPass = x.ding = x.sounds = x.cards = x.agenda = x.timer = x.ann = x.qa = full;
+  x.hallPass = x.ding = x.sounds = x.cards = x.agenda = x.timer = x.ann = x.qa = x.live = full;
   st.phases = st.weather = st.alerts = full;
   if(full){ st.arc = st.facts = st.riddles = st.messages = st.calendar = true; }
   else { n.n15 = n.n10 = n.n5 = n.customMinEnabled = n.ringBell = false; }
@@ -4514,11 +4703,12 @@ function renderWelcome(){
   $("welClosedEnd").value = settings.pass.closedEndMin;
 }
 function applyCodeFromHash(){                    // a personal setup link: .../hallpass/#code=ABCD2345
-  const m = /^#code=([A-Za-z0-9 \-]{6,24})$/.exec(location.hash || "");
+  const m = /^#code=([A-Za-z0-9 \-]{6,24})(?:&u=([^&]{0,400}))?$/.exec(location.hash || "");
   if(!m) return false;
   settings.pass.sheetKey = normCode(m[1]);
+  if(m[2]){ let u = ""; try{ u = decodeURIComponent(m[2]); }catch(e){} if(/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)) settings.pass.sheetUrl = u; }     // the school's address, only if it really looks like one
   settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" };
-  try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}      // the code does not stay in the address bar
+  try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}      // the code (and the address) do not stay in the address bar
   saveSettings();
   return true;
 }
@@ -4924,7 +5114,7 @@ async function loadSchoolSound(item){             // the file is fetched once (t
 }
 
 function rebuildSoundSelectOptions(){
-  ["soundSelect","ringSoundSelect","distractorSoundSelect","tmEndSound","tmWarnSound"].forEach(selId => {
+  ["soundSelect","ringSoundSelect","distractorSoundSelect","tmEndSound","tmWarnSound","lvSound"].forEach(selId => {
     const sel = document.getElementById(selId);
     sel.querySelectorAll('[data-lib="1"]').forEach(o => o.remove());
     if(schoolSounds.length){
@@ -4957,6 +5147,8 @@ function rebuildSoundSelectOptions(){
     const v = settings.timer[k];
     if(v !== "bell" && v !== "chime" && !libIds.has(v)){ settings.timer[k] = "bell"; saveSettings(); }
   });
+  if(settings.live.sound !== "bell" && settings.live.sound !== "chime" && !libIds.has(settings.live.sound)){ settings.live.sound = "bell"; saveSettings(); }
+  if(document.getElementById("lvSound") && document.getElementById("lvSound").querySelector('option[value="' + settings.live.sound + '"]')) document.getElementById("lvSound").value = settings.live.sound;
   syncTimerSoundUI();
   syncVolumeUI();
 }
@@ -5134,7 +5326,7 @@ setInterval(tick, 1000);
   settings.overrides = loaded.overrides;
 
   await restoreSoundLibrary();
-  await loadDefaultSheetUrl();
+  if(settings.school) applySchool(settings.school);                          // the school's times and days, as last received
   applyLayout();
 
   // Re-sync every control that was set from (default) settings at load time.
