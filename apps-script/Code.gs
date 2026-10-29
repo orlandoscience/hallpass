@@ -15,9 +15,11 @@ const LAT = 28.5383, LON = -81.3792;   // Orlando, for the weather warnings
 const ALERTS_UA = 'OSHS-classroom-board (teacher classroom display)';   // api.weather.gov asks for this header
 const TAB = { master: 'Master', schedule: 'Schedule', teachers: 'Teachers', settings: 'Settings', log: 'Log', messages: 'Messages' };
 const BLOCKS = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
+const LUNCH = 'LUNCH';                                       // lunch is a section too: in the cafeteria it belongs to the teacher "Lunch", in a classroom to that room's teacher
+const ALL_BLOCKS = BLOCKS.concat([LUNCH]);
 const SCHEDULE_HEAD = ['Student ID', 'Name', 'Block', 'Time', 'Teacher', 'Course', 'Room', 'Role', 'Grade'];
 const TEACHERS_HEAD = ['Code', 'Teacher', 'Role', 'Active', 'Link', 'Note'];
-const LOG_HEAD = ['Exit ID', 'Student ID', 'Section', 'Teacher', 'Room', 'Where', 'Out', 'Back', 'Minutes', 'Status', 'Outside window', 'Mode', 'Board', 'Guest name'];
+const LOG_HEAD = ['Exit ID', 'Student ID', 'Section', 'Teacher', 'Room', 'Where', 'Out', 'Back', 'Minutes', 'Status', 'Outside window', 'Mode', 'Board', 'Guest name', 'Substitute', 'Sub room'];
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // no 0/O, 1/I/L
 const DEDUPE_ROWS = 3000;                                   // a repeated trip is recognised among the last rows
 
@@ -49,6 +51,7 @@ function route_(p) {
   if (!t) { Utilities.sleep(400); return { ok: false, error: 'unknown code' }; }   // the pause slows guessing
   if (a === 'hello' || a === '') return hello_(t);
   if (a === 'log') return log_(t, p);
+  if (a === 'lookup') return lookup_(t, p);
   return { ok: false, error: 'unknown action' };
 }
 
@@ -116,7 +119,7 @@ function parseRange_(txt) {            // "11:00AM - 12:28PM" -> [660, 748] (min
   return b > a ? [a, b] : null;
 }
 
-function sectionGroups_(rows) {        // a class whose students have different times (block 3: the two lunch groups): one group per time
+function sectionGroups_(rows) {        // a class whose students have different times (block 3, the two lunches): one group per time. null when everybody has the same time
   const map = {}, order = [];
   rows.forEach(function (r) {
     const k = String(r.time).replace(/\s+/g, '').toUpperCase();
@@ -124,13 +127,16 @@ function sectionGroups_(rows) {        // a class whose students have different 
     if (r.grade) map[k].grades[r.grade] = 1;
   });
   if (order.length < 2) return null;
-  const groups = [];
+  const list = [];
   order.forEach(function (k) {
     const rg = parseRange_(map[k].time);
-    if (rg) groups.push({ start: rg[0], end: rg[1], grades: Object.keys(map[k].grades).map(Number).sort(function (a, b) { return a - b; }) });
+    if (rg) list.push({ key: k, start: rg[0], end: rg[1], grades: Object.keys(map[k].grades).map(Number).sort(function (a, b) { return a - b; }) });
   });
-  groups.sort(function (a, b) { return a.start - b.start; });
-  return groups.length > 1 ? groups : null;
+  list.sort(function (a, b) { return a.start - b.start; });
+  if (list.length < 2) return null;
+  const index = {};
+  list.forEach(function (g, i) { index[g.key] = i; });
+  return { groups: list.map(function (g) { return { start: g.start, end: g.end, grades: g.grades }; }), index: index };
 }
 
 function today_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'); }
@@ -151,12 +157,23 @@ function setting_(key, fallback) {
 
 function semester_() { const d = setting_('semester2_start', ''); return (d && today_() >= d) ? 2 : 1; }
 
+function teacherNames_() {              // the names of all teachers (no codes, no students): for choosing a substitute on a board
+  const map = teachers_(), seen = {}, names = [];
+  Object.keys(map).forEach(function (code) {
+    const x = map[code];
+    if (!x.active || x.role !== 'teacher' || x.teacher.toUpperCase() === 'LUNCH') return;
+    const n = x.teacher.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+    if (!seen[n]) { seen[n] = 1; names.push(n); }
+  });
+  return names.sort();
+}
+
 function hello_(t) {
   const cache = CacheService.getScriptCache(), key = 'hello:' + t.teacher + ':' + t.role;
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
   const display = t.teacher.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
-  const res = { ok: true, teacher: t.teacher, display: display, role: t.role, semester: semester_(), sections: [] };
+  const res = { ok: true, teacher: t.teacher, display: display, role: t.role, semester: semester_(), sections: [], teachers: teacherNames_() };
   if (t.role === 'teacher') {
     const sem = res.semester, byBlock = {};
     readSchedule_().forEach(function (r) {
@@ -165,19 +182,40 @@ function hello_(t) {
       if (r.role === 'S2' && sem !== 2) return;
       (byBlock[r.block] = byBlock[r.block] || []).push(r);
     });
-    BLOCKS.forEach(function (b) {
+    ALL_BLOCKS.forEach(function (b) {
       const rows = byBlock[b];
       if (!rows) return;
       const sec = { block: b, time: rows[0].time, room: rows[0].room, course: rows[0].course,
                     students: uniqueNames_(rows.map(function (r) { return { id: r.id, name: r.name }; })) };
-      const groups = sectionGroups_(rows);
-      if (groups) sec.groups = groups;
+      if (b === LUNCH) { const rg = parseRange_(rows[0].time); if (rg) { sec.start = rg[0]; sec.end = rg[1]; } }       // lunch times (a lunch with one time is found by them)
+      const gr = sectionGroups_(rows);
+      if (gr) {
+        sec.groups = gr.groups;
+        const of = {};
+        rows.forEach(function (r) { const g = gr.index[String(r.time).replace(/\s+/g, '').toUpperCase()]; if (g !== undefined && of[r.id] === undefined) of[r.id] = g; });
+        sec.students.forEach(function (st) { if (of[st.id] !== undefined) st.g = of[st.id]; });       // which group (time) the student belongs to
+      }
       res.sections.push(sec);
     });
   }
   const json = JSON.stringify(res);
   if (json.length < 90000) cache.put(key, json, 300);
   return res;
+}
+
+function lookup_(t, p) {                // a guest: "the last 4 digits of the ID" -> the names (usually one) that end that way
+  const d = String(p.d || '').replace(/\D/g, '');
+  if (d.length !== 4) return { ok: false, error: 'type the last 4 digits' };
+  const seen = {}, found = [];
+  readSchedule_().forEach(function (r) {
+    if (r.id.slice(-4) !== d) return;
+    const g = seen[r.id];
+    if (g) { if (r.grade > g.grade) g.grade = r.grade; return; }
+    const n = splitName_(r.name);
+    seen[r.id] = { id: r.id, n: n.first + (n.last ? ' ' + n.last.charAt(0) + '.' : ''), grade: r.grade || 0 };
+    found.push(seen[r.id]);
+  });
+  return { ok: true, matches: found.slice(0, 6) };
 }
 
 function readSchedule_() {
@@ -193,7 +231,10 @@ function readSchedule_() {
 
 /* ===================== log: one finished trip -> one row on the single Log tab ===================== */
 
-function cleanWhere_(w) { return String(w || '').replace(/[^\w &'\/\-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30); }
+function safeText_(v, max) {            // free text for the sheet: no control characters, and never something a sheet would read as a formula
+  return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[=+\-@]+/, '').trim().slice(0, max);
+}
+function cleanWhere_(w) { return safeText_(String(w || '').replace(/[^\w &'\/\-]/g, ''), 30); }
 
 function log_(t, p) {
   if (t.role !== 'teacher') return { ok: false, error: 'this code cannot log trips' };
@@ -204,14 +245,14 @@ function log_(t, p) {
   const status = String(p.st || 'Returned');
   if (status !== 'Returned' && status !== 'Cancelled') return { ok: false, error: 'bad status' };
   const studentId = /^\d{4,14}$/.test(String(p.s || '')) ? String(p.s) : '';
-  const section = BLOCKS.indexOf(String(p.sec)) >= 0 ? String(p.sec) : (String(p.sec) === 'Guest' ? 'Guest' : '');
-  const block = BLOCKS.indexOf(String(p.blk)) >= 0 ? String(p.blk) : (BLOCKS.indexOf(section) >= 0 ? section : '');
+  const section = ALL_BLOCKS.indexOf(String(p.sec)) >= 0 ? String(p.sec) : (String(p.sec) === 'Guest' ? 'Guest' : '');
+  const block = ALL_BLOCKS.indexOf(String(p.blk)) >= 0 ? String(p.blk) : (ALL_BLOCKS.indexOf(section) >= 0 ? section : '');
   let room = '';
   hello_(t).sections.forEach(function (s) { if (s.block === block) room = s.room; });
   const minutes = status === 'Returned' ? Math.round((tIn - tOut) / 6000) / 10 : '';
   const mode = String(p.m) === 'TEST' ? 'TEST' : 'LIVE';
   const row = [id, studentId, section, t.teacher, room, cleanWhere_(p.w), new Date(tOut), new Date(tIn), minutes, status,
-               String(p.o) === '1' ? 'yes' : '', mode, String(p.b || '').replace(/[^\w\-]/g, '').slice(0, 24), String(p.g || '').replace(/[\r\n]/g, ' ').trim().slice(0, 40)];
+               String(p.o) === '1' ? 'yes' : '', mode, String(p.b || '').replace(/[^\w\-]/g, '').slice(0, 24), safeText_(p.g, 40), safeText_(p.sb, 40), safeText_(p.sr, 12)];
   const guest = row[13], dupKey = id + '|' + t.teacher + '|' + studentId + '|' + guest;   // a plain date-and-time ID can repeat: the trip is the ID + teacher + student
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -219,6 +260,7 @@ function log_(t, p) {
     const cache = CacheService.getScriptCache();
     if (cache.get('x:' + dupKey)) return { ok: true, dup: true };
     const sh = logSheet_();
+    if (!String(sh.getRange(1, LOG_HEAD.length).getValue()).trim()) sh.getRange(1, 1, 1, LOG_HEAD.length).setValues([LOG_HEAD]).setFontWeight('bold');     // an older Log tab gets the new column titles
     const last = sh.getLastRow();
     if (last > 1) {                                       // a retry of something already written?
       const from = Math.max(2, last - DEDUPE_ROWS + 1);
@@ -306,16 +348,28 @@ function importSchedule() {
   if (missing.length) { say_('The Master tab is missing these columns: ' + missing.join(', ') + '. Nothing was changed.'); return; }
   const exclude = String(setting_('exclude_courses', '')).split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
   const rows = [], students = {}, teachers = {};
-  const skippedBy = {};
-  let skipped = 0, excluded = 0;
+  const skippedBy = {}, roomCount = {}, roomOwner = {};
+  let skipped = 0, excluded = 0, lunchRooms = 0, lunchCafe = 0;
+  const roomKey = function (x) { return String(x).replace(/\s+/g, '').toUpperCase(); };
+  v.slice(1).forEach(function (r) {                 // first: which teacher sits in which classroom (for lunch that is eaten in a classroom)
+    const b = String(r[c.block]).trim().toUpperCase(), rm = roomKey(r[c.room]), tn = String(r[c.teacher]).trim();
+    if (BLOCKS.indexOf(b) >= 0 && rm && tn) { roomCount[rm] = roomCount[rm] || {}; roomCount[rm][tn] = (roomCount[rm][tn] || 0) + 1; }
+  });
+  Object.keys(roomCount).forEach(function (rm) { roomOwner[rm] = Object.keys(roomCount[rm]).sort(function (a, b) { return roomCount[rm][b] - roomCount[rm][a]; })[0]; });
   v.slice(1).forEach(function (r) {
-    const block = String(r[c.block]).trim().toUpperCase(), id = String(r[c.id]).trim();
-    if (BLOCKS.indexOf(block) < 0 || !id) { skipped++; const why = !id ? '(no student ID)' : (block || '(no block)'); skippedBy[why] = (skippedBy[why] || 0) + 1; return; }
+    let block = String(r[c.block]).trim().toUpperCase();
+    const id = String(r[c.id]).trim();
+    if (block.indexOf(LUNCH) === 0) block = LUNCH;
+    if (ALL_BLOCKS.indexOf(block) < 0 || !id) { skipped++; const why = !id ? '(no student ID)' : (block || '(no block)'); skippedBy[why] = (skippedBy[why] || 0) + 1; return; }
     const course = c.course >= 0 ? String(r[c.course]).trim() : '';
     if (exclude.some(function (x) { return course.toLowerCase().indexOf(x) >= 0; })) { excluded++; return; }
     const role = c.role >= 0 ? (String(r[c.role]).trim().toUpperCase() || 'YR') : 'YR';
     rows.push([id, String(r[c.name]).trim(), block, c.time >= 0 ? String(r[c.time]).trim() : '', String(r[c.teacher]).trim(), course, String(r[c.room]).trim(), role, c.grade >= 0 ? String(r[c.grade]).trim() : '']);
-    students[id] = 1; teachers[String(r[c.teacher]).trim()] = 1;
+    if (block === LUNCH) {                          // eaten in a classroom: that room's teacher is in charge; in the cafeteria: "Lunch"
+      const rm = roomKey(r[c.room]), owner = rm && !/CAF/.test(rm) ? roomOwner[rm] : '';
+      if (owner) { rows[rows.length - 1][4] = owner; lunchRooms++; } else { if (!rows[rows.length - 1][4]) rows[rows.length - 1][4] = 'Lunch'; lunchCafe++; }
+    }
+    students[id] = 1; teachers[rows[rows.length - 1][4]] = 1;
   });
   const s = ensureTab_(TAB.schedule, SCHEDULE_HEAD).sh;
   if (s.getLastRow() > 1) s.getRange(2, 1, s.getLastRow() - 1, SCHEDULE_HEAD.length).clearContent();   // (Range has clearContent, Sheet has clearContents)
@@ -325,7 +379,8 @@ function importSchedule() {
   }
   CacheService.getScriptCache().remove('teachers');
   say_('Imported ' + rows.length + ' class rows: ' + Object.keys(students).length + ' students, ' + Object.keys(teachers).length + ' teachers.\n' +
-       'Skipped ' + skipped + ' rows that are not in a class block A1-B4' + (skipped ? ' (' + Object.keys(skippedBy).map(function (k) { return k + ': ' + skippedBy[k]; }).join(', ') + ')' : '') + (excluded ? ', and ' + excluded + ' rows of excluded courses' : '') + '.\n' +
+       'Lunch rows: ' + lunchRooms + ' eaten in a classroom (given to that room\'s teacher), ' + lunchCafe + ' in the cafeteria (teacher "Lunch").\n' +
+       'Skipped ' + skipped + ' rows that are not in a class block A1-B4 or lunch' + (skipped ? ' (' + Object.keys(skippedBy).map(function (k) { return k + ': ' + skippedBy[k]; }).join(', ') + ')' : '') + (excluded ? ', and ' + excluded + ' rows of excluded courses' : '') + '.\n' +
        'Parent e-mails and the other Master columns were NOT copied. Next: "3. Make teacher codes", then clear the Master tab.');
 }
 

@@ -100,6 +100,14 @@
   }
   .header-left{ text-align: left; }
   .whoami{ display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-width: 0; line-height: 1.25; }
+  .whoami.tap{ cursor: pointer; }
+  .whoami.sub .wn{ color: #fde68a; }
+  .whoami.sub .wr{ color: #fcd34d; font-size: .76rem; }
+  .sub-blks{ display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0 6px; }
+  .sub-blks label{ display: inline-flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; }
+  .sub-blks input{ width: 20px; height: 20px; }
+  .lookup-row{ display: flex; gap: 8px; }
+  .lookup-row input{ flex: 1; min-width: 0; }
   .whoami .wn{ max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; font-size: 1.05rem; color: var(--ink); }
   .whoami .wr{ max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: .85rem; color: var(--ink-dim); }
   .header-right{ text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -780,7 +788,7 @@
   .help-list{ margin: 4px 0 10px 18px; padding: 0; line-height: 1.5; }
   .help-list li{ margin-bottom: 8px; }
 
-  @container (max-width: 590px){                 /* a narrow right part: the name and room get their own line under the title */
+  @container (max-width: 640px){                 /* a narrow right part: the name and room get their own line under the title */
     .header-row{ grid-template-columns: minmax(0, 1fr) auto; }
     .header-left{ grid-column: 1; grid-row: 1; }
     .clock-cell{ grid-column: 2; grid-row: 1; }
@@ -1495,6 +1503,9 @@ function getDefaultSettings(){
       teacher: { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" },   // who the school's script says this board belongs to
       profile: { teacher: "", name: "", room: "", nameEdited: false, roomEdited: false },    // what the top of the board says: filled in from the school's list, editable
       rosterIds: {},            // student IDs for the names in rosterSections: { A1: { "Jane D.": "0012345678" } }
+      rosterGroup: {},          // which group (time) each student is in, for classes with two times and for lunch: { A3: { "Jane D.": 0 } }
+      teachers: [],             // the names of all teachers, to choose a substitute from
+      sub: { name: "", room: "", blocks: [], date: "", startCode: "" },       // a substitute teacher on this board (see subActive)
       groups: {},               // classes whose students have different times: { A3: [{ s: 660, e: 748, g: [12] }, ...] } (minutes after midnight, grades)
       active: [],               // per slot: null | { name, reason, outMs, period, band, dayType }
       queue: [],                // finished trips waiting to be sent to the sheet
@@ -2707,6 +2718,7 @@ function renderAmbient(now, info){
   renderAlertBanner();
   renderAgenda(ctx, info, now);
   renderTimer();
+  subTick(now);
   const hm = heroModel(now, info);
   renderLessonBar(lessonBarModel(hm, ctx, info));
   if(settings.extras.cards) stageTick(ctx, now);
@@ -3004,6 +3016,8 @@ setInterval(fetchAlerts, 5 * 60000);
 /* ---------- Pass availability card (corner timer) ---------- */
 function getPassStatus(now){
   const info = effectiveBandInfo(settings.activeBand, toISO(now));
+  const gst = groupStatus(now, info);               // a class with two times: closed for everybody whenever any group is in its closed minutes
+  if(gst) return gst;
   const rows = rowsFor(settings.activeBand, info.timeType);
   if(rows.length === 0) return { state: "none", label: "No school", time: "--:--", sub: "" };
   const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -3129,6 +3143,9 @@ function openPassDialog(i, typed){
       dlg.innerHTML = '<h3>Pass ' + (i + 1) + ': sign out</h3>' + warn +
         '<label class="dlg-label" for="passNameInput">Student</label>' +
         '<input type="text" id="passNameInput" autocomplete="off" placeholder="Name">' +
+        '<label class="dlg-label" for="passDigits">or the last 4 digits of the student ID</label>' +
+        '<div class="lookup-row"><input type="text" id="passDigits" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="1234"><button type="button" id="passLookupBtn" class="clear">Look up</button></div>' +
+        '<div class="chips" id="passLookupRes"></div><div class="dlg-line" id="passLookupMsg" hidden></div>' +
         '<span class="dlg-label">Reason</span><div class="chips" id="passReasonChips">' + reasons + '</div>' +
         '<div class="dlg-actions"><button type="button" id="passCancelBtn" class="clear">Cancel</button>' +
         '<button type="button" id="passConfirmBtn" class="grant">Sign out</button></div>';
@@ -3137,6 +3154,23 @@ function openPassDialog(i, typed){
         ch.classList.add("sel");
       }));
       $("passCancelBtn").addEventListener("click", closePassDialog);
+      $("passNameInput").addEventListener("input", () => { delete $("passNameInput").dataset.sid; });       // typing a different name forgets the ID that was found
+      const msg = t => { $("passLookupMsg").textContent = t; $("passLookupMsg").hidden = !t; };
+      $("passLookupBtn").addEventListener("click", async () => {
+        const dg = $("passDigits").value.replace(/\D/g, "");
+        $("passLookupRes").innerHTML = ""; msg("");
+        if(dg.length !== 4){ msg("Type exactly 4 digits."); return; }
+        msg("Looking…");
+        const r = await sheetGet("lookup", d => (d && d.ok === true) ? { ok: true, matches: d.matches || [] } : { error: (d && d.error) || "script error" }, { d: dg });
+        if(!r){ msg("The look-up needs the school connection. Type the name instead."); return; }
+        if(!r.ok){ msg("Could not look it up (" + r.error + "). Type the name instead."); return; }
+        if(!r.matches.length){ msg("Nobody has an ID ending in " + dg + ". Check the digits or type the name."); return; }
+        msg(r.matches.length > 1 ? "Tap the right student:" : "");
+        $("passLookupRes").innerHTML = r.matches.map(m => '<button type="button" class="chip" data-sid="' + esc(m.id) + '" data-n="' + esc(m.n) + '">' + esc(m.n) + (m.grade ? ' (grade ' + esc(m.grade) + ')' : '') + '</button>').join("");
+        const pick = ch => { $("passNameInput").value = ch.getAttribute("data-n"); $("passNameInput").dataset.sid = ch.getAttribute("data-sid"); $("passLookupRes").querySelectorAll(".chip").forEach(c => c.classList.toggle("sel", c === ch)); };
+        $("passLookupRes").querySelectorAll(".chip").forEach(ch => ch.addEventListener("click", () => pick(ch)));
+        if(r.matches.length === 1) pick($("passLookupRes").querySelector(".chip"));      // usually there is only one
+      });
       let asked = false;
       $("passConfirmBtn").addEventListener("click", () => {
         if(closedWindowNow() && !asked){            // outside the 10/10 window: one confirmation, then it looks like any other pass
@@ -3196,7 +3230,8 @@ function signOutSlot(i){
   settings.pass.active[i] = {
     name: ($("passNameInput").value || "").trim(),
     section: rosterCount() > 0 ? "Guest" : "",
-    outside: closed, teacher: (settings.pass.teacher || {}).name || "", studentId: "", blk: currentSectionCode(now) || "", guest: true,
+    outside: closed, teacher: (settings.pass.teacher || {}).name || "", studentId: ($("passNameInput").dataset.sid || ""), blk: currentSectionCode(now) || "", guest: true,
+    subName: (subActive(now) || {}).name || "", subRoom: (subActive(now) || {}).name ? (subActive(now).room || "") : "",
     reason: sel ? sel.getAttribute("data-reason") : "Other",
     outMs: now.getTime(),
     period: dispLabel(cp.label),
@@ -3221,7 +3256,7 @@ function makeEntry(i, atMs, status){             // status: "Returned" or "Cance
     slot: i + 1,
     section: st.section || "",
     outsideWindow: !!st.outside,
-    exitId: stampId(outD, now), teacher: st.teacher || "", studentId: st.studentId || "", blk: st.blk || "", guestName: (st.guest ? (st.name || "") : ""),
+    exitId: stampId(outD, now), teacher: st.teacher || "", studentId: st.studentId || "", blk: st.blk || "", guestName: (st.guest ? (st.name || "") : ""), subName: st.subName || "", subRoom: st.subRoom || "",
     outMs: st.outMs, inMs: now.getTime(),
     mode: settings.pass.testMode ? "TEST" : "LIVE",
     board: settings.boardId || "",
@@ -3271,7 +3306,15 @@ function currentSectionCode(now){
   const rows = rowsFor(settings.activeBand, info.timeType);
   const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
   const row = rows.find(r => nowSec >= minutesSinceMidnight(r.start) * 60 && nowSec < minutesSinceMidnight(r.end) * 60);
+  const byTime = sectionByTime(now, info);          // a class with two times, or lunch: by the students' own times
+  if(byTime) return byTime;
   const m = row && /Period (\d)/.exec(row.label);
+  return m ? (info.letter || "A") + m[1] : null;
+}
+function nextSectionCode(now){                    // the class that starts next (for a substitute entered in a break)
+  const info = effectiveBandInfo(settings.activeBand, toISO(now)), rows = rowsFor(settings.activeBand, info.timeType);
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const row = rows.find(r => r.type === "class" && minutesSinceMidnight(r.start) * 60 > nowSec), m = row && /Period (\d)/.exec(row.label);
   return m ? (info.letter || "A") + m[1] : null;
 }
 function hpOpen(slot){
@@ -3354,7 +3397,12 @@ function hpShowNames(){
     : "";
   const grid = $("hpGrid");
   const outNow = new Set((settings.pass.active || []).filter(Boolean).map(a => a.name));
-  const names = (settings.pass.rosterSections[hpPick.section] || []).filter(n => !outNow.has(n));
+  let names = (settings.pass.rosterSections[hpPick.section] || []).filter(n => !outNow.has(n));
+  const inNow = activeGroupIdx(hpPick.section, (function(d){ return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); })(appNow()));
+  if(inNow.length && settings.pass.rosterGroup[hpPick.section]){      // two times in one class, or two lunches: only the students who are in the room by their own time
+    const gm = settings.pass.rosterGroup[hpPick.section];
+    names = names.filter(n => gm[n] === undefined || inNow.indexOf(gm[n]) >= 0);
+  }
   // a long list (study hall): first tap the first letter of the name, then the name
   const lettersOf = n => String(n).trim().charAt(0).toUpperCase();
   const letters = names.length > 30 ? Array.from(new Set(names.map(lettersOf))).sort() : [];
@@ -3460,6 +3508,7 @@ $("hpGo").addEventListener("click", () => {
   settings.pass.active[i] = {
     name: hpPick.name, section: hpPick.ctxCode || hpPick.section || "", reason: hpPick.reason, outside: closed,
     teacher: (settings.pass.teacher || {}).name || "", studentId: ((settings.pass.rosterIds || {})[hpPick.section] || {})[hpPick.name] || "", blk: hpPick.ctxCode || hpPick.section || "", guest: false,
+    subName: (subActive(now) || {}).name || "", subRoom: (subActive(now) || {}).name ? (subActive(now).room || "") : "",
     outMs: now.getTime(), period: dispLabel(cp.label), band: BAND_LABELS[settings.activeBand], dayType: captionFor(cp.info)
   };
   saveSettings();
@@ -3515,7 +3564,7 @@ async function postEntry(entry){
   if(!entry.exitId) return true;                                // made by an older version: it cannot be matched, drop it
   const q = { i: entry.exitId, s: entry.studentId || "", sec: entry.section || "", blk: entry.blk || "", w: cleanDest(entry.reason),
               to: String(entry.outMs || ""), ti: String(entry.inMs || ""), o: entry.outsideWindow ? "1" : "", m: entry.mode || "LIVE",
-              b: entry.board || "", st: entry.status || "Returned", g: entry.guestName || "" };
+              b: entry.board || "", st: entry.status || "Returned", g: entry.guestName || "", sb: entry.subName || "", sr: entry.subRoom || "" };
   const r = await sheetGet("log", d => (d && d.ok === true) ? { ok: true } : { error: (d && d.error) || "script error" }, q);
   if(r && r.ok) return true;
   if(r && r.error === "unknown code") teacherLost("Code not recognized. Ask your administrator.");
@@ -3600,8 +3649,13 @@ function applyHello(d){                          // the school's script answered
   });
   settings.pass.rosterSections = secs;
   settings.pass.rosterIds = ids;
-  settings.pass.groups = {};
+  settings.pass.groups = {}; settings.pass.rosterGroup = {};
+  settings.pass.teachers = Array.isArray(d.teachers) ? d.teachers.map(String).filter(Boolean) : [];
   (d.sections || []).forEach(sec => {
+    const k = String(sec.block), gm = {};
+    (sec.students || []).forEach(x => { if(x && x.n && x.g !== undefined && x.g !== null) gm[String(x.n)] = Number(x.g); });
+    if(Object.keys(gm).length) settings.pass.rosterGroup[k] = gm;
+    if(!(Array.isArray(sec.groups) && sec.groups.length > 1) && k === "LUNCH" && Number(sec.end) > Number(sec.start)) settings.pass.groups.LUNCH = [{ s: Number(sec.start), e: Number(sec.end), g: [] }];     // a lunch with one time (eaten in a classroom)
     if(Array.isArray(sec.groups) && sec.groups.length > 1) settings.pass.groups[String(sec.block)] = sec.groups.map(g => ({ s: Number(g.start), e: Number(g.end), g: (g.grades || []).map(Number) }));
   });
   settings.pass.teacher = { ok: true, name: String(d.teacher || ""), display: String(d.display || d.teacher || ""), role: String(d.role || "teacher"), checkedAt: Date.now(), error: "" };
@@ -3614,13 +3668,66 @@ function applyHello(d){                          // the school's script answered
   saveSettings(); renderHallPass(); renderTeacherStatus();
   return secs;
 }
-function renderWhoAmI(){                          // the name, and under it the room, between the title and the clock
-  const p = settings.pass.profile || {}, name = String(p.name || "").trim(), room = String(p.room || "").trim(), box = $("whoAmI");
+function subActive(now){                         // the substitute that is in charge of the lesson running now (or null)
+  const sub = settings.pass.sub;
+  if(!sub || !sub.name || sub.date !== toISO(now)) return null;
+  const code = currentSectionCode(now);
+  return code && (code === sub.startCode || (sub.blocks || []).indexOf(code) >= 0) ? sub : null;
+}
+function clearSub(){ settings.pass.sub = { name: "", room: "", blocks: [], date: "", startCode: "" }; saveSettings(); }
+let subSig = "";
+function subTick(now){                            // a substitute lasts for the lesson he was entered for (and the ticked ones), not longer
+  const sub = settings.pass.sub;
+  if(sub && sub.name){
+    const code = currentSectionCode(now);
+    if(sub.date !== toISO(now) || (code && !(sub.blocks || []).length && code !== sub.startCode)) clearSub();
+  }
+  const act = subActive(now), sig = act ? act.name + "|" + act.room : "";
+  if(sig !== subSig){ subSig = sig; renderWhoAmI(); }
+}
+function renderWhoAmI(){                          // the name, and under it the room, between the title and the clock; a substitute takes its place during his lessons
+  const p = settings.pass.profile || {}, sub = subActive(appNow()), box = $("whoAmI");
+  const name = sub ? String(sub.name).trim() : String(p.name || "").trim();
+  const room = sub ? String(sub.room || p.room || "").trim() : String(p.room || "").trim();
   box.textContent = "";
   if(name){ const n = document.createElement("span"); n.className = "wn"; n.textContent = name; box.appendChild(n); }
-  if(room){ const r = document.createElement("span"); r.className = "wr"; r.textContent = "Room " + room; box.appendChild(r); }
+  const line = sub ? ["for " + (String(p.name || "").trim() || "the teacher"), room ? "Room " + room : ""].filter(Boolean).join(" \u00b7 ") : (room ? "Room " + room : "");
+  if(line){ const r = document.createElement("span"); r.className = "wr"; r.textContent = line; box.appendChild(r); }
   box.hidden = !(name || room);
+  box.classList.toggle("sub", !!sub); box.classList.toggle("tap", teacherOk());
+  box.title = !teacherOk() ? "" : (sub ? "Substitute teacher (tap to change or end)" : "Tap to enter a substitute teacher");
 }
+function openSubFlow(){ if(teacherOk() || DEMO.on) openPinPopup("sub"); }          // the same PIN (or the master code) as everywhere
+function openSubDialog(){
+  const now = appNow(), cur = settings.pass.sub && settings.pass.sub.date === toISO(now) ? settings.pass.sub : { name: "", room: "", blocks: [] };
+  const mine = Object.keys(settings.pass.rosterSections || {}).filter(k => k !== "LUNCH").sort();
+  const dlg = $("passDialog"); passDialogSlot = null;
+  dlg.innerHTML = '<h3>Substitute teacher</h3>' +
+    '<label class="dlg-label" for="subName">Name (choose from the list, or type)</label>' +
+    '<input type="text" id="subName" list="subTeachers" autocomplete="off" placeholder="Name"><datalist id="subTeachers">' + (settings.pass.teachers || []).map(n => '<option value="' + esc(n) + '">').join("") + '</datalist>' +
+    '<label class="dlg-label" for="subRoom">Room (optional)</label><input type="text" id="subRoom" autocomplete="off" maxlength="12" placeholder="Room">' +
+    (mine.length ? '<span class="dlg-label">Also for these lessons (a whole day or half a day). Without a tick it lasts for this lesson only.</span><div class="sub-blks" id="subBlks">' +
+      mine.map(k => '<label><input type="checkbox" data-blk="' + esc(k) + '"> ' + esc(dispLabel(k)) + '</label>').join("") + '</div>' : '') +
+    '<div class="dlg-actions"><button type="button" id="subCancelBtn" class="clear">Cancel</button>' +
+    (cur.name ? '<button type="button" id="subEndBtn" class="clear">End substitution</button>' : '') +
+    '<button type="button" id="subGoBtn" class="grant">Start</button></div>';
+  $("subName").value = cur.name || ""; $("subRoom").value = cur.room || "";
+  dlg.querySelectorAll("#subBlks input").forEach(c => { c.checked = (cur.blocks || []).indexOf(c.getAttribute("data-blk")) >= 0; });
+  const upd = () => { $("subGoBtn").disabled = !$("subName").value.trim(); };
+  $("subName").addEventListener("input", upd); upd();
+  $("subCancelBtn").addEventListener("click", closePassDialog);
+  if($("subEndBtn")) $("subEndBtn").addEventListener("click", () => { clearSub(); closePassDialog(); subSig = "?"; subTick(appNow()); });
+  $("subGoBtn").addEventListener("click", () => {
+    const name = $("subName").value.trim().slice(0, 40); if(!name) return;
+    const blocks = Array.from(dlg.querySelectorAll("#subBlks input:checked")).map(c => c.getAttribute("data-blk"));
+    const t = appNow(), start = currentSectionCode(t) || nextSectionCode(t) || blocks[0] || "";
+    settings.pass.sub = { name, room: $("subRoom").value.trim().slice(0, 12), blocks, date: toISO(t), startCode: start };
+    saveSettings(); closePassDialog(); subSig = "?"; subTick(t);
+  });
+  $("passDialogBackdrop").classList.remove("hidden");
+  $("subName").focus();
+}
+$("whoAmI").addEventListener("click", openSubFlow);
 function renderProfileUI(){
   const p = settings.pass.profile || {};
   if(document.activeElement !== $("teacherNameInput")) $("teacherNameInput").value = p.name || "";
@@ -3720,7 +3827,8 @@ $("sheetKeyInput").addEventListener("change", e => {
   saveSettings(); renderHallPass(); renderTeacherStatus(); refreshRoster(true); flushLogQueue();
 });
 $("teacherDisconnectBtn").addEventListener("click", () => {                     // forget the code and the student lists on this board
-  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {}; settings.pass.groups = {};
+  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {}; settings.pass.groups = {}; settings.pass.rosterGroup = {}; settings.pass.teachers = [];
+  settings.pass.sub = { name: "", room: "", blocks: [], date: "", startCode: "" };
   settings.pass.profile = { teacher: "", name: "", room: "", nameEdited: false, roomEdited: false }; renderProfileUI();
   settings.pass.teacher = { ok: false, name: "", display: "", role: "", checkedAt: 0, error: "" };
   $("sheetKeyInput").value = ""; saveSettings(); renderHallPass(); renderTeacherStatus();
@@ -3833,6 +3941,7 @@ function pinGranted(){
     finishCancel(p, true);                 // right PIN or master code: the pass is cancelled and logged as Cancelled
     return;
   }
+  if(pinMode === "sub"){ hidePinPopup(); openSubDialog(); return; }
   closePinPopup();
   openSettings();
 }
@@ -3843,8 +3952,8 @@ function pinSubmit(){
   pinFails++;
   const pop = $("pinPopup");
   pop.classList.remove("shake"); void pop.offsetWidth; pop.classList.add("shake");
-  if(pinMode === "cancelPass"){
-    if(pinFails >= PIN_CANCEL_TRIES){ closePinPopup(); return; }   // out of tries: the return gets logged
+  if(pinMode === "cancelPass" || pinMode === "sub"){
+    if(pinFails >= PIN_CANCEL_TRIES){ closePinPopup(); return; }   // out of tries: the return gets logged (a substitute: nothing happens)
     const left = PIN_CANCEL_TRIES - pinFails;
     $("pinMsg").textContent = "Wrong PIN. " + left + " " + (left === 1 ? "try" : "tries") + " left.";
     renderPinPad();
@@ -3877,18 +3986,18 @@ function startPinLockTimer(){
 }
 function bumpPinIdle(){
   clearTimeout(pinIdleTimer);
-  if(pinMode === "cancelPass") pinIdleTimer = setTimeout(closePinPopup, PIN_CANCEL_IDLE_MS);
+  if(pinMode !== "settings") pinIdleTimer = setTimeout(closePinPopup, PIN_CANCEL_IDLE_MS);
 }
 function openPinPopup(mode){
-  pinMode = mode === "cancelPass" ? "cancelPass" : "settings";
+  pinMode = mode === "cancelPass" ? "cancelPass" : (mode === "sub" ? "sub" : "settings");
   pinEntry = "";
   pinFails = 0;
   masterCodes = masterCodesAt(appNow());   // fixed now, at the tap that opened the pad
-  const cancelMode = pinMode === "cancelPass";
+  const cancelMode = pinMode !== "settings";                 // the pad for a pass or a substitute: a few tries, closes by itself, a tap outside closes it
   if(cancelMode) clearInterval(pinLockTimer);
   $("pinMsg").textContent = "";
-  $("pinTitle").textContent = cancelMode ? "PIN to cancel the pass" : "Enter PIN";
-  $("pinHint").textContent = cancelMode ? "Closing this window without the PIN records the student as returned (not cancelled)." : "";
+  $("pinTitle").textContent = pinMode === "cancelPass" ? "PIN to cancel the pass" : (pinMode === "sub" ? "PIN: substitute teacher" : "Enter PIN");
+  $("pinHint").textContent = pinMode === "cancelPass" ? "Closing this window without the PIN records the student as returned (not cancelled)." : (pinMode === "sub" ? "Closing this window changes nothing." : "");
   $("pinHint").classList.toggle("hidden", !cancelMode);
   $("pinScrim").classList.toggle("hidden", !cancelMode);   // any tap outside the pad counts as closing it
   $("pinPopup").classList.remove("hidden");
@@ -3988,7 +4097,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.04 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.05 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -4095,7 +4204,7 @@ function renderHero(m){
 const stripAP = t => String(t || "").replace(/\s*[AP]M$/i, "");
 const ordinal = n => { n = Number(n); return n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : n + "th"; };
 const gradeText = list => list.length ? list.map(ordinal).join(" + ") + " grade" : "";
-function multiBar(groups, nowSec){                // a class whose students have different times (block 3): every group has its own 10/10
+function groupSegments(groups){                    // the stretches of a class with two times: "closed" as soon as ANY group in the room is in its closed minutes
   const P = settings.pass;
   const A = P.useWindow ? (Number(P.closedStartMin) || 0) * 60 : 0, B = P.useWindow ? (Number(P.closedEndMin) || 0) * 60 : 0;
   const gs = groups.map(x => ({ s: x.s * 60, e: x.e * 60, g: x.g || [] })).filter(x => x.e > x.s).sort((p, q) => p.s - q.s);
@@ -4103,7 +4212,7 @@ function multiBar(groups, nowSec){                // a class whose students have
   const pts = new Set([t0, t1]);
   gs.forEach(x => { pts.add(x.s); pts.add(x.e); if(A) pts.add(x.s + A); if(B) pts.add(x.e - B); });
   const b = Array.from(pts).filter(t => t >= t0 && t <= t1).sort((p, q) => p - q);
-  const stateAt = t => {                          // red as soon as ANY group that is in the room is in its closed minutes
+  const stateAt = t => {
     const act = gs.filter(x => t >= x.s && t < x.e);
     if(!act.length) return "none";
     return act.some(x => (A && t < x.s + A) || (B && t >= x.e - B)) ? "closed" : "open";
@@ -4113,6 +4222,10 @@ function multiBar(groups, nowSec){                // a class whose students have
     const st = stateAt((b[i] + b[i + 1]) / 2), last = segs[segs.length - 1];
     if(last && last.k === st) last.b = b[i + 1]; else segs.push({ a: b[i], b: b[i + 1], k: st });
   }
+  return { gs, t0, t1, len, segs };
+}
+function multiBar(groups, nowSec){                // a class whose students have different times (block 3): every group has its own 10/10
+  const { gs, t0, t1, len, segs } = groupSegments(groups);
   const marks = [];
   for(let i = 1; i < segs.length; i++){
     const prev = segs[i - 1].k, cur = segs[i].k;
@@ -4128,6 +4241,34 @@ function multiBar(groups, nowSec){                // a class whose students have
   }
   return { f: clamp01((nowSec - t0) / len), zones: segs.map(z => ({ w: (z.b - z.a) / len, k: z.k })), marks, left: clockOfSec(t0), right: clockOfSec(t1),
            strip: strip.map(z => ({ w: (z.b - z.a) / len, label: z.label, cls: z.cls })) };
+}
+function unionStatus(groups, nowSec){             // the pass status of a class with two times: closed for everybody in every red stretch of the bar
+  const { t1, segs } = groupSegments(groups), i = segs.findIndex(z => nowSec >= z.a && nowSec < z.b);
+  if(i < 0 || segs[i].k === "none") return null;
+  const z = segs[i], next = segs[i + 1];
+  if(z.k === "closed") return next && next.k === "open" ? { state: "closed", label: "Closed", time: fmtMS(next.a - nowSec), sub: "opens in" } : { state: "closed", label: "Closed", time: fmtMS(t1 - nowSec), sub: "class ends in" };
+  return next && next.k === "closed" ? { state: "open", label: "Open", time: fmtMS(next.a - nowSec), sub: "closes in" } : { state: "open", label: "Open", time: fmtMS(t1 - nowSec), sub: "class ends in" };
+}
+function groupStatus(now, info){
+  const letter = info.letter; if(!letter) return null;
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds(), map = settings.pass.groups || {};
+  for(let n = 1; n <= 4; n++){
+    const g = map[letter + n];
+    if(!g || g.length < 2) continue;
+    if(nowSec >= Math.min.apply(null, g.map(x => x.s)) * 60 && nowSec < Math.max.apply(null, g.map(x => x.e)) * 60) return unionStatus(g, nowSec);
+  }
+  return null;
+}
+function activeGroupIdx(code, nowSec){            // which groups (times) of a section are in session now
+  const g = (settings.pass.groups || {})[code], idx = [];
+  if(g) g.forEach((x, i) => { if(nowSec >= x.s * 60 && nowSec < x.e * 60) idx.push(i); });
+  return idx;
+}
+function sectionByTime(now, info){                // a class with two times, or lunch, that is in session now by its own times
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds(), map = settings.pass.groups || {};
+  const codes = Object.keys(map).filter(c => c === "LUNCH" || (info.letter && c.charAt(0) === info.letter)).sort();
+  for(const c of codes) if(activeGroupIdx(c, nowSec).length) return c;
+  return null;
 }
 function lessonBarModel(hm, ctx, info){
   const letter = ctx.letter || info.letter || null, map = settings.pass.groups || {};
