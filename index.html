@@ -810,6 +810,7 @@
   .modal-body .section .field-row > span > select{ width: auto; max-width: 100%; }
   .modal-body .section .field-row{ flex-wrap: wrap; }
   .modal-body .section .field-row > span{ min-width: 0; max-width: 100%; }
+  .modal-body .section .field-row > input[type="text"]{ flex-shrink: 0; }          /* a text box in a row keeps its width; the row wraps instead */
   .ed-item{ border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 8px; margin: 8px 0; }
   .ed-item textarea, .ed-item input[type="text"]{ width: 100%; margin: 3px 0; font: inherit; }
   .ed-flags{ display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0; }
@@ -841,6 +842,23 @@
   .cp-it input{ width: 20px; height: 20px; }
   .modal-head .head-btns{ display: flex; gap: 8px; align-items: center; }
   .modal-head .dirty{ font-size: .7rem; font-weight: 700; color: #fbbf24; margin-left: 10px; vertical-align: middle; }
+
+  /* ---- where a setting is kept: blue = the school's sheet (follows the teacher), orange = this board only ---- */
+  .section[data-store="srv"] > h2, .section[data-store="srv"] > .sec-head{ background: rgba(56,189,248,.20); border-left: 5px solid #38bdf8; border-radius: 8px; padding: 6px 10px; }
+  .section[data-store="brd"] > h2, .section[data-store="brd"] > .sec-head{ background: rgba(251,146,60,.22); border-left: 5px solid #fb923c; border-radius: 8px; padding: 6px 10px; }
+  .section[data-store] > h2{ display: block; }
+  .section[data-store] > .sec-head h2{ background: none; padding: 0; }
+  .section[data-mixed] [data-store]{ position: relative; padding-left: 20px; }
+  .section[data-mixed] [data-store]::before{ content: ""; position: absolute; left: 4px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; }
+  .section[data-mixed] [data-store="srv"]::before, .lg-dot.srv{ background: #38bdf8; }
+  .section[data-mixed] [data-store="brd"]::before, .lg-dot.brd{ background: #fb923c; }
+  .store-legend{ font-size: .78rem; line-height: 1.7; margin: 2px 0 12px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(127,127,127,.3); }
+  .store-legend .lg{ display: inline-block; padding: 0 8px; border-radius: 6px; font-weight: 700; }
+  .store-legend .lg.srv{ background: rgba(56,189,248,.28); border-left: 4px solid #38bdf8; } .store-legend .lg.brd{ background: rgba(251,146,60,.30); border-left: 4px solid #fb923c; }
+  .lg-dot{ display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
+  .school-lock{ position: relative; outline: 1px dashed rgba(148,163,184,.75); outline-offset: 2px; border-radius: 6px; }
+  .school-lock::after{ content: "\1F512"; position: absolute; right: 4px; top: -2px; font-size: .75rem; opacity: .9; pointer-events: none; }
+  .sec-head.school-lock::after{ right: 66px; top: 50%; transform: translateY(-50%); font-size: .95rem; }       /* just before the switch */
 </style>
 </head>
 <body data-theme="dark">
@@ -1027,7 +1045,7 @@
         <li><b>The ⚙ button</b> (bottom right): double-tap it to open the settings (with your PIN, if you use one). Every section has its own switch next to its name: hall pass buttons and log, sounds, rotating cards, weather, the agenda note, the <b>timer</b> (the middle cell of the top row: tap to start or pause, hold or tap at 00:00 to set the time).</li>
         <li><b>Lost?</b> ⚙ &rarr; Quick setup &rarr; <b>Basic</b> brings back the simple screen.</li>
       </ol>
-      <div class="override-note">Everything is saved on this device only. Nothing is sent anywhere until you type your teacher code, and then only the student ID, the destination and the times.</div>
+      <div class="override-note">Settings are saved on this device. Nothing is sent anywhere until you type your teacher code. With the code, the trips (student ID, destination, times) go to your school's sheet, and so do your own settings, announcements and questions, so they follow you to other boards.</div>
       <div class="btn-row" style="margin-top:10px;"><button type="button" id="helpDemoBtn">Try the demo: a pretend school day on a fast clock</button></div>
     </div>
   </div>
@@ -1070,7 +1088,9 @@
     <div class="modal-head"><h1>Settings <span id="settingsDirty" class="dirty hidden">&bull; not saved yet</span></h1><div class="head-btns"><button type="button" id="settingsCancelBtn">Cancel</button><button type="button" id="settingsApplyBtn">Apply</button><button type="button" id="settingsSaveBtn" class="grant">Save</button></div></div>
     <div class="modal-body" id="settingsBody">
 
-    <div class="section" id="secQuick">
+    <div class="store-legend"><b>Where a setting is kept:</b> <span class="lg srv">blue</span> on the school's sheet, it follows you to any board &nbsp; <span class="lg brd">orange</span> on this board only. In sections that have both, a small <span class="lg-dot srv"></span> or <span class="lg-dot brd"></span> marks each item; a <span class="lg-lock">&#128274;</span> means the school set it.</div>
+
+    <div class="section" id="secQuick" data-store="srv">
       <h2>Quick setup</h2>
       <div class="btn-row">
         <button type="button" id="presetBasic">Basic</button>
@@ -1080,20 +1100,20 @@
       <div class="override-note" style="margin-top:8px;"><b>Basic</b> switches every extra off (clock, schedule, the small pass indicator and the lesson bar stay). <b>Everything</b> switches them all on. Each section below has its own switch next to its name: off means the section is locked and the extra is not used.</div>
     </div>
 
-    <div class="section" id="secWindow" data-switch="passUseWindow">
-      <div class="sec-head"><h2>Pass window (10/10 rule)</h2><label class="switch sec-switch"><input type="checkbox" id="passUseWindow"><span class="slider"></span></label></div>
-      <div class="field-row">
+    <div class="section" id="secWindow" data-switch="passUseWindow" data-store="srv">
+      <div class="sec-head" data-pref="pass.useWindow"><h2>Pass window (10/10 rule)</h2><label class="switch sec-switch"><input type="checkbox" id="passUseWindow"><span class="slider"></span></label></div>
+      <div class="field-row" data-pref="pass.closedStartMin">
         <span>Closed during the first (min)</span>
         <input type="number" id="passClosedStart" class="num-input" min="0" max="60">
       </div>
-      <div class="field-row">
+      <div class="field-row" data-pref="pass.closedEndMin">
         <span>Closed during the last (min)</span>
         <input type="number" id="passClosedEnd" class="num-input" min="0" max="60">
       </div>
       <div class="override-note">The small indicator on the board shows when passes are open or closed. Set both to 0 to switch the rule off.</div>
     </div>
 
-    <div class="section">
+    <div class="section" data-store="brd">
       <h2>School bell drift</h2>
       <div class="field-row"><span>The bell drifts by (seconds per day, + means it rings earlier)</span><input type="number" id="bellPerDay" class="num-input" step="0.1" min="-10" max="10"></div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="bellRememberBtn">Remember the current shift</button><button type="button" id="bellResetBtn">The bell was just reset</button></div>
@@ -1101,7 +1121,7 @@
       <div class="override-note">Line the board up with the bell using the &minus;1 / +1 buttons on the main screen, then press "Remember". From then on the board adds the drift by itself every day, so nobody has to nudge it again. After the school puts its bell right, press "The bell was just reset".</div>
     </div>
 
-    <div class="section">
+    <div class="section" data-store="brd">
       <h2>Override Today's Schedule</h2>
 
       <div class="btn-row override-btn-row" id="overrideButtonsAll"></div>
@@ -1112,7 +1132,7 @@
       </div>
     </div>
 
-    <div class="section" data-switch="exSounds">
+    <div class="section" data-switch="exSounds" data-store="brd">
       <div class="sec-head"><h2>Notifications</h2><label class="switch sec-switch"><input type="checkbox" id="exSounds"><span class="slider"></span></label></div>
       <div class="btn-row" style="margin-bottom:10px;">
         <button class="grant" id="permBtn">Enable browser notifications</button>
@@ -1140,7 +1160,7 @@
       <div class="perm-note" id="permNote"></div>
     </div>
 
-    <div class="section" data-follows="exSounds">
+    <div class="section" data-follows="exSounds" data-store="brd">
       <h2>Alert Sound</h2>
 
       <h3>Warning Sound <span style="font-weight:400; text-transform:none; letter-spacing:0;">(for the 15/10/5-minute notices above)</span></h3>
@@ -1177,7 +1197,7 @@
       </div>
     </div>
 
-    <div class="section" data-switch="exDing">
+    <div class="section" data-switch="exDing" data-store="brd">
       <div class="sec-head"><h2>Attention Signal</h2><label class="switch sec-switch"><input type="checkbox" id="exDing"><span class="slider"></span></label></div>
       <div class="override-note">
         A manual bell you can trigger any time &mdash; independent of the actual schedule &mdash;
@@ -1196,7 +1216,7 @@
       </div>
     </div>
 
-    <div class="section" data-follows="exSounds">
+    <div class="section" data-follows="exSounds" data-store="brd">
       <h2>Sound Library</h2>
       <div class="override-note">
         <strong>School sounds:</strong> every .mp3 in the <strong>sounds</strong> folder of the school's GitHub page appears in all
@@ -1223,29 +1243,29 @@
       <div class="perm-note" id="librarySoundStatus"></div>
     </div>
 
-    <div class="section">
+    <div class="section" data-store="brd" data-mixed="1">
       <h2>Display</h2>
       <div class="field-row">
         <span>Theme</span>
-        <div class="btn-row" id="themeButtons"></div>
+        <div class="btn-row" id="themeButtons" data-store="brd"></div>
       </div>
       <div class="field-row">
         <span>Time format</span>
-        <div class="btn-row" id="hourFormatButtons"></div>
+        <div class="btn-row" id="hourFormatButtons" data-store="srv" data-pref="hour12"></div>
       </div>
       <div class="field-row">
         <span>Countdown format</span>
-        <div class="btn-row" id="countdownFormatButtons"></div>
+        <div class="btn-row" id="countdownFormatButtons" data-store="srv" data-pref="countdownFormat"></div>
       </div>
-      <div class="field-row">
+      <div class="field-row" data-store="brd">
         <span>Left part width (the rest is the right part)</span>
         <span><input type="range" id="layoutLeft" min="30" max="70" step="1" style="width:9em;"> <b id="layoutLeftVal" style="display:inline-block; min-width:3em; text-align:right;">50%</b> <button type="button" id="layoutLeftReset">50 / 50</button></span>
       </div>
-      <div class="field-row">
+      <div class="field-row" data-store="brd">
         <span>Day starts (arrival)</span>
         <input type="time" id="dayStartInput">
       </div>
-      <div class="field-row">
+      <div class="field-row" data-store="brd">
         <span>Day ends (dismissal)</span>
         <input type="time" id="dayEndInput">
       </div>
@@ -1255,21 +1275,21 @@
     </div>
 
 
-    <div class="section" data-switch="exCards">
-      <div class="sec-head"><h2>Left screen</h2><label class="switch sec-switch"><input type="checkbox" id="exCards"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Lesson phases (Warm-up, Focus time, Wrap up, Last 2 minutes)</span><label class="switch"><input type="checkbox" id="stPhases"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Weather cards (the little weather box at the top is always there)</span><label class="switch"><input type="checkbox" id="stWeather"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Severe weather warnings</span><label class="switch"><input type="checkbox" id="stAlerts"><span class="slider"></span></label></div>
+    <div class="section" data-switch="exCards" data-store="srv" data-mixed="1">
+      <div class="sec-head" data-pref="extras.cards"><h2>Left screen</h2><label class="switch sec-switch"><input type="checkbox" id="exCards"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-store="srv" data-pref="stage.phases"><span>Lesson phases (Warm-up, Focus time, Wrap up, Last 2 minutes)</span><label class="switch"><input type="checkbox" id="stPhases"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-store="srv" data-pref="stage.weather"><span>Weather cards (the little weather box at the top is always there)</span><label class="switch"><input type="checkbox" id="stWeather"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-store="srv" data-pref="stage.alerts"><span>Severe weather warnings</span><label class="switch"><input type="checkbox" id="stAlerts"><span class="slider"></span></label></div>
       <div class="btn-row" style="margin-top:8px;"><button id="stLoadWxBtn">Refresh weather</button></div>
       <div class="perm-note" id="wxStatus"></div>
 
       <div class="override-note" style="margin-top:0;">What the rotating cards on the left may show. Switch off anything you don't want.</div>
-      <div class="toggle-row"><span>Day arc (sun moving across the school day)</span><label class="switch"><input type="checkbox" id="stArc"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Facts and phrases</span><label class="switch"><input type="checkbox" id="stFacts"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Quick questions (the answer appears after 30 seconds)</span><label class="switch"><input type="checkbox" id="stRiddles"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>Announcements from the "Messages" tab</span><label class="switch"><input type="checkbox" id="stMessages"><span class="slider"></span></label></div>
-      <div class="toggle-row"><span>School calendar numbers</span><label class="switch"><input type="checkbox" id="stCalendar"><span class="slider"></span></label></div>
-      <div class="field-row">
+      <div class="toggle-row" data-store="srv" data-pref="stage.arc"><span>Day arc (sun moving across the school day)</span><label class="switch"><input type="checkbox" id="stArc"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-store="srv" data-pref="stage.facts"><span>Facts and phrases</span><label class="switch"><input type="checkbox" id="stFacts"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-store="srv" data-pref="stage.riddles"><span>Quick questions (the answer appears after 30 seconds)</span><label class="switch"><input type="checkbox" id="stRiddles"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-store="srv" data-pref="stage.messages"><span>Announcements from the "Messages" tab</span><label class="switch"><input type="checkbox" id="stMessages"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-store="srv" data-pref="stage.calendar"><span>School calendar numbers</span><label class="switch"><input type="checkbox" id="stCalendar"><span class="slider"></span></label></div>
+      <div class="field-row" data-store="srv" data-pref="stage.cardSec">
         <span>Seconds per card</span>
         <input type="number" id="stCardSec" class="num-input" min="8" max="90">
       </div>
@@ -1286,39 +1306,39 @@
       </div>
     </div>
 
-    <div class="section" data-switch="exTimer">
-      <div class="sec-head"><h2>Timer</h2><label class="switch sec-switch"><input type="checkbox" id="exTimer"><span class="slider"></span></label></div>
-      <div class="field-row"><span>Time</span><span><input type="number" id="tmSetMin" class="num-input" min="0" max="99" style="width:4.5em;"> min &nbsp;<input type="number" id="tmSetSec" class="num-input" min="0" max="59" style="width:4.5em;"> s</span></div>
-      <div class="field-row"><span>Turns red when this much is left</span><span class="thr"><input type="number" id="tmThreshold" class="num-input" min="0" max="3600" step="any" style="width:5em;"> <button type="button" id="tmThrMin" class="seg">min</button><button type="button" id="tmThrSec" class="seg on">sec</button></span></div>
-      <div class="toggle-row"><span>Play a sound when the time is up</span><label class="switch"><input type="checkbox" id="tmEndOn"><span class="slider"></span></label></div>
-      <div class="field-row"><span>Sound</span><span><select id="tmEndSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmEndTest">&#9654; Test</button></span></div>
-      <div class="volume-row"><span style="min-width:80px;">Volume</span><input type="range" id="tmEndVol" min="0" max="100" value="5" style="flex:1;"><span id="tmEndVolVal" style="min-width:42px; text-align:right;">5%</span></div>
-      <div class="toggle-row" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);"><span>Play a sound when it turns red (once)</span><label class="switch"><input type="checkbox" id="tmWarnOn"><span class="slider"></span></label></div>
-      <div class="field-row"><span>Sound</span><span><select id="tmWarnSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmWarnTest">&#9654; Test</button></span></div>
-      <div class="volume-row"><span style="min-width:80px;">Volume</span><input type="range" id="tmWarnVol" min="0" max="100" value="5" style="flex:1;"><span id="tmWarnVolVal" style="min-width:42px; text-align:right;">5%</span></div>
-      <div class="field-row"><span>Quick choices in the editor (minutes, with commas)</span><input type="text" id="tmPresets" class="num-input" style="width:14em;" maxlength="40"></div>
+    <div class="section" data-switch="exTimer" data-store="srv" data-mixed="1">
+      <div class="sec-head" data-pref="extras.timer"><h2>Timer</h2><label class="switch sec-switch"><input type="checkbox" id="exTimer"><span class="slider"></span></label></div>
+      <div class="field-row" data-store="srv" data-pref="timer.duration"><span>Time</span><span><input type="number" id="tmSetMin" class="num-input" min="0" max="99" style="width:4.5em;"> min &nbsp;<input type="number" id="tmSetSec" class="num-input" min="0" max="59" style="width:4.5em;"> s</span></div>
+      <div class="field-row" data-store="srv" data-pref="timer.threshold timer.thresholdUnit"><span>Turns red when this much is left</span><span class="thr"><input type="number" id="tmThreshold" class="num-input" min="0" max="3600" step="any" style="width:5em;"> <button type="button" id="tmThrMin" class="seg">min</button><button type="button" id="tmThrSec" class="seg on">sec</button></span></div>
+      <div class="toggle-row" data-store="srv" data-pref="timer.endOn"><span>Play a sound when the time is up</span><label class="switch"><input type="checkbox" id="tmEndOn"><span class="slider"></span></label></div>
+      <div class="field-row" data-store="srv" data-pref="timer.endSound"><span>Sound</span><span><select id="tmEndSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmEndTest">&#9654; Test</button></span></div>
+      <div class="volume-row" data-store="brd"><span style="min-width:80px;">Volume</span><input type="range" id="tmEndVol" min="0" max="100" value="5" style="flex:1;"><span id="tmEndVolVal" style="min-width:42px; text-align:right;">5%</span></div>
+      <div class="toggle-row" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);" data-store="srv" data-pref="timer.warnOn"><span>Play a sound when it turns red (once)</span><label class="switch"><input type="checkbox" id="tmWarnOn"><span class="slider"></span></label></div>
+      <div class="field-row" data-store="srv" data-pref="timer.warnSound"><span>Sound</span><span><select id="tmWarnSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmWarnTest">&#9654; Test</button></span></div>
+      <div class="volume-row" data-store="brd"><span style="min-width:80px;">Volume</span><input type="range" id="tmWarnVol" min="0" max="100" value="5" style="flex:1;"><span id="tmWarnVolVal" style="min-width:42px; text-align:right;">5%</span></div>
+      <div class="field-row" data-store="srv" data-pref="timer.presets"><span>Quick choices in the editor (minutes, with commas)</span><input type="text" id="tmPresets" class="num-input" style="width:14em;" maxlength="40"></div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="tmOpenEditor">Open the timer editor</button><button type="button" id="tmReset">Reset</button></div>
       <div class="override-note">The two sounds are the timer's own: they work whenever the timer is on, whatever the Sound alerts switch says. The lists include the school sounds.</div>
       <div class="override-note">The timer sits in the middle of the top row on the left. Closing the settings does not start it, it only shows it. On the board: tap to start, tap again to pause. When it shows 00:00, or when you hold it for a moment, the editor opens.</div>
     </div>
 
-    <div class="section" data-switch="exAnn">
-      <div class="sec-head"><h2>Announcements</h2><label class="switch sec-switch"><input type="checkbox" id="exAnn"><span class="slider"></span></label></div>
+    <div class="section" data-switch="exAnn" data-store="srv">
+      <div class="sec-head" data-pref="extras.ann"><h2>Announcements</h2><label class="switch sec-switch"><input type="checkbox" id="exAnn"><span class="slider"></span></label></div>
       <div class="override-note">Short messages for your students, shown as a card on the left (it needs the rotating cards). Tick the lessons each one is for. They are saved on the school's sheet under your name; the administrators can read them there.</div>
       <div id="annList"></div>
       <div class="btn-row"><button type="button" id="annAdd">+ Add</button><button type="button" id="annSave" class="grant">Save to the school sheet</button></div>
       <div class="perm-note" id="annStatus"></div>
     </div>
 
-    <div class="section" data-switch="exQa">
-      <div class="sec-head"><h2>Questions</h2><label class="switch sec-switch"><input type="checkbox" id="exQa"><span class="slider"></span></label></div>
+    <div class="section" data-switch="exQa" data-store="srv">
+      <div class="sec-head" data-pref="extras.qa"><h2>Questions</h2><label class="switch sec-switch"><input type="checkbox" id="exQa"><span class="slider"></span></label></div>
       <div class="override-note">Your own quick questions with answers (the answer appears after 30 seconds on the card). For a lesson that has questions ticked, these are shown instead of the general ones. They are saved on the school's sheet under your name.</div>
       <div id="qaList"></div>
       <div class="btn-row"><button type="button" id="qaAdd">+ Add</button><button type="button" id="qaSave" class="grant">Save to the school sheet</button></div>
       <div class="perm-note" id="qaStatus"></div>
     </div>
 
-    <div class="section">
+    <div class="section" data-store="srv">
       <h2>Preferred names</h2>
       <div class="override-note">A student who wants another first name on the boards: type the last 4 digits of the student ID, look the student up, type the name and send it. It shows on every board after an administrator approves it.</div>
       <div class="lookup-row"><input type="text" id="pnDigits" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Last 4 digits"><button type="button" id="pnLookup">Look up</button></div>
@@ -1328,67 +1348,67 @@
       <div class="perm-note" id="pnMsg">Needs your teacher code.</div>
     </div>
 
-    <div class="section" data-switch="exAgenda">
-      <div class="sec-head"><h2>Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exAgenda"><span class="slider"></span></label></div>
+    <div class="section" data-switch="exAgenda" data-store="srv">
+      <div class="sec-head" data-pref="extras.agenda"><h2>Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exAgenda"><span class="slider"></span></label></div>
       <div class="field-row"><span>Class (A or B day, and period)</span>
         <select id="agBlock" class="num-input"><option>A1</option><option>A2</option><option>A3</option><option>A4</option><option>B1</option><option>B2</option><option>B3</option><option>B4</option></select></div>
       <textarea id="agText" class="area-input" rows="6" style="width:100%;box-sizing:border-box;" placeholder="One item per line, for example:&#10;1. Finish the warm-up&#10;2. Read page 42&#10;3. Group work&#10;[x] Take attendance"></textarea>
       <div class="perm-note" id="agCount"></div>
       <div class="ag-prev" id="agPreview"><div class="ag-sheet"><i class="ag-pin"></i><div class="ag-head"></div><div class="ag-body"></div></div></div>
-      <div class="toggle-row"><span>Clear it at the end of the day</span><label class="switch"><input type="checkbox" id="agClearDaily"><span class="slider"></span></label></div>
-      <div class="field-row"><span>Show it from (minutes before the class starts)</span><input type="number" id="agLead" class="num-input" min="0" max="30"></div>
+      <div class="toggle-row" data-pref="agenda.clearDaily"><span>Clear it at the end of the day</span><label class="switch"><input type="checkbox" id="agClearDaily"><span class="slider"></span></label></div>
+      <div class="field-row" data-pref="agenda.leadMin"><span>Show it from (minutes before the class starts)</span><input type="number" id="agLead" class="num-input" min="0" max="30"></div>
       <div class="field-row"><span>Seconds on screen when it is one of the cards</span><input type="number" id="agSec" class="num-input" min="8" max="90"></div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="agCopyTo">Copy to...</button><button type="button" id="agCopyDay">Copy to this day's periods</button><button type="button" id="agCopyAll">Copy to all 8 classes</button><button type="button" id="agClear">Clear this note</button></div>
       <div class="perm-note" id="agStatus"></div>
       <div class="override-note">On the basic screen the note simply stays during its class; with the rotating cards on, the note is one of the cards and gets the same time as the others. It shows during the class you pick here (and a few minutes before it). Start a line with <b>[x]</b> to cross it out. Plain text only: it is shown to students exactly as typed.</div>
     </div>
 
-    <div class="section" data-switch="exLive">
-      <div class="sec-head"><h2>Live Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exLive"><span class="slider"></span></label></div>
+    <div class="section" data-switch="exLive" data-store="srv" data-mixed="1">
+      <div class="sec-head" data-pref="extras.live"><h2>Live Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exLive"><span class="slider"></span></label></div>
       <div class="override-note">A plan with times for a class. The first line is how many minutes <b>before the bell</b> it starts; then one part per line: <b>name | minutes</b>. For example <b>2</b>, then <b>Bell work | 10</b>, <b>Activity | 20</b>: two minutes before the bell the board shows Bell work with a bar that fills over 10 minutes, then Activity for 20 minutes, and so on. A sound plays at the end of each part. While it runs it takes the place of the cards and the agenda note.</div>
-      <div class="field-row"><span>Class (A or B day, and period)</span>
+      <div class="field-row" data-store="srv"><span>Class (A or B day, and period)</span>
         <select id="lvBlock" class="num-input"><option>A1</option><option>A2</option><option>A3</option><option>A4</option><option>B1</option><option>B2</option><option>B3</option><option>B4</option></select></div>
       <textarea id="lvText" class="area-input" rows="8" style="width:100%;box-sizing:border-box;" placeholder="2&#10;Bell work | 10&#10;Activity | 20&#10;Free work | 20&#10;Work with a partner | 10"></textarea>
       <div class="perm-note" id="lvPreview"></div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="lvSample">Write a sample</button><button type="button" id="lvCopyTo">Copy to...</button><button type="button" id="lvCopyDay">Copy to this day's periods</button><button type="button" id="lvCopyAll">Copy to all 8 classes</button><button type="button" id="lvClear">Clear this plan</button></div>
       <div class="perm-note" id="lvStatus"></div>
       <h3>Sound at the end of each part</h3>
-      <div class="btn-row"><select id="lvSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="lvTest">&#9654; Test Sound</button></div>
-      <div class="volume-row"><span style="min-width:80px;">Volume</span><input type="range" id="lvVol" min="0" max="100" value="5" style="flex:1;"><span id="lvVolVal" style="min-width:42px; text-align:right;">5%</span></div>
+      <div class="btn-row" data-store="srv" data-pref="live.sound"><select id="lvSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="lvTest">&#9654; Test Sound</button></div>
+      <div class="volume-row" data-store="brd"><span style="min-width:80px;">Volume</span><input type="range" id="lvVol" min="0" max="100" value="5" style="flex:1;"><span id="lvVolVal" style="min-width:42px; text-align:right;">5%</span></div>
     </div>
 
-    <div class="section" data-switch="exHallPass">
-      <div class="sec-head"><h2>Hall pass</h2><label class="switch sec-switch"><input type="checkbox" id="exHallPass"><span class="slider"></span></label></div>
-      <div class="field-row">
+    <div class="section" data-switch="exHallPass" data-store="srv">
+      <div class="sec-head" data-pref="extras.hallPass"><h2>Hall pass</h2><label class="switch sec-switch"><input type="checkbox" id="exHallPass"><span class="slider"></span></label></div>
+      <div class="field-row" data-pref="pass.slots">
         <span>Number of pass buttons</span>
         <input type="number" id="passSlotsInput" class="num-input" min="1">
       </div>
-      <div class="field-row">
+      <div class="field-row" data-pref="pass.autoLeaveSec">
         <span>Leave by itself after (seconds, 0 = off)</span>
         <input type="number" id="passAutoLeave" class="num-input" min="0" max="30">
       </div>
-      <div class="toggle-row"><span>Allow passes in the closed 10/10 minutes (asks to confirm, marked in the log)</span><label class="switch"><input type="checkbox" id="passAllowOutside"><span class="slider"></span></label></div>
-      <div class="field-row">
+      <div class="toggle-row" data-pref="pass.allowOutside"><span>Allow passes in the closed 10/10 minutes (asks to confirm, marked in the log)</span><label class="switch"><input type="checkbox" id="passAllowOutside"><span class="slider"></span></label></div>
+      <div class="field-row" data-pref="pass.maxMinutes">
         <span>Limit (min) for a type without its own number</span>
         <input type="number" id="passMaxMin" class="num-input" min="1" max="600">
       </div>
-      <div class="field-row" style="align-items:flex-start;">
+      <div class="field-row" style="align-items:flex-start;" data-pref="pass.reasons pass.limits">
         <span>Where to, with the limit (one per line)</span>
         <textarea id="passReasonsInput" class="area-input" rows="6"></textarea>
       </div>
-      <div class="override-note">Write a type, then <b>|</b> and its minutes, for example <b>🚻 Restroom | 8</b>. A pass turns red on the board after its limit. Limits stay on this board and are not sent anywhere.</div>
+      <div class="override-note">Write a type, then <b>|</b> and its minutes, for example <b>🚻 Restroom | 8</b>. A pass turns red on the board after its limit. Limits are saved with your other settings (on the school's sheet when the board is connected).</div>
     </div>
 
-    <div class="section">
+    <div class="section" data-store="brd" data-mixed="1">
       <h2>Teacher code and hall pass log</h2>
-      <div class="btn-row">
+      <div class="btn-row" data-store="brd">
         <input type="password" id="sheetKeyInput" placeholder="Your teacher code" autocomplete="new-password" autocapitalize="characters">
       </div>
-      <div class="field-row"><span>Name on the board</span><input type="text" id="teacherNameInput" class="num-input" style="width:14em;" maxlength="40" autocomplete="off"></div>
-      <div class="field-row"><span>Room</span><input type="text" id="teacherRoomInput" class="num-input" style="width:6em;" maxlength="12" autocomplete="off"></div>
+      <div class="field-row" data-store="srv" data-pref="pass.profile.name pass.profile.nameEdited"><span>Name on the board</span><input type="text" id="teacherNameInput" class="num-input" style="width:14em;" maxlength="40" autocomplete="off"></div>
+      <div class="field-row" data-store="srv" data-pref="pass.profile.room pass.profile.roomEdited"><span>Room</span><input type="text" id="teacherRoomInput" class="num-input" style="width:6em;" maxlength="12" autocomplete="off"></div>
       <div class="perm-note">The name and the room are filled in from the school's list when the code is checked. Change them here if needed: they appear at the top of the board.</div>
       <div class="perm-note">The code comes from your administrator and connects this board to your classes. Without it hall passes stay off and no student names are loaded. Trips are logged by student ID.</div>
-      <div class="btn-row" style="margin-top:8px;">
+      <div class="btn-row" style="margin-top:8px;" data-store="brd">
         <input type="text" id="sheetUrlInput" placeholder="Script address (pasted, or from your setup link)">
       </div>
       <div class="btn-row" style="margin-top:10px;">
@@ -1397,7 +1417,7 @@
         <button id="teacherDisconnectBtn">Disconnect this board</button>
         <button id="queueDiscardBtn">Delete waiting trips</button>
       </div>
-      <div class="toggle-row"><span>Test mode: rows sent to the log are marked TEST</span><label class="switch"><input type="checkbox" id="passTestMode"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-store="brd"><span>Test mode: rows sent to the log are marked TEST</span><label class="switch"><input type="checkbox" id="passTestMode"><span class="slider"></span></label></div>
       <div class="perm-note">Board ID in the log: <b id="boardIdText"></b></div>
       <div class="perm-note" id="rosterStatus"></div>
       <div class="perm-note" id="prefsStatus"></div>
@@ -1406,15 +1426,15 @@
       <div id="passRecent" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
     </div>
 
-    <div class="section" id="secDemo">
+    <div class="section" id="secDemo" data-store="brd">
       <h2>Presentation demo</h2>
       <div class="override-note" style="margin-top:0;">Runs a pretend school day on a fast clock, so you can show the 10/10 rule and the progress bars in a few minutes. Nothing is saved or sent while it runs. Tip: add <b>?demo=1</b> to the page address to start in demo mode.</div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="demoStartBtn">Start demo</button></div>
     </div>
 
-    <div class="section">
-      <div class="sec-head"><h2>Security</h2><label class="switch sec-switch"><input type="checkbox" id="pinEnabledSwitch"><span class="slider"></span></label></div>
-      <div class="field-row">
+    <div class="section" data-store="srv">
+      <div class="sec-head" data-pref="pinEnabled"><h2>Security</h2><label class="switch sec-switch"><input type="checkbox" id="pinEnabledSwitch"><span class="slider"></span></label></div>
+      <div class="field-row" data-pref="pin">
         <span>New PIN (4&ndash;8 digits)</span>
         <input type="password" id="newPinInput" class="num-input" style="width:120px;" inputmode="numeric" maxlength="8" autocomplete="off">
       </div>
@@ -1425,7 +1445,7 @@
     </div>
 
     <div class="footer-note">
-      All settings are saved on this device (browser IndexedDB), so they survive reloads.
+      Settings are saved on this device (browser IndexedDB), so they survive reloads; the ones marked blue in the settings are also kept on the school's sheet.
       Times come from the school's own bell schedule and calendar (its sheet; a built-in sample is used until the board is connected).
       Once the board has been opened online it keeps working without internet, and it updates itself outside school hours.
       <br>Version <span id="appVersion"></span>
@@ -4165,13 +4185,22 @@ function prefsState(){ if(!settings.prefs) settings.prefs = { teacher: "", synce
 let prefsDeferred = null, prefsBusy = false, prefsTimer = 0;
 function renderPrefsStatus(){
   const el = $("prefsStatus"); if(!el) return;
-  if(!teacherOk()){ el.textContent = ""; return; }
+  if(!teacherOk()){ el.textContent = ""; paintLocks(); return; }
   const P = settings.prefs, waiting = P ? Object.keys(P.pending || {}).length : 0, parts = [];
   parts.push(P && P.at ? "Your settings are kept on the school's sheet (checked " + fmtClock(hms24(new Date(P.at)).slice(0, 5)) + ")." : "Your settings will be kept on the school's sheet.");
   if(waiting) parts.push(waiting + " change" + (waiting > 1 ? "s" : "") + " waiting to be sent.");
   if(P && P.locked && P.locked.length) parts.push("Set by the school (cannot be changed here): " + P.locked.map(k => PREF_LABELS[k] || k).join(", ") + ".");
   if(P && P.note) parts.push(P.note);
   el.textContent = parts.join(" ");
+  paintLocks();
+}
+function paintLocks(){                            // a lock sign on every setting the school set
+  const set = new Set(teacherOk() && settings.prefs && settings.prefs.locked ? settings.prefs.locked : []);
+  document.querySelectorAll("[data-pref]").forEach(el => {
+    const on = el.getAttribute("data-pref").split(" ").some(k => set.has(k));
+    el.classList.toggle("school-lock", on);
+    if(on) el.title = "Set by the school"; else if(el.title === "Set by the school") el.removeAttribute("title");
+  });
 }
 async function prefsPull(){
   if(!teacherOk() || !sheetReady()) return;
@@ -4594,7 +4623,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.11 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.12 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
