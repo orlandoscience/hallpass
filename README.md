@@ -32,6 +32,8 @@ The **pass indicator** ("PASSES OPEN, closes in 20:27") is always the small one 
 
 **The school's own times and calendar:** the bell schedules, the A/B calendar, the event names and the title come from the `Bells`, `Calendar` and `Settings` tabs of the school's sheet (a sample, Orlando Science High School 2026-27, is put there first and is also built into the page for boards that are not connected yet). A board keeps what it last received, so it works without internet. See `apps-script/SETUP.md`.
 
+**A teacher whose grade group differs between A days and B days:** the group chosen with the buttons at the top right is remembered separately for the A days and for the B days, and the board switches by itself when the kind of day changes (set it once on an A day and once on a B day).
+
 **Colours in the settings:** the title bar of each section is **blue** if what it holds is kept on the school's sheet and follows the teacher, and **orange** if it stays on this board only; in the sections that have both (Display, Left screen, Timer, Live Agenda, Teacher code) a small blue or orange dot marks every item, and a lock sign marks what the school has locked. A legend at the top of the settings explains it.
 
 **The settings window** has **Cancel**, **Apply** and **Save**: while it is open nothing is written; *Apply* writes (and sends the teacher's settings to the school's sheet) and keeps the window open, *Save* does both and closes, *Cancel* takes back everything changed since it was opened. **The teacher's settings follow the teacher** (kept on the sheet, with school defaults that can be locked: see `apps-script/SETUP.md`). **Agendas** have no length limit; both agendas have **Copy to...** (a list of the periods with ticks), and the Live Agenda has **Write a sample**.
@@ -81,6 +83,7 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 | `index.html` | The whole board (page, bell schedules, A/B calendar). |
 | `sw.js`, `manifest.webmanifest`, `icon*.png/svg` | Make it work offline and installable. |
 | `LICENSE` | The OSHS Free Use License. |
+| `SUPPORT.md` | How to thank (and, if you wish, support) the author. The link "Support the author" at the bottom of the settings opens it. |
 | `DEPLOY.md` | How to put the system into use and how to change over to a new document next year. |
 | `apps-script/Code.gs`, `apps-script/SETUP.md` | The school's Google Apps Script (teacher codes, class lists, the log, announcements, weather warnings) and the administrator's guide. |
 | `docs/` | Screenshots and QR codes of the page address, for slides (the page itself no longer makes QR codes). |

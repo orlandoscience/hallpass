@@ -1450,6 +1450,7 @@
       Once the board has been opened online it keeps working without internet, and it updates itself outside school hours.
       <br>Version <span id="appVersion"></span>
       <br>Hall Pass Board &copy; 2026 Shamil Ganiev. Free for Orlando Science High School under the OSHS Free Use License (see LICENSE on GitHub).
+      <br><a id="supportLink" href="https://github.com/orlandoscience/hallpass/blob/main/SUPPORT.md" target="_blank" rel="noopener noreferrer">Support the author</a>
       <div class="perm-note" id="updateNote"></div>
       <div class="btn-row hidden" id="updateRow" style="margin-top:6px;"><button id="reloadNowBtn" type="button">Reload now</button></div>
     </div>
@@ -1581,6 +1582,7 @@ function getDefaultSettings(){
     dayStart: "07:30",
     dayEnd: "16:00",
     activeBand: "1011",
+    bandByLetter: {},                              // the grade group chosen on an A day and on a B day: { A: "912", B: "1011" }; the board switches by itself when the day type changes
     manualOffsetSec: 0, // manual fine-tune vs the school's own bell server, in seconds (0.1 steps)
     bell: { refMs: Date.now(), refSec: 0, perDaySec: 0.6 },   // the school bell runs ahead of true time and keeps drifting: shift = refSec + perDaySec x days since refMs
     countdownFormat: "hms", // "hms" = HH:MM:SS, "ms" = MM:SS (for Time Left / Time Passed displays)
@@ -1807,7 +1809,12 @@ function renderBandTabs(){
     const b = document.createElement("button");
     b.textContent = BAND_LABELS[band];
     if(settings.activeBand === band) b.classList.add("active");
-    b.onclick = () => { settings.activeBand = band; saveSettings(); refreshAll(); };
+    b.onclick = () => {
+      settings.activeBand = band;
+      const L = effectiveBandInfo(band, toISO(appNow())).letter;             // chosen on an A day = the A days' group; on a B day = the B days'
+      if(L){ settings.bandByLetter = settings.bandByLetter || {}; settings.bandByLetter[L] = band; }
+      saveSettings(); refreshAll();
+    };
     el.appendChild(b);
   });
 }
@@ -2194,8 +2201,19 @@ function tickClock(now){
   if(DEMO.on) updateDemoBar(now);
 }
 
+let bandDay = "";
+function syncBandForDay(now){                     // once a day (and after a reload): the group that was chosen for this kind of day
+  if(typeof DEMO !== "undefined" && DEMO.on) return;
+  const iso = toISO(now);
+  if(iso === bandDay) return;
+  bandDay = iso;
+  const L = effectiveBandInfo(settings.activeBand, iso).letter, want = L && settings.bandByLetter ? settings.bandByLetter[L] : "";
+  if(want && want !== settings.activeBand && BAND_LABELS[want]){ settings.activeBand = want; saveSettings(); }
+}
+
 /* ================= Main refresh ================= */
 function refreshAll(){
+  syncBandForDay(appNow());
   document.body.setAttribute("data-theme", settings.theme);
   renderBandTabs();
   renderOverrideButtonsCombined();
@@ -2213,6 +2231,7 @@ function refreshAll(){
 
 function tick(){
   const now = appNow();
+  syncBandForDay(now);
   tickClock(now);
   const iso = toISO(now);
   const key = iso + "_" + settings.activeBand;
@@ -4623,7 +4642,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.12 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.13 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
