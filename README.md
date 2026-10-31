@@ -36,6 +36,8 @@ The **pass indicator** ("PASSES OPEN, closes in 20:27") is always the small one 
 
 **Colours in the settings:** the title bar of each section is **blue** if what it holds is kept on the school's sheet and follows the teacher, and **orange** if it stays on this board only; in the sections that have both (Display, Left screen, Timer, Live Agenda, Teacher code) a small blue or orange dot marks every item, and a lock sign marks what the school has locked. A legend at the top of the settings explains it.
 
+**The Study Hall page** is a second, separate page in the folder `studyhall/` of the same repository (`.../hallpass/studyhall/`) with its own look; it writes to the same `Log` tab through the same script, with a teacher's code (see `DEPLOY.md`).
+
 **The settings window** has **Cancel**, **Apply** and **Save**: while it is open nothing is written; *Apply* writes (and sends the teacher's settings to the school's sheet) and keeps the window open, *Save* does both and closes, *Cancel* takes back everything changed since it was opened. **The teacher's settings follow the teacher** (kept on the sheet, with school defaults that can be locked: see `apps-script/SETUP.md`). **Agendas** have no length limit; both agendas have **Copy to...** (a list of the periods with ticks), and the Live Agenda has **Write a sample**.
 
 **Live Agenda:** a plan with times for a class (*Settings -> Live Agenda*). First line: how many minutes before the bell it starts; then one part per line, `name | minutes` (for example `2`, `Bell work | 10`, `Activity | 20`). The board shows the part that is on now, a countdown and a bar that fills, and what comes next; at the end of every part a sound of its own plays (chosen in the same section). While it runs it takes the place of the cards and the agenda note. Copy a plan to this day's periods or to all 8 classes. **The little weather box** at the top is always there (the switch only controls the big weather cards). **A finished timer** goes away when it is tapped (switch it on again in the settings). **The left part** can be made 30% to 70% of the screen.
@@ -83,6 +85,7 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 | `index.html` | The whole board (page, bell schedules, A/B calendar). |
 | `sw.js`, `manifest.webmanifest`, `icon*.png/svg` | Make it work offline and installable. |
 | `LICENSE` | The OSHS Free Use License. |
+| `studyhall/index.html` | The Study Hall board: a separate page (its own look) that uses the same script and the same `Log`. Open `.../hallpass/studyhall/`. |
 | `SUPPORT.md` | How to thank (and, if you wish, support) the author. The link "Support the author" at the bottom of the settings opens it. |
 | `DEPLOY.md` | How to put the system into use and how to change over to a new document next year. |
 | `apps-script/Code.gs`, `apps-script/SETUP.md` | The school's Google Apps Script (teacher codes, class lists, the log, announcements, weather warnings) and the administrator's guide. |

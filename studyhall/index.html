@@ -1,0 +1,2143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSHS 10/10 Hall Pass</title>
+<style>
+  :root{
+    --bg: #0b1120; --panel: #16213e; --panel-2: #1c2b4a;
+    --ink: #eef2ff; --ink-dim: #9aa5c9;
+    --accent: #38bdf8;
+    --red: #ef4444;   --red-bg: #3b1116;
+    --green: #22c55e; --green-bg: #0f3321;
+    --blue: #60a5fa;  --blue-bg: #13254a;
+    --gray: #94a3b8;  --gray-bg: #1e2638;
+    --radius: 1.2vw;
+  }
+  [data-theme="light"]{
+    --bg: #eef2fb; --panel: #ffffff; --panel-2: #f1f4fb;
+    --ink: #1b2440; --ink-dim: #5b6480; --accent: #0284c7;
+    --red: #dc2626;   --red-bg: #fde2e2;
+    --green: #16a34a; --green-bg: #dcfce7;
+    --blue: #2563eb;  --blue-bg: #dbeafe;
+    --gray: #64748b;  --gray-bg: #e8ecf5;
+  }
+  *{ box-sizing: border-box; }
+  [hidden]{ display: none !important; }
+  html, body{ height: 100%; margin: 0; }
+  body{
+    font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    background: var(--bg); color: var(--ink);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    padding: 1.6vh 1.6vw; gap: 1.6vh;
+    cursor: default;
+  }
+  .mono{ font-family: 'Consolas', 'Courier New', monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---------- top bar ---------- */
+  .top{
+    display: flex; align-items: center; justify-content: space-between; gap: 2vw;
+    flex: 0 0 auto;
+  }
+  .title{ font-size: clamp(18px, 2.3vw, 60px); font-weight: 800; letter-spacing: .02em; }
+  .title small{ display:block; font-size: .45em; font-weight: 500; color: var(--ink-dim); letter-spacing: .04em; margin-top: .2em; }
+  .badges{ display:flex; gap: .8vw; flex-wrap: wrap; justify-content: center; }
+  .badge{
+    font-size: clamp(12px, 1.3vw, 34px); font-weight: 700;
+    padding: .35em 1em; border-radius: 999px;
+    background: rgba(56,189,248,.14); color: var(--accent); border: 1px solid rgba(56,189,248,.35);
+    white-space: nowrap;
+  }
+  .badge.warn{ background: rgba(250,204,21,.14); color: #facc15; border-color: rgba(250,204,21,.4); }
+  [data-theme="light"] .badge.warn{ color:#a16207; }
+  .corner{ display: flex; align-items: center; gap: 1.6vw; }
+  .date{ text-align: right; padding-right: 1.6vw; border-right: 2px solid rgba(127,127,127,.3); line-height: 1.05; }
+  .date .dw{ font-size: clamp(14px, min(1.9vw, 3.4vh), 54px); font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+  .date .dd{ font-size: clamp(16px, min(2.3vw, 4vh), 66px); font-weight: 800; white-space: nowrap; }
+  .badges{ flex-direction: column; align-items: flex-start; gap: .6vh !important; }
+  .clock{ text-align: right; }
+  .clock .t{ font-size: clamp(24px, 4.2vw, 120px); font-weight: 700; line-height: 1; }
+  .clock .s{ font-size: clamp(10px, .9vw, 22px); color: var(--ink-dim); margin-top: .3em; }
+
+  /* ---------- main area ---------- */
+  .main{
+    flex: 1 1 auto; min-height: 0;
+    display: grid; grid-template-columns: 1.75fr 1fr; gap: 1.6vw;
+  }
+  .status{
+    border-radius: var(--radius);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 2.4vh 3vw; gap: 1.6vh; overflow: hidden;
+    border: .45vw solid var(--gray); background: var(--gray-bg);
+    transition: background .6s, border-color .6s;
+    min-height: 0;
+  }
+  .status .kicker{
+    font-size: clamp(13px, min(1.9vw, 3.1vh), 50px); font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-dim);
+  }
+  .status .big{
+    font-size: clamp(30px, min(7.6vw, 11.5vh), 230px); font-weight: 900; line-height: .95;
+    letter-spacing: .01em; text-transform: uppercase;
+    color: var(--gray);
+  }
+  .status .icon{ font-size: clamp(24px, min(6vw, 8vh), 170px); line-height: 1; }
+  .status .reason:empty{ display: none; }
+  .status .reason{ font-size: clamp(13px, min(1.9vw, 3.1vh), 52px); font-weight: 600; }
+  .cdrow{ display: flex; gap: 1.4vw; justify-content: center; align-items: stretch; flex-wrap: wrap; }
+  .status{ position: relative; }
+  .status .past{
+    position: absolute; top: 1.4vh; left: 1.2vw; text-align: left;
+    background: rgba(0,0,0,.22); border-radius: .8vw; padding: .6vh 1vw;
+  }
+  [data-theme="light"] .status .past{ background: rgba(255,255,255,.65); }
+  .status .past .l{ font-size: clamp(9px, min(.85vw, 1.5vh), 24px); color: var(--ink-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+  .status .past .v{ font-size: clamp(16px, min(2.2vw, 3.8vh), 64px); font-weight: 800; line-height: 1.05; color: #facc15; }
+  [data-theme="light"] .status .past .v{ color: #a16207; }
+  .status .hallc{
+    position: absolute; top: 1.4vh; right: 1.2vw; text-align: right; min-width: 13vw;
+    background: rgba(0,0,0,.22); border-radius: .8vw; padding: .7vh 1vw; border: .2vw solid var(--hc);
+  }
+  [data-theme="light"] .status .hallc{ background: rgba(255,255,255,.65); }
+  .status .hallc.ok{ --hc: var(--green); } .status .hallc.no{ --hc: var(--red); }
+  .status .hallc .hc-top{ display: flex; align-items: center; justify-content: flex-end; gap: .4vw; }
+  .status .hallc .hc-i{ font-size: clamp(14px, min(1.6vw, 2.7vh), 46px); line-height: 1; }
+  .status .hallc .hc-n{ font-size: clamp(12px, min(1.3vw, 2.2vh), 38px); font-weight: 900; text-transform: uppercase; letter-spacing: .03em; color: var(--hc); }
+  .status .hallc .hc-l{ font-size: clamp(9px, min(.85vw, 1.5vh), 24px); color: var(--ink-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; margin-top: .3vh; }
+  .status .hallc .hc-v{ font-size: clamp(16px, min(2.2vw, 3.8vh), 64px); font-weight: 800; line-height: 1.05; color: var(--hc); }
+  /* PIN pad in the bottom-right corner, so the person typing can shield it with their body */
+  #pinOverlay{ align-items: flex-end; justify-content: flex-end; padding: 2vh 1.5vw calc(2vh + env(safe-area-inset-bottom, 0px)); }
+  .status .cd{
+    display: flex; flex-direction: column; align-items: center; gap: .4vh;
+    background: rgba(0,0,0,.22); border-radius: var(--radius); padding: 1.4vh 2.4vw;
+  }
+  [data-theme="light"] .status .cd{ background: rgba(255,255,255,.65); }
+  .status .cd .l{ font-size: clamp(11px, min(1.4vw, 2.3vh), 38px); color: var(--ink-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+  .status .cd .v{ font-size: clamp(26px, min(5.4vw, 8.5vh), 160px); font-weight: 800; line-height: 1; }
+
+  .status.red  { background: var(--red-bg);   border-color: var(--red); }
+  .status.red .big, .status.red .cd .v{ color: var(--red); }
+  .status.green{ background: var(--green-bg); border-color: var(--green); }
+  .status.green .big, .status.green .cd .v{ color: var(--green); }
+  .status.blue { background: var(--blue-bg);  border-color: var(--blue); }
+  .status.blue .big, .status.blue .cd .v{ color: var(--blue); }
+
+  /* period timeline bar */
+  .bar{ width: 100%; max-width: 70vw; }
+  .bar .track{
+    position: relative; height: 3.4vh; min-height: 14px; border-radius: 999px; overflow: hidden;
+    display: flex; background: var(--panel-2);
+  }
+  .bar .seg{ position: absolute; top: 0; bottom: 0; }
+  .bar .seg.r{ background: var(--red); opacity: .85; }
+  .bar .seg.g{ background: var(--green); opacity: .85; }
+  .bar .marker{
+    position: absolute; top: -20%; bottom: -20%; width: .5vw; min-width: 4px;
+    background: var(--ink); border-radius: 4px; box-shadow: 0 0 0 .2vw var(--bg);
+    transform: translateX(-50%); transition: left 1s linear;
+  }
+  .bar .ticks{
+    position: relative; height: 1.4em; margin-top: .8vh;
+    font-size: clamp(11px, min(1.15vw, 2vh), 30px); color: var(--ink-dim); font-weight: 600;
+  }
+  .bar .ticks span{ position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+  .bar .ticks span.tkb{ color: #60a5fa; }
+  .bar .ticks #tk0{ transform: none; }
+  .bar .ticks #tk3{ transform: translateX(-100%); }
+  .bar .ticks #tk1, .bar .ticks #tk2{ color: var(--green); }
+
+  /* current activity (study hall) */
+  .act{
+    display: flex; align-items: center; gap: .8vw; text-align: left;
+    border-radius: 999px; padding: .8vh 1.8vw .8vh 1.2vw;
+    background: rgba(0,0,0,.25); border: .2vw solid var(--ac, #a78bfa);
+  }
+  [data-theme="light"] .act{ background: rgba(255,255,255,.7); }
+  .act .ai{ font-size: clamp(20px, min(3vw, 5vh), 90px); line-height: 1; }
+  .act .an{ display: block; font-size: clamp(13px, min(1.9vw, 3.2vh), 54px); font-weight: 800; color: var(--ac, #a78bfa); text-transform: uppercase; letter-spacing: .03em; }
+  .act .as{ display: block; font-size: clamp(11px, min(1.2vw, 2vh), 32px); color: var(--ink-dim); font-weight: 600; margin-top: .2em; }
+  .act.hall-ok{ --ac: var(--green); } .act.hall-no{ --ac: var(--red); }
+  .act.silent{ --ac: #a78bfa; } .act.brk{ --ac: #60a5fa; } .act.low{ --ac: #fbbf24; } .act.lownoise{ --ac: #fbbf24; }
+  .atrack{ position: relative; height: 2.6vh; min-height: 14px; margin-top: .6vh; border-radius: 6px; overflow: hidden; background: var(--panel-2); }
+  .aseg{ position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;
+         font-size: clamp(9px, min(.95vw, 1.6vh), 24px); font-weight: 700; color: #0b1120; white-space: nowrap; border-right: 2px solid var(--bg); }
+  .aseg.silent{ background: #a78bfa; } .aseg.brk{ background: #60a5fa; } .aseg.low, .aseg.lownoise{ background: #fbbf24; }
+  .r .ph{ grid-column: 1 / -1; font-size: .72em; color: var(--ink-dim); font-weight: 600; }
+
+  /* ---------- schedule list ---------- */
+  .list{
+    background: var(--panel); border-radius: var(--radius);
+    padding: 1.8vh 1.4vw; display: flex; flex-direction: column; min-height: 0;
+  }
+  .list h2{
+    margin: 0 0 1.2vh; font-size: clamp(12px, 1.25vw, 34px); text-transform: uppercase;
+    letter-spacing: .1em; color: var(--ink-dim);
+    display:flex; justify-content: space-between; gap: 1vw;
+  }
+  .rows{ display: flex; flex-direction: column; gap: .7vh; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .rows .r{ flex: 1 1 0; min-height: 0; align-content: center; }
+  .rows .r.brk{ flex: 0 0 auto; }
+  .r{
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .2vh 1vw;
+    background: var(--panel-2); border-radius: .7vw; padding: .9vh 1vw;
+    border: .2vw solid transparent;
+    font-size: clamp(11px, min(1.3vw, 2.2vh), 36px);
+  }
+  .r .n{ font-weight: 700; }
+  .r .tm{ color: var(--ink-dim); text-align: right; white-space: nowrap; }
+  .r .hp{ grid-column: 1 / -1; font-size: .78em; color: var(--green); font-weight: 600; }
+  .r .hp.none{ color: var(--red); }
+  .r.brk{ padding: .35vh 1vw; font-size: clamp(10px, min(.95vw, 1.6vh), 26px); opacity: .7; background: transparent; }
+  .r.lunch{ background: var(--blue-bg); }
+  .r.past{ opacity: .38; }
+  .r.now{ border-color: var(--accent); box-shadow: 0 0 1.2vw rgba(56,189,248,.25); opacity: 1; }
+  .empty{ color: var(--ink-dim); text-align: center; margin: auto; font-size: clamp(14px, 1.6vw, 40px); }
+
+  .foot{
+    flex: 0 0 auto; text-align: center; color: var(--ink-dim);
+    font-size: clamp(11px, 1.05vw, 28px);
+  }
+  .foot b{ color: var(--ink); }
+
+  /* ---------- settings (hidden until the gear / "S" key) ---------- */
+  .gear{
+    position: fixed; right: .8vw; bottom: .8vh; z-index: 5;
+    background: transparent; border: none; color: var(--ink-dim);
+    font-size: clamp(16px, 1.4vw, 36px); opacity: .25; cursor: pointer; padding: .4em;
+  }
+  .gear:hover, .gear:focus{ opacity: 1; }
+  .overlay{
+    position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 10;
+    display: none; align-items: center; justify-content: center; padding: 16px;
+  }
+  .overlay.open{ display: flex; }
+  .dlg{
+    background: var(--panel); color: var(--ink); border-radius: 14px;
+    width: min(560px, 100%); max-height: 92vh; overflow: auto; padding: 20px 22px;
+    font-size: 15px; box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  }
+  .dlg h3{ margin: 0 0 12px; font-size: 18px; }
+  .dlg .f{ display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(127,127,127,.15); }
+  .dlg .f:last-of-type{ border-bottom: none; }
+  .dlg .hint{ font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+  .seg-btns{ display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .dlg button, .dlg select, .dlg input{
+    font: inherit; font-size: 14px; font-weight: 600;
+    border-radius: 8px; border: 1px solid rgba(127,127,127,.3);
+    background: var(--panel-2); color: var(--ink); padding: 7px 11px; cursor: pointer;
+  }
+  .dlg input[type=number]{ width: 80px; text-align: center; cursor: text; }
+  .dlg button.on{ background: var(--accent); border-color: var(--accent); color: #08243b; }
+  .pinbox{ width: min(340px, 100%); text-align: center; }
+  .pindots{ display: flex; justify-content: center; gap: 14px; margin: 14px 0 8px; }
+  .pindots i{ width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink-dim); }
+  .pindots i.on{ background: var(--accent); border-color: var(--accent); }
+  .pinmsg{ font-size: 13px; color: var(--ink-dim); min-height: 1.4em; margin-bottom: 12px; }
+  .pinmsg.err{ color: var(--red); font-weight: 700; }
+  .pinpad{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .dlg .pinpad button{ font-size: 24px; padding: 14px 0; }
+  .shake{ animation: shake .35s; }
+  @keyframes shake{ 25%{ transform: translateX(-8px); } 50%{ transform: translateX(8px); } 75%{ transform: translateX(-4px); } }
+  .testbox{ margin: 12px 0; padding: 12px; border-radius: 10px; border: 1px dashed #facc15; background: rgba(250,204,21,.07); }
+  .testflag{
+    position: fixed; left: 50%; top: 1.2vh; transform: translateX(-50%); z-index: 6;
+    background: #facc15; color: #1b1400; font-weight: 800; letter-spacing: .08em;
+    font-size: clamp(12px, 1.2vw, 30px); padding: .4em 1.2em; border-radius: 999px;
+    display: none; cursor: pointer; box-shadow: 0 6px 24px rgba(0,0,0,.35);
+  }
+  .testflag.on{ display: block; }
+  .dlg{ padding-bottom: 0; }
+  .dlg .dlgfoot{
+    position: sticky; bottom: 0; z-index: 2; background: var(--panel);
+    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    margin: 12px -22px 0; padding: 12px 22px 16px; border-top: 1px solid rgba(127,127,127,.25);
+  }
+  .dlg .dlgfoot .dirty{ margin-right: auto; font-size: 12px; color: #fbbf24; font-weight: 600; }
+  .dlg .dlgfoot button{ padding: 10px 18px; font-weight: 700; }
+  .dlg .dlgfoot .save{ background: var(--accent); color: #08243b; border-color: var(--accent); }
+  .dlg .dlgfoot button:disabled{ opacity: .45; cursor: default; }
+  .dlg .phbox{ margin: 12px 0; padding: 12px; border-radius: 10px; border: 1px dashed #a78bfa; }
+  .dlg .phday{ font-size: 13px; font-weight: 700; color: var(--ink-dim); margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .05em; }
+  .dlg .phrow{ padding: 8px 0; border-top: 1px solid rgba(127,127,127,.15); }
+  .dlg .phrow .ph-h{ display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; }
+  .dlg .phrow .ph-h span{ color: var(--ink-dim); font-weight: 600; font-size: 12px; }
+  .dlg .phrow .ph-c{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+  .dlg .phrow .ph-cell{ border-radius: 8px; padding: 6px; background: rgba(127,127,127,.08); text-align: center; }
+  .dlg .phrow .ph-cell b{ display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .dlg .phrow .ph-cell.silent b{ color: #a78bfa; } .dlg .phrow .ph-cell.brk b{ color: #60a5fa; } .dlg .phrow .ph-cell.low b{ color: #fbbf24; }
+  .dlg .stepper{ display: inline-flex; align-items: center; gap: 4px; }
+  .dlg .stepper button{ width: 30px; height: 30px; padding: 0; font-size: 17px; font-weight: 800; line-height: 1; border-radius: 8px; touch-action: manipulation; user-select: none; }
+  .dlg .stepper input{ width: 48px; padding: 5px 2px; }
+  .dlg .ph-low{ font-size: 20px; font-weight: 800; line-height: 30px; }
+  .dlg .ph-low.warn{ color: #fbbf24; } .dlg .ph-low.bad{ color: var(--red); }
+  .dlg .ph-t{ font-size: 11px; color: var(--ink-dim); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .dlg .ph-msg{ font-size: 12px; margin-top: 5px; min-height: 0; }
+  .dlg .ph-msg.warn{ color: #fbbf24; } .dlg .ph-msg.bad{ color: var(--red); }
+  .gear.armed{ opacity: 1; transform: scale(1.25); color: var(--accent); }
+
+  /* portrait TVs: stack the columns */
+  @media (orientation: portrait){
+    .main{ grid-template-columns: 1fr; grid-template-rows: 1.4fr 1fr; }
+    .status .big{ font-size: clamp(34px, 12vw, 260px); }
+    .status .cd .v{ font-size: clamp(30px, 9vw, 200px); }
+    .bar{ max-width: 90vw; }
+    .r{ font-size: clamp(12px, 2.2vw, 44px); padding: .6vh 1.6vw; }
+    .r.brk{ display: none; }
+    .list{ padding: 1.4vh 2vw; }
+  }
+  /* small windows (laptop preview / phone) */
+  @media (max-width: 700px) and (orientation: landscape), (max-height: 420px){
+    body{ overflow: auto; }
+    .main{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- hall pass sign-out ---------- */
+  /* status panel: pass slots on the left, everything else in .stcore */
+  .status{ flex-direction: column; align-items: stretch; }
+  .strow{ flex: 1 1 auto; min-height: 0; display: flex; align-items: stretch; gap: 1.2vw; width: 100%; }
+  .status > .bar{ align-self: center; }
+  .stcore{ flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1.6vh; }
+  .status .big{ white-space: nowrap; }
+  /* keep the period line clear of the hall-pass box in the top-right corner */
+  .stcore .kicker{ white-space: nowrap; }      /* JS shrinks it to fit beside the corner boxes */
+
+  .slots{
+    flex: 0 0 12.5vw; display: flex; flex-direction: column; justify-content: center; gap: .5em;
+    padding-top: 8vh; min-height: 0; overflow: hidden;      /* top padding keeps clear of the "passed since" box */
+    font-size: clamp(11px, min(1.3vw, 2.3vh), 38px);        /* JS shrinks this so every pass fits */
+  }
+  .slots[hidden]{ display: none; }
+  .slot{
+    font: inherit; font-size: 1em; text-align: left; border: .15em solid transparent; border-radius: .6em; cursor: pointer;
+    padding: .45em .6em; color: #052e16; background: #4ade80; box-shadow: 0 .3em .8em rgba(0,0,0,.28);
+    display: flex; flex-direction: column; gap: .1em; touch-action: manipulation; flex: 0 0 auto;
+  }
+  .slot:active{ transform: scale(.98); }
+  .slot .sn{ font-size: 1em; font-weight: 900; line-height: 1.1; }
+  .slot .ss{ font-size: .62em; font-weight: 700; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slot.closed{ background: var(--panel-2); color: var(--ink-dim); box-shadow: none; cursor: default; }
+  .slot.taken{ background: #f97316; color: #1f0a00; cursor: default; }
+  .slot.taken.late{ border-color: var(--red); box-shadow: 0 0 0 .15em var(--red); }
+  .slot .nm{ font-size: 1em; font-weight: 900; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slot .nm b{ opacity: .6; font-weight: 800; margin-right: .3em; }
+  .slot .row{ display: flex; align-items: center; justify-content: space-between; gap: .4em; }
+  .slot .tm{ font-size: 1.25em; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+  .slot .tm.late-t{ color: #7f1d1d; }
+  .slot button{
+    white-space: nowrap; font: inherit; font-size: .7em; font-weight: 800; cursor: pointer;
+    border: none; border-radius: 999px; padding: .45em .8em; background: #1f0a00; color: #fdba74; touch-action: manipulation;
+  }
+  .hpbtn{
+    font: inherit; font-size: clamp(16px, min(2vw, 3.4vh), 56px); font-weight: 800;
+    padding: .55em 1.6em; border-radius: 999px; border: none; cursor: pointer;
+    background: #facc15; color: #1b1400; touch-action: manipulation;
+  }
+  .hpbtn:disabled{ background: var(--panel-2); color: var(--ink-dim); cursor: default; }
+  /* name picker: a panel on the right, like the settings window */
+  .hpov{
+    position: fixed; inset: 0; z-index: 9; background: rgba(0,0,0,.55);
+    display: none; justify-content: flex-start; align-items: stretch;
+    padding: calc(2vh + env(safe-area-inset-top, 0px)) 1.5vw calc(2vh + env(safe-area-inset-bottom, 0px));
+  }
+  .hpov.open{ display: flex; }
+  .hppanel{
+    width: max(12.5vw, 240px); background: var(--panel); color: var(--ink); border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45); padding: 2vh 1.4vw; display: flex; flex-direction: column; gap: 1.4vh; min-height: 0;
+  }
+  .hppanel .hd{ display: flex; justify-content: space-between; align-items: center; gap: 1vw; }
+  .hppanel h2{ margin: 0; font-size: clamp(14px, min(1.1vw, 2.2vh), 34px); line-height: 1.15; }
+  .hppanel .hd{ flex-wrap: wrap; }
+  .hppanel .hd .x, .hppanel .hpfoot .x{ font-size: clamp(12px, min(.9vw, 1.7vh), 26px); padding: .4em 1em; }
+  .hppanel{ padding: 1.4vh .8vw; gap: 1vh; }
+  .hpfoot{ flex-wrap: wrap; }
+  .hpfoot .hpbtn{ flex: 1 1 auto; font-size: clamp(13px, min(1.1vw, 2vh), 32px); padding: .6em 1em; }
+  .hppanel .x{
+    font: inherit; font-size: clamp(13px, min(1.3vw, 2.3vh), 36px); font-weight: 800; cursor: pointer;
+    background: var(--panel-2); color: var(--ink); border: none; border-radius: 999px; padding: .5em 1.2em;
+  }
+  .hpchips{ display: flex; gap: .6vw; flex-wrap: wrap; }
+  .hpchips[hidden]{ display: none; }
+  .hpchips button{
+    font: inherit; font-size: clamp(12px, min(1.2vw, 2.2vh), 34px); font-weight: 800; cursor: pointer;
+    background: var(--panel-2); color: var(--ink); border: none; border-radius: 999px; padding: .4em 1.1em;
+  }
+  .hpchips button.on{ background: var(--accent); color: #08243b; }
+  .hpgrid{ flex: 1 1 auto; min-height: 0; display: grid; gap: var(--g, 10px); overflow: hidden; }
+  .hpgrid button{
+    font: inherit; font-weight: 800; cursor: pointer; min-height: 0; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    background: var(--panel-2); color: var(--ink); border: .2vw solid transparent; border-radius: .8vw; padding: 0 .5vw;
+    touch-action: manipulation;
+  }
+  .hpgrid button:active, .hpgrid button.on{ background: #facc15; color: #1b1400; }
+  .hpgrid button.dst{ display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15em; line-height: 1.1; }
+  .hpgrid button.dst .lim{ font-size: .62em; font-weight: 700; opacity: .75; }
+  .hppanel{ overflow: hidden; }
+  .hpgrid .msg{ grid-column: 1 / -1; align-self: center; color: var(--ink-dim); font-size: clamp(14px, min(1.6vw, 2.8vh), 44px); text-align: center; }
+  .hpfoot{ display: flex; gap: 1vw; align-items: center; justify-content: flex-end; }
+  .hpfoot[hidden]{ display: none; }
+  .dlg .destgrid{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 14px; margin-top: 8px; }
+  .dlg .destgrid label{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .dlg .destgrid input{ width: 64px; }
+  .dlg .sndlib{ display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+  .dlg .sndlib span{ display: inline-flex; align-items: center; gap: 4px; font-size: 12px; background: var(--panel-2); border-radius: 999px; padding: 3px 4px 3px 10px; max-width: 100%; }
+  .dlg .sndlib span b{ font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+  .dlg .sndlib button{ padding: 1px 7px; font-size: 12px; border-radius: 999px; }
+  .dlg .sndrow{ display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 9px 0; border-top: 1px solid rgba(127,127,127,.15); }
+  .dlg .sndrow .top{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  /* long file names must not push the slider and Test button out of the window */
+  .dlg .sndrow .ctl{ display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(90px, 1fr) 40px; align-items: center; gap: 8px; }
+  .dlg .sndrow select{ width: 100%; min-width: 0; max-width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+  .dlg .sndrow input[type=range]{ width: 100%; min-width: 0; accent-color: var(--accent); cursor: pointer; }
+  .dlg .sndrow .top > span{ min-width: 0; }
+  .dlg .sndrow .play{ flex: 0 0 auto; white-space: nowrap; }
+  .dlg .sndrow .vol{ width: 40px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-dim); font-size: 13px; }
+  .dlg .sndrow .when{ font-size: 12px; color: var(--ink-dim); }
+  .sndwarn{
+    position: fixed; left: 50%; bottom: calc(1.2vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 8;
+    background: #facc15; color: #1b1400; font-weight: 800; border: none; border-radius: 999px; padding: .6em 1.4em;
+    font-size: clamp(13px, min(1.2vw, 2.1vh), 32px); cursor: pointer; box-shadow: 0 .6vh 2vh rgba(0,0,0,.35);
+  }
+  .sndwarn[hidden]{ display: none; }
+  .toast{
+    position: fixed; left: 50%; top: calc(1.2vh + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 12;
+    background: #16a34a; color: #fff; font-weight: 800; border-radius: 999px; padding: .6em 1.4em;
+    font-size: clamp(13px, min(1.1vw, 2vh), 30px); box-shadow: 0 .6vh 2vh rgba(0,0,0,.35); max-width: 90vw; text-align: center;
+  }
+  .toast.bad{ background: #b45309; }
+  .toast[hidden]{ display: none; }
+  .dlg .hptable{ width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+  .dlg .hptable td, .dlg .hptable th{ text-align: left; padding: 4px 6px; border-bottom: 1px solid rgba(127,127,127,.15); }
+  .dlg .hptable th{ color: var(--ink-dim); font-weight: 600; }
+  .dlg .hptable .late{ color: var(--red); font-weight: 700; }
+  .hpbox{ margin: 12px 0; padding: 12px; border-radius: 10px; border: 1px dashed var(--accent); }
+  .dlg input[type=text], .dlg input[type=url]{ cursor: text; width: 100%; }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="top">
+  <div class="title">📚 Study Hall · 10/10<small id="dateLine">--</small></div>
+  <div class="badges">
+    <span class="badge" id="dayBadge">--</span>
+    <span class="badge" id="bandBadge">--</span>
+  </div>
+  <div class="corner">
+    <div class="date"><div class="dw" id="dateW">--</div><div class="dd" id="dateD">--</div></div>
+    <div class="clock">
+      <div class="t mono" id="clock">--:--</div>
+      <div class="s" id="syncLine">syncing…</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="status" id="status">
+    <div class="past" id="pastBox" hidden>
+      <div class="l" id="pastLabel">Time passed</div>
+      <div class="v mono" id="pastValue">--:--</div>
+    </div>
+    <div class="hallc" id="hallCorner" hidden>
+      <div class="hc-top"><span class="hc-i" id="hcIcon"></span><span class="hc-n" id="hcName"></span></div>
+      <div class="hc-l" id="hcLabel"></div>
+      <div class="hc-v mono" id="hcValue">--:--</div>
+    </div>
+    <div class="strow">
+    <div class="slots" id="hpSlots" hidden></div>
+    <div class="stcore">
+    <div class="kicker" id="kicker">Loading…</div>
+    <div class="icon" id="icon"></div>
+    <div class="big" id="big">—</div>
+    <div class="reason" id="reason"></div>
+    <div class="act" id="act" hidden><span class="ai" id="actIcon"></span><span><span class="an" id="actName"></span><span class="as" id="actSub"></span></span></div>
+    <div class="cdrow">
+      <div class="cd" id="cdBox">
+        <div class="l" id="cdLabel"></div>
+        <div class="v mono" id="cdValue">--:--</div>
+      </div>
+    </div>
+    </div>
+    </div>
+    <div class="bar" id="bar" hidden>
+      <div class="track" id="track">
+        <div class="seg r" id="segA"></div>
+        <div class="seg g" id="segB"></div>
+        <div class="seg r" id="segC"></div>
+        <div class="marker" id="marker"></div>
+      </div>
+      <div class="atrack" id="actTrack" hidden></div>
+      <div class="ticks mono"><span id="tk0"></span><span id="tk1"></span><span id="tk2"></span><span id="tk3"></span></div>
+    </div>
+  </div>
+
+  <div class="list">
+    <h2><span>Today</span><span id="listHint">Hall pass window</span></h2>
+    <div class="rows" id="rows"></div>
+  </div>
+</div>
+
+<div class="foot" id="foot">No one leaves the classroom during the <b>first 10</b> and <b>last 10</b> minutes of class.</div>
+
+<div class="testflag" id="testFlag" title="Click to go back to live time">🧪 TEST MODE — click to go back to live</div>
+<div class="hpov" id="hpSheet" aria-label="Hall pass sign-out">
+  <div class="hppanel">
+    <div class="hd">
+      <h2 id="hpTitle">Tap your name</h2>
+      <button class="x" id="hpCancel">Cancel</button>
+    </div>
+    <div class="hpchips" id="hpChips"></div>
+    <div class="hpgrid" id="hpGrid"></div>
+    <div class="hpfoot" id="hpFoot" hidden>
+      <button class="x" id="hpNotMe">Not me</button>
+      <button class="hpbtn" id="hpGo" disabled>Leave class</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+<button class="sndwarn" id="sndWarn" hidden>🔇 Tap here to turn on bell sounds</button>
+<button class="gear" id="gearBtn" title="Settings (S)">⚙</button>
+
+<div class="overlay" id="pinOverlay">
+  <div class="dlg pinbox">
+    <h3>🔒 Enter PIN</h3>
+    <div class="pindots" id="pinDots"><i></i><i></i><i></i><i></i></div>
+    <div class="pinmsg" id="pinMsg">Enter the 4-digit PIN to open settings</div>
+    <div class="pinpad" id="pinPad"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="dlg">
+    <h3>Settings</h3>
+
+    <div class="f"><span>Grade band</span><div class="seg-btns" id="bandBtns"></div></div>
+
+    <div class="f">
+      <div>Today's schedule<div class="hint">For today only. Auto follows the A/B calendar.</div></div>
+      <div class="seg-btns" id="ovBtns"></div>
+    </div>
+
+    <div class="f">
+      <div>No-leave window<div class="hint">Minutes at the start and at the end of class.</div></div>
+      <input type="number" id="ruleMin" min="1" max="40" step="1">
+    </div>
+
+    <div class="f"><span>Theme</span><div class="seg-btns" id="themeBtns"></div></div>
+    <div class="f">
+      <div>Room<div class="hint">Shown under the title. Leave empty to hide.</div></div>
+      <input type="text" id="roomIn" style="width:200px" placeholder="Room 244">
+    </div>
+    <div class="f">
+      <div>Teacher(s)<div class="hint">Separate names with · or a comma.</div></div>
+      <input type="text" id="teachIn" style="width:260px" placeholder="Ms. Ebru · Ms. Cabeza">
+    </div>
+
+    <div class="f">
+      <div>Bell shift (seconds)<div class="hint">Match the school bell. + makes the page run later.</div></div>
+      <div class="seg-btns">
+        <button data-off="-1">−1</button>
+        <input type="number" id="offInput" step="0.1">
+        <button data-off="1">+1</button>
+      </div>
+    </div>
+
+
+    <div class="phbox">
+      <div class="f" style="border:none;padding-top:0">
+        <div>📚 Study Hall phases<div class="hint">Silent work and Break in minutes. Low voice gets the rest of the period.</div></div>
+        <button id="phReset">Reset to slides</button>
+      </div>
+      <div id="phTables"></div>
+    </div>
+
+    <div class="f">
+      <div>🔒 Require PIN<div class="hint">Off: the ⚙ button opens Settings without a PIN.</div></div>
+      <div class="seg-btns" id="pinOnBtns"></div>
+    </div>
+    <div class="f">
+      <div>🔒 Settings PIN<div class="hint" id="pinHint">4 digits</div></div>
+      <div class="seg-btns">
+        <input type="password" id="pinNew" inputmode="numeric" maxlength="4" placeholder="New" style="width:78px;cursor:text">
+        <input type="password" id="pinNew2" inputmode="numeric" maxlength="4" placeholder="Repeat" style="width:78px;cursor:text">
+        <button id="pinSave">Save PIN</button>
+      </div>
+    </div>
+
+    <div class="hpbox">
+      <div class="f" style="border:none;padding-top:0">
+        <div>🎫 Hall pass sign-out<div class="hint" id="hpStatusLine">Not connected</div></div>
+        <div class="seg-btns">
+          <button id="hpFileBtn">📄 Load from file</button>
+          <button id="hpReload">Reload names</button>
+          <button id="hpTestRow">🧪 Send test row</button>
+          <input type="file" id="hpFile" accept=".txt,.json,text/plain" hidden>
+        </div>
+      </div>
+      <div class="f" style="display:block">
+        <div>Google Apps Script URL<div class="hint">From Deploy → Web app. Ends with /exec.</div></div>
+        <input type="url" id="hpUrl" placeholder="https://script.google.com/macros/s/…/exec" style="margin-top:6px">
+      </div>
+      <div class="f">
+        <div>Teacher code<div class="hint">The teacher's personal code (the setup link fills it in).</div></div>
+        <input type="password" id="hpKey" style="width:170px;cursor:text">
+      </div>
+      <div class="f" style="display:block">
+        <div>Time limit by destination<div class="hint">Minutes before the pass card turns red. 0 hides that option from students.</div></div>
+        <div class="destgrid" id="destGrid"></div>
+      </div>
+      <div class="f">
+        <div>Number of hall passes<div class="hint">How many "Pass #" buttons are shown.</div></div>
+        <input type="number" id="hpMax" min="1" max="6" step="1">
+      </div>
+      <div class="f" style="display:block">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span>Today's passes (this board)</span>
+          <button id="hpEndAll">End all open passes</button>
+        </div>
+        <div id="hpLogBox"></div>
+      </div>
+    </div>
+
+    <div class="hpbox sndbox">
+      <div class="f" style="border:none;padding-top:0">
+        <div>🔔 Sounds<div class="hint" id="sndHint">Pick an MP3 for each moment. Files stay saved on this board.</div></div>
+        <div class="seg-btns">
+          <button id="sndAdd" style="white-space:nowrap">＋ Add MP3…</button>
+          <input type="file" id="sndFile" accept="audio/mpeg,audio/mp3,audio/*,.mp3" multiple hidden>
+        </div>
+      </div>
+      <div class="sndlib" id="sndLib"></div>
+      <div id="sndRows"></div>
+    </div>
+
+    <div class="testbox">
+      <div class="f" style="border:none;padding-top:0">
+        <div>🧪 Test mode<div class="hint">Pretend it is another time. The clock keeps running from there. Resets when the page is reloaded.</div></div>
+      </div>
+      <div class="seg-btns" style="justify-content:flex-start;margin-bottom:8px" id="presetBtns"></div>
+      <div class="seg-btns" style="justify-content:flex-start">
+        <input type="datetime-local" id="testDT" step="1" style="cursor:text">
+        <button id="testGo">Go</button>
+        <button id="testLive">⏹ Back to live</button>
+      </div>
+      <div class="hint" style="margin-top:6px">In test mode: <b>←/→</b> ±1 min · <b>Shift+←/→</b> ±10 min · <b>L</b> back to live.</div>
+    </div>
+
+    <div class="hint">Open Settings: tap <b>⚙</b> twice quickly, or press <b>S</b>. <b>F</b> or double‑click: full screen. <b>Esc</b> = Cancel. Settings, PIN and hall pass setup are saved on this device.</div>
+    <div class="dlgfoot">
+      <span class="dirty" id="dirtyNote"></span>
+      <button id="dlgCancel">Cancel</button>
+      <button id="dlgApply">Apply</button>
+      <button class="save" id="dlgSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   CALENDAR + BELL TIMES — copied from the OSHS 2026–2027 bell schedule page.
+   Edit here if anything changes.
+   ===================================================================== */
+window.CALENDAR = {"2026-08-11":"A Day Regular","2026-08-12":"B Day Wednesday","2026-08-13":"A Day Regular","2026-08-14":"B Day Regular","2026-08-17":"A Day Regular","2026-08-18":"B Day Regular","2026-08-19":"A Day Wednesday","2026-08-20":"B Day Regular","2026-08-21":"A Day Regular","2026-08-24":"B Day Regular","2026-08-25":"A Day Regular","2026-08-26":"B Day Wednesday","2026-08-27":"A Day Regular","2026-08-28":"B Day Regular","2026-08-31":"A Day Regular","2026-09-01":"B Day Regular","2026-09-02":"A Day Wednesday","2026-09-03":"B Day Regular","2026-09-04":"A Day Regular","2026-09-07":null,"2026-09-08":"B Day Regular","2026-09-09":"A Day Wednesday","2026-09-10":"B Day Regular","2026-09-11":"A Day Regular","2026-09-14":"B Day Regular","2026-09-15":"A Day Regular","2026-09-16":"B Day Wednesday","2026-09-17":"A Day Regular","2026-09-18":"B Day Regular","2026-09-21":"A Day Regular","2026-09-22":"B Day Regular","2026-09-23":"A Day Wednesday","2026-09-24":"B Day Regular","2026-09-25":"A Day Regular","2026-09-28":"B Day Regular","2026-09-29":"A Day Regular","2026-09-30":"B Day Wednesday","2026-10-01":"A Day Regular","2026-10-02":"B Day Regular","2026-10-05":"A Day Regular","2026-10-06":"B Day Regular","2026-10-07":"A Day Wednesday","2026-10-08":"B Day Regular","2026-10-09":"A Day Regular","2026-10-12":null,"2026-10-13":"B Day Regular","2026-10-14":"A Day Wednesday","2026-10-15":"B Day Regular","2026-10-16":"A Day Regular","2026-10-19":"B Day Regular","2026-10-20":"A Day Regular","2026-10-21":"B Day Wednesday","2026-10-22":"A Day Regular","2026-10-23":"B Day Regular","2026-10-26":"A Day Regular","2026-10-27":"B Day Regular","2026-10-28":"A Day Wednesday","2026-10-29":"B Day Regular","2026-10-30":"A Day Regular","2026-11-02":"B Day Regular","2026-11-03":"A Day Regular","2026-11-04":"B Day Wednesday","2026-11-05":"A Day Regular","2026-11-06":"B Day Regular","2026-11-09":"A Day Regular","2026-11-10":"B Day Regular","2026-11-11":"A Day Wednesday","2026-11-12":"B Day Regular","2026-11-13":"A Day Regular","2026-11-16":"B Day Regular","2026-11-17":"A Day Regular","2026-11-18":"B Day Wednesday","2026-11-19":"A Day Regular","2026-11-20":"B Day Regular","2026-11-23":null,"2026-11-24":null,"2026-11-25":null,"2026-11-26":null,"2026-11-27":null,"2026-11-30":"A Day Regular","2026-12-01":"B Day Regular","2026-12-02":"A Day Wednesday","2026-12-03":"B Day Regular","2026-12-04":"A Day Regular","2026-12-07":"B Day Regular","2026-12-08":"A Day Regular","2026-12-09":"B Day Wednesday","2026-12-10":"A Day Regular","2026-12-11":"B Day Regular","2026-12-14":"A Day Regular","2026-12-15":"B Day Regular","2026-12-16":"A Day Wednesday","2026-12-17":"B Day Regular","2026-12-18":"A Day Regular","2026-12-21":null,"2026-12-22":null,"2026-12-23":null,"2026-12-24":null,"2026-12-25":null,"2026-12-28":null,"2026-12-29":null,"2026-12-30":null,"2026-12-31":null,"2027-01-01":null,"2027-01-04":null,"2027-01-05":"B Day Regular","2027-01-06":"A Day Wednesday","2027-01-07":"B Day Regular","2027-01-08":"A Day Regular","2027-01-11":"B Day Regular","2027-01-12":"A Day Regular","2027-01-13":"B Day Wednesday","2027-01-14":"A Day Regular","2027-01-15":"B Day Regular","2027-01-18":null,"2027-01-19":"A Day Regular","2027-01-20":"B Day Wednesday","2027-01-21":"A Day Regular","2027-01-22":"B Day Regular","2027-01-25":"A Day Regular","2027-01-26":"B Day Regular","2027-01-27":"A Day Wednesday","2027-01-28":"B Day Regular","2027-01-29":"A Day Regular","2027-02-01":"B Day Regular","2027-02-02":"A Day Regular","2027-02-03":"B Day Wednesday","2027-02-04":"A Day Regular","2027-02-05":"B Day Regular","2027-02-08":"A Day Regular","2027-02-09":"B Day Regular","2027-02-10":"A Day Wednesday","2027-02-11":"B Day Regular","2027-02-12":"A Day Regular","2027-02-15":null,"2027-02-16":"B Day Regular","2027-02-17":"A Day Wednesday","2027-02-18":"B Day Regular","2027-02-19":"A Day Regular","2027-02-22":"B Day Regular","2027-02-23":"A Day Regular","2027-02-24":"B Day Wednesday","2027-02-25":"A Day Regular","2027-02-26":"B Day Regular","2027-03-01":"A Day Regular","2027-03-02":"B Day Regular","2027-03-03":"A Day Wednesday","2027-03-04":"B Day Regular","2027-03-05":"A Day Regular","2027-03-08":"B Day Regular","2027-03-09":"A Day Regular","2027-03-10":"B Day Wednesday","2027-03-11":"A Day Regular","2027-03-12":null,"2027-03-15":null,"2027-03-16":null,"2027-03-17":null,"2027-03-18":null,"2027-03-19":null,"2027-03-22":"B Day Regular","2027-03-23":"A Day Regular","2027-03-24":"B Day Wednesday","2027-03-25":"A Day Regular","2027-03-26":"B Day Regular","2027-03-29":"A Day Regular","2027-03-30":"B Day Regular","2027-03-31":"A Day Wednesday","2027-04-01":"B Day Regular","2027-04-02":"A Day Regular","2027-04-05":"B Day Regular","2027-04-06":"A Day Regular","2027-04-07":"B Day Wednesday","2027-04-08":"A Day Regular","2027-04-09":"B Day Regular","2027-04-12":"A Day Regular","2027-04-13":"B Day Regular","2027-04-14":"A Day Wednesday","2027-04-15":"B Day Regular","2027-04-16":"A Day Regular","2027-04-19":"B Day Regular","2027-04-20":"A Day Regular","2027-04-21":"B Day Wednesday","2027-04-22":"A Day Regular","2027-04-23":null,"2027-04-26":"B Day Regular","2027-04-27":"A Day Regular","2027-04-28":"B Day Wednesday","2027-04-29":"A Day Regular","2027-04-30":"B Day Regular","2027-05-03":"A Day Regular","2027-05-04":"B Day Regular","2027-05-05":"A Day Wednesday","2027-05-06":"B Day Regular","2027-05-07":"A Day Regular","2027-05-10":"B Day Regular","2027-05-11":"A Day Regular","2027-05-12":"B Day Wednesday","2027-05-13":"A Day Regular","2027-05-14":"B Day Regular","2027-05-17":"A Day Regular","2027-05-18":"B Day Regular","2027-05-19":"A Day Wednesday","2027-05-20":"B Day Regular","2027-05-21":"A Day Regular","2027-05-24":"B Day Regular","2027-05-25":"A Day Regular","2027-05-26":"B Day Wednesday"};
+
+window.SCHEDULE_TABLES = {
+  "912": {
+    regular: {
+      label: "Block Day",
+      rows: [
+        { label: "Period 1", type: "class", start: "07:50", end: "09:22" },
+        { label: "Break",    type: "break", start: "09:22", end: "09:27" },
+        { label: "Period 2", type: "class", start: "09:27", end: "10:55" },
+        { label: "Break",    type: "break", start: "10:55", end: "11:00" },
+        { label: "Period 3", type: "class", start: "11:00", end: "12:28" },
+        { label: "Break",    type: "break", start: "12:28", end: "12:33" },
+        { label: "Lunch",    type: "lunch", start: "12:33", end: "13:13" },
+        { label: "Break",    type: "break", start: "13:13", end: "13:18" },
+        { label: "Period 4", type: "class", start: "13:18", end: "14:50" },
+        { label: "Break",    type: "break", start: "14:50", end: "14:55" },
+        { label: "Clubs",    type: "class", start: "14:55", end: "15:30" }
+      ]
+    },
+    wednesday: {
+      label: "Wednesday",
+      rows: [
+        { label: "Period 1", type: "class", start: "07:50", end: "09:05" },
+        { label: "Break",    type: "break", start: "09:05", end: "09:10" },
+        { label: "Period 2", type: "class", start: "09:10", end: "10:22" },
+        { label: "Break",    type: "break", start: "10:22", end: "10:27" },
+        { label: "Period 3", type: "class", start: "10:27", end: "11:40" },
+        { label: "Break",    type: "break", start: "11:40", end: "11:45" },
+        { label: "Lunch",    type: "lunch", start: "11:45", end: "12:25" },
+        { label: "Break",    type: "break", start: "12:25", end: "12:30" },
+        { label: "Period 4", type: "class", start: "12:30", end: "13:45" },
+        { label: "Break",    type: "break", start: "13:45", end: "13:50" },
+        { label: "Clubs",    type: "class", start: "13:50", end: "14:25" }
+      ]
+    }
+  },
+  "1011": {
+    regular: {
+      label: "Block Day",
+      rows: [
+        { label: "Period 1", type: "class", start: "07:50", end: "09:22" },
+        { label: "Break",    type: "break", start: "09:22", end: "09:27" },
+        { label: "Period 2", type: "class", start: "09:27", end: "10:55" },
+        { label: "Break",    type: "break", start: "10:55", end: "11:00" },
+        { label: "Lunch",    type: "lunch", start: "11:00", end: "11:40" },
+        { label: "Break",    type: "break", start: "11:40", end: "11:45" },
+        { label: "Period 3", type: "class", start: "11:45", end: "13:13" },
+        { label: "Break",    type: "break", start: "13:13", end: "13:18" },
+        { label: "Period 4", type: "class", start: "13:18", end: "14:50" },
+        { label: "Break",    type: "break", start: "14:50", end: "14:55" },
+        { label: "Clubs",    type: "class", start: "14:55", end: "15:30" }
+      ]
+    },
+    wednesday: {
+      label: "Wednesday",
+      rows: [
+        { label: "Period 1", type: "class", start: "07:50", end: "09:05" },
+        { label: "Break",    type: "break", start: "09:05", end: "09:10" },
+        { label: "Period 2", type: "class", start: "09:10", end: "10:22" },
+        { label: "Break",    type: "break", start: "10:22", end: "10:27" },
+        { label: "Lunch",    type: "lunch", start: "10:27", end: "11:07" },
+        { label: "Break",    type: "break", start: "11:07", end: "11:12" },
+        { label: "Period 3", type: "class", start: "11:12", end: "12:25" },
+        { label: "Break",    type: "break", start: "12:25", end: "12:30" },
+        { label: "Period 4", type: "class", start: "12:30", end: "13:45" },
+        { label: "Break",    type: "break", start: "13:45", end: "13:50" },
+        { label: "Clubs",    type: "class", start: "13:50", end: "14:25" }
+      ]
+    }
+  }
+};
+
+const BAND_LABELS = { "912": "9th–12th Grade", "1011": "10th–11th Grade" };
+
+
+/* =====================================================================
+   STUDY HALL (Room 244 · Ms. Ebru · Ms. Cabeza) — periods 1, 2 and 4 run
+   silent work → break → low voice; the minutes are set in Settings.
+   Period 3 is one long low-voice period.
+   ===================================================================== */
+const SH_INFO = { title: "Study Hall", room: "Room 244", teachers: "Ms. Ebru · Ms. Cabeza" };
+const PH = { silent:  { icon: "🤫", name: "Individual silent work" },
+             brk:     { icon: "☕", name: "Break" },
+             low:     { icon: "🗣️", name: "Low voice · work in pairs" },
+             lownoise:{ icon: "🔉", name: "Independent low-noise work" } };
+// Phase times are no longer fixed here: they come from Settings → Study Hall phases (S.phases).
+
+/* ================= Settings (IndexedDB, with localStorage fallback) ================= */
+const DEFAULT_PIN = "0000";
+const DEFAULTS = {
+  pin: DEFAULT_PIN, pinOn: true,
+  band: "1011", hour12: true, theme: "dark",
+  // Study Hall phases, in minutes from the start of the period; "Low voice" gets whatever is left.
+  // Defaults reproduce the schedule slides (the 1-minute gaps on the slides belong to the phase before).
+  phases: {
+    regular:   { "1": { silent: 41, brk: 11 }, "2": { silent: 40, brk: 10 }, "4": { silent: 41, brk: 11 } },
+    wednesday: { "1": { silent: 40, brk: 10 }, "2": { silent: 40, brk: 10 }, "4": { silent: 40, brk: 10 } }
+  },
+  ruleMin: 10, clubsRule: true,
+  offsetSec: 0, localTs: "",
+  overrides: {},  // iso -> "regular" | "wednesday" | "noschool"
+  room: "Room 244", teachers: "Ms. Ebru · Ms. Cabeza",
+  hp: { url: "", key: "", limitMin: 8, maxOut: 1, device: "" },
+  // where students can go, and how many minutes each is allowed (0 = hide the option)
+  dests: [
+    { icon: "🚻", name: "Restroom", min: 7 },
+    { icon: "💧", name: "Water",    min: 3 },
+    { icon: "🎒", name: "Locker",   min: 3 },
+    { icon: "🏢", name: "Office",   min: 10 },
+    { icon: "🩺", name: "Nurse",    min: 15 },
+    { icon: "📍", name: "Other",    min: 5 }
+  ],
+  // bell sounds: id of a file in the sound library ("" = silent) + volume 0–100
+  snd: {
+    start:    { id: "", vol: 80 },
+    brkStart: { id: "", vol: 80 },
+    brkEnd:   { id: "", vol: 80 },
+    end:      { id: "", vol: 80 }
+  },
+  hpActive: [], hpQueue: [], hpLog: {}, roster: {}, rosterIds: {}, teacherName: "", rosterAt: 0
+};
+let S = JSON.parse(JSON.stringify(DEFAULTS));
+
+function openIDB(){
+  return new Promise((res, rej) => {
+    if(!("indexedDB" in window)) return rej(new Error("no idb"));
+    const r = indexedDB.open("hallpass_1010_db", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function loadSettings(){
+  let saved = null;
+  try{
+    const db = await openIDB();
+    saved = await new Promise((res) => {
+      const q = db.transaction("kv","readonly").objectStore("kv").get("settings");
+      q.onsuccess = () => res(q.result || null); q.onerror = () => res(null);
+    });
+  }catch(e){}
+  if(!saved){ try{ saved = JSON.parse(localStorage.getItem("hallpass_1010") || "null"); }catch(e){} }
+  if(saved && typeof saved === "object"){
+    S = { ...DEFAULTS, ...saved, overrides: { ...(saved.overrides || {}) } };
+  }
+  // fixed (no longer adjustable): 12-hour clock, rule applies to Clubs, internet time servers only
+  S.hour12 = true; S.clubsRule = true; S.localTs = "";
+  // drop overrides from past days
+  const today = toISO(now());
+  Object.keys(S.overrides).forEach(k => { if(k < today) delete S.overrides[k]; });
+}
+/* While Settings is open, changes are only a preview: what gets stored is the last
+   applied version (committed) plus live data such as passes and the send queue.
+   Apply / Save store the preview; Cancel puts the applied version back. */
+const RUNTIME_KEYS = ["hpActive", "hpQueue", "hpLog", "roster", "rosterIds", "teacherName", "rosterAt"];
+let committed = null;
+const clone = o => JSON.parse(JSON.stringify(o));
+function settingsPart(o){ const c = clone(o); RUNTIME_KEYS.forEach(k => delete c[k]); return c; }
+function toStore(){
+  if(!committed) return S;
+  const o = clone(committed);
+  RUNTIME_KEYS.forEach(k => { if(k in S) o[k] = S[k]; });
+  return o;
+}
+async function save(){
+  const data = toStore();
+  try{ localStorage.setItem("hallpass_1010", JSON.stringify(data)); }catch(e){}
+  try{
+    const db = await openIDB();
+    db.transaction("kv","readwrite").objectStore("kv").put(data, "settings");
+  }catch(e){}
+  if(committed) dlgDirty();
+}
+
+/* ================= Time ================= */
+let syncOffsetMs = 0;
+let testOffsetMs = 0;   // test mode only, never saved
+function liveMs(){ return Date.now() + syncOffsetMs + Math.round((S.offsetSec || 0) * 1000); }
+function now(){ return new Date(liveMs() + testOffsetMs); }
+const pad2 = n => String(n).padStart(2, "0");
+function toISO(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+const toMin = hhmm => { const [h,m] = hhmm.split(":").map(Number); return h*60 + m; };
+function fmtMin(total){
+  total = Math.round(total);
+  const h = Math.floor(total/60), m = total % 60;
+  if(S.hour12){ const hh = (h % 12) || 12; return `${hh}:${pad2(m)}`; }
+  return `${pad2(h)}:${pad2(m)}`;
+}
+function fmtLeft(sec){
+  sec = Math.max(0, Math.ceil(sec));
+  const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60;
+  return h ? `${h}:${pad2(m)}:${pad2(s)}` : `${pad2(m)}:${pad2(s)}`;
+}
+
+function parseAnyTimeJSON(d){
+  if(!d || typeof d !== "object") return null;
+  if(typeof d.unixtime === "number") return d.unixtime * 1000;
+  for(const k of ["dateTime","utc_datetime","datetime"]){
+    if(typeof d[k] === "string"){
+      const s = (k === "dateTime" && !/[Zz]$|[+-]\d\d:\d\d$/.test(d[k])) ? d[k] + "Z" : d[k];
+      const ms = Date.parse(s); if(!isNaN(ms)) return ms;
+    }
+  }
+  return null;
+}
+const TIME_SERVERS = [
+  { name: "timeapi.io",    url: "https://timeapi.io/api/Time/current/zone?timeZone=UTC" },
+  { name: "timeapi.world", url: "https://gateway.timeapi.world/timezone/Etc/UTC" },
+  { name: "time.now",      url: "https://time.now/developer/api/timezone/Etc/UTC" }
+];
+let syncStatus = "device time";
+async function syncTime(){
+  const list = [];
+  if(S.localTs && S.localTs.trim()) list.push({ name: "local network", url: S.localTs.trim() });
+  list.push(...TIME_SERVERS);
+  for(const ep of list){
+    try{
+      const t0 = Date.now();
+      const r = await fetch(ep.url, { cache: "no-store" });
+      if(!r.ok) continue;
+      const ms = parseAnyTimeJSON(await r.json());
+      if(!ms) continue;
+      const rtt = Date.now() - t0;
+      syncOffsetMs = ms + rtt/2 - Date.now();
+      syncStatus = `synced · ${ep.name}`;
+      renderSyncText(); return true;
+    }catch(e){}
+  }
+  syncStatus = "device time (sync failed)";
+  renderSyncText(); return false;
+}
+function renderSyncText(){
+  const off = S.offsetSec ? ` · shift ${S.offsetSec > 0 ? "+" : ""}${(+S.offsetSec).toFixed(1)}s` : "";
+  document.getElementById("syncLine").textContent = syncStatus + off;
+  const h = document.getElementById("syncHint"); if(h) h.textContent = syncStatus;
+}
+
+/* ================= Schedule for today ================= */
+function todayInfo(d){
+  const iso = toISO(d);
+  const raw = window.CALENDAR[iso];
+  const cal = raw ? { letter: raw.split(" ")[0], type: raw.split(" ")[2].toLowerCase() } : null;
+  const ov = S.overrides[iso];
+  if(ov) return { letter: cal ? cal.letter : null, type: ov, override: true };
+  if(!cal) return { letter: null, type: "noschool", override: false };
+  return { ...cal, override: false };
+}
+function rowsFor(info){
+  const t = window.SCHEDULE_TABLES[S.band];
+  if(!t || info.type === "noschool" || !t[info.type]) return [];
+  const base = t[info.type].rows.filter(r => !/club/i.test(r.label));
+  while(base.length && base[base.length - 1].type === "break") base.pop();
+  return base.map(r => {
+    const row = { ...r, s: toMin(r.start), e: toMin(r.end) };
+    if(row.type === "break") row.label = "Transition";
+    const m = /Period (\d)/.exec(r.label);
+    if(m){
+      row.code = `${info.letter || "A"}${m[1]}`;
+      const cfg = row.type === "class" && S.phases && S.phases[info.type] && S.phases[info.type][m[1]];
+      if(cfg) row.sh = shFromDurations(row, cfg, m[1] === "4" ? "lownoise" : "low");
+      // Period 3: same layout as the Study Hall periods, but the whole period is one long "Low voice"
+      else if(m[1] === "3" && row.type === "class") row.sh = {
+        tenten: [[row.s, row.s + S.ruleMin], [row.e - S.ruleMin, row.e]],
+        phases: [{ k: "low", s: row.s, e: row.e }]
+      };
+    }
+    return row;
+  });
+}
+// Study Hall: silent → break → low voice, built from the durations in Settings
+function shFromDurations(row, cfg, lowKind){
+  const L = row.e - row.s;
+  const silent = Math.max(0, Math.min(L, Math.round(+cfg.silent || 0)));
+  const brk = Math.max(0, Math.min(L - silent, Math.round(+cfg.brk || 0)));
+  const a = row.s + silent, b = a + brk;
+  const phases = [];
+  if(silent > 0) phases.push({ k: "silent", s: row.s, e: a });
+  if(brk > 0)    phases.push({ k: "brk", s: a, e: b });
+  if(b < row.e)  phases.push({ k: lowKind, s: b, e: row.e });
+  return { tenten: [[row.s, row.s + S.ruleMin], [row.e - S.ruleMin, row.e]], phases };
+}
+// slide times are written 12-hour without AM/PM: anything before 7:00 is afternoon
+function toMin24(hm){ let [h,m] = hm.split(":").map(Number); if(h < 7) h += 12; return h*60 + m; }
+const SHORT = { silent: "Silent work", brk: "Break", low: "Low voice", lownoise: "Low noise" };
+const PH_COLOR = { silent: "#a78bfa", brk: "#60a5fa", low: "#fbbf24", lownoise: "#fbbf24" };
+function currentPhase(row, nowMin){
+  if(!row.sh) return null;
+  let cur = null;
+  for(const p of row.sh.phases) if(p.s <= nowMin) cur = p;
+  if(!cur) return null;
+  const i = row.sh.phases.indexOf(cur);
+  return { ...cur, next: row.sh.phases[i + 1] || null };
+}
+function ruleApplies(row){
+  if(row.type !== "class") return false;
+  if(/club/i.test(row.label) && !S.clubsRule) return false;
+  return true;
+}
+// hall pass window for a class row: [open, close] in minutes, or null if the class is too short
+function hallWindow(row){
+  if(row.sh){ const [a, b] = row.sh.tenten; return b[0] > a[1] ? [a[1], b[0]] : null; }
+  const open = row.s + S.ruleMin, close = row.e - S.ruleMin;
+  return close > open ? [open, close] : null;
+}
+
+/* ================= Rendering ================= */
+const $ = id => document.getElementById(id);
+let lastListKey = "";
+
+function setStatus(cls, kicker, icon, big, reason, cdLabel, cdSec){
+  const st = $("status");
+  st.className = "status " + cls;
+  $("kicker").textContent = kicker;
+  $("icon").textContent = icon;
+  $("big").textContent = big;
+  $("reason").textContent = reason;
+  if(cdLabel){ $("cdBox").hidden = false; $("cdLabel").textContent = cdLabel; $("cdValue").textContent = fmtLeft(cdSec); }
+  else $("cdBox").hidden = true;
+}
+
+function renderBar(row, nowMin){
+  const bar = $("bar");
+  if(!row){ bar.hidden = true; return; }
+  const len = row.e - row.s;
+  const w = hallWindow(row);
+  const a = w ? w[0] - row.s : len, b = w ? w[1] - w[0] : 0, c = w ? row.e - w[1] : 0;
+  const P = v => (v / len * 100) + "%";
+  $("segA").style.left = "0%";      $("segA").style.width = P(a);
+  $("segB").style.left = P(a);      $("segB").style.width = P(b);
+  $("segC").style.left = P(a + b);  $("segC").style.width = P(c);
+  $("segB").style.display = b ? "" : "none"; $("segC").style.display = c ? "" : "none";
+  $("marker").style.left = Math.min(100, Math.max(0, (nowMin - row.s) / len * 100)) + "%";
+  $("tk0").textContent = fmtMin(row.s);
+  $("tk1").textContent = w ? fmtMin(w[0]) : "";
+  $("tk2").textContent = w ? fmtMin(w[1]) : "";
+  $("tk3").textContent = fmtMin(row.e);
+  const pct = m => ((m - row.s) / len * 100) + "%";
+  $("tk0").style.left = "0%"; $("tk3").style.left = "100%";
+  if(w){ $("tk1").style.left = pct(w[0]); $("tk2").style.left = pct(w[1]); }
+  bar.hidden = false;
+  // break start / end times under the bar
+  document.querySelectorAll("#bar .ticks .tkb").forEach(x => x.remove());
+  if(row.sh){
+    const tk = document.querySelector("#bar .ticks");
+    row.sh.phases.filter(p => p.k === "brk").forEach(p => {
+      [p.s, p.e].forEach(m => {
+        const s = document.createElement("span");
+        s.className = "tkb"; s.textContent = fmtMin(m); s.style.left = P(m - row.s);
+        tk.appendChild(s);
+      });
+    });
+  }
+  // activity strip (study hall periods only)
+  const act = $("actTrack");
+  if(row.sh){
+    act.innerHTML = row.sh.phases.map((p, i) => {
+      const end = row.sh.phases[i+1] ? row.sh.phases[i+1].s : row.e;
+      return `<div class="aseg ${p.k}" style="left:${P(p.s - row.s)};width:${P(end - p.s)}"><span>${p.k === "brk" ? "Break" : p.k === "silent" ? "Silent" : p.k === "low" ? "Low voice" : "Low noise"}</span></div>`;
+    }).join("");
+    act.hidden = false;
+  }else act.hidden = true;
+}
+
+function renderList(rows, nowMin, info){
+  const key = S.band + info.type + S.ruleMin + S.clubsRule + S.hour12 + rows.map(r => {
+    const st = nowMin >= r.e ? "p" : (nowMin >= r.s ? "n" : "f"); return st;
+  }).join("");
+  if(key === lastListKey) return;
+  lastListKey = key;
+  const el = $("rows"); el.innerHTML = "";
+  if(!rows.length){
+    el.innerHTML = `<div class="empty">No classes today</div>`; return;
+  }
+  rows.forEach(r => {
+    const d = document.createElement("div");
+    const isBrk = r.type === "break";
+    d.className = "r" + (isBrk ? " brk" : "") + (r.type === "lunch" ? " lunch" : "")
+      + (nowMin >= r.e ? " past" : "") + (nowMin >= r.s && nowMin < r.e ? " now" : "");
+    let hp = "";
+    if(ruleApplies(r)){
+      const w = hallWindow(r);
+      hp = w ? `<div class="hp">✓ Hall pass ${fmtMin(w[0])} – ${fmtMin(w[1])}</div>`
+             : `<div class="hp none">✕ No hall pass (short period)</div>`;
+    }
+    const ph = r.sh ? `<div class="ph">${r.sh.phases.map(p => `${p.k === "silent" ? "Silent" : p.k === "brk" ? "Break" : p.k === "low" ? "Low voice" : "Low noise"} ${fmtMin(p.s)}`).join(" · ")}</div>` : "";
+    d.innerHTML = `<span class="n">${r.label}${r.sh ? ` <span style="color:var(--ink-dim);font-weight:600">· ${r.code}</span>` : ""}</span><span class="tm mono">${fmtMin(r.s)} – ${fmtMin(r.e)}</span>${hp}${ph}`;
+    el.appendChild(d);
+  });
+}
+
+function renderSchedule(){
+  const d = now();
+  const secNow = d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds() + d.getMilliseconds()/1000;
+  const nowMin = secNow / 60;
+  const info = todayInfo(d);
+  const rows = rowsFor(info);
+
+  // header
+  $("clock").textContent = S.hour12
+    ? `${(d.getHours() % 12) || 12}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())} ${d.getHours() < 12 ? "AM" : "PM"}`
+    : `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  $("dateLine").textContent = [S.room, S.teachers].map(x => (x || "").trim()).filter(Boolean).join(" · ");
+  $("dateW").textContent = d.toLocaleDateString("en-US", { weekday: "long" });
+  $("dateD").textContent = d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  const db = $("dayBadge");
+  if(info.type === "noschool") db.textContent = "No School";
+  else db.textContent = `${info.letter ? info.letter + " Day · " : ""}${info.type === "wednesday" ? "Wednesday" : "Block Day"}`;
+  db.className = "badge" + (info.override ? " warn" : "");
+  $("bandBadge").textContent = BAND_LABELS[S.band] || S.band;
+  $("foot").innerHTML = `No one leaves the classroom during the <b>first ${S.ruleMin}</b> and <b>last ${S.ruleMin}</b> minutes of class.`;
+  $("listHint").textContent = "Hall pass window";
+
+  renderList(rows, nowMin, info);
+  $("act").hidden = true;
+  $("big").style.color = "";
+  $("cdValue").style.color = "";
+  $("hallCorner").hidden = true;
+  // time passed since the current block (class / break / lunch) started
+  const blk = rows.find(r => nowMin >= r.s && nowMin < r.e);
+  if(blk){
+    $("pastBox").hidden = false;
+    $("pastLabel").textContent = `Passed since ${fmtMin(blk.s)}`;
+    $("pastValue").textContent = fmtLeft(secNow - blk.s * 60);
+  }else $("pastBox").hidden = true;
+
+  const cur = rows.find(r => nowMin >= r.s && nowMin < r.e);
+  const next = rows.find(r => r.s > nowMin);
+  const toSec = m => m*60 - secNow;
+
+  if(!rows.length){
+    setStatus("", "Today", "🏠", "No School", "", null); renderBar(null); return;
+  }
+  if(!cur){
+    if(next){
+      setStatus("blue", "Before classes", "🌅", "Good Morning", `${next.label} starts at ${fmtMin(next.s)}`,
+        `${next.label} starts in`, toSec(next.s));
+    }else{
+      setStatus("", "School day is over", "👋", "See you tomorrow", "", null);
+    }
+    renderBar(null); return;
+  }
+
+  if(!ruleApplies(cur)){
+    const isLunch = cur.type === "lunch";
+    const nxt = isLunch ? "Lunch ends in" : (cur.type === "break" ? `${next ? next.label : "Next"} starts in` : `${cur.label} ends in`);
+    setStatus("blue", isLunch ? "Lunch" : (cur.type === "break" ? "Passing time" : cur.label),
+      isLunch ? "🍽️" : "🚶", isLunch ? "Lunch" : (cur.type === "break" ? "Transition" : cur.label),
+      `${fmtMin(cur.s)} – ${fmtMin(cur.e)}`, nxt, toSec(cur.e));
+    renderBar(null); return;
+  }
+
+  const w = hallWindow(cur);
+  if(!w){
+    setStatus("red", cur.label, "⛔", "Stay in class", "No hall pass this period", "Class ends in", toSec(cur.e));
+  }else if(nowMin < w[0]){
+    setStatus("red", `${cur.label} · first ${Math.round(w[0]-cur.s)} minutes`, "⛔", "Stay in class",
+      "No one leaves the room", "Hall pass opens in", toSec(w[0]));
+  }else if(nowMin < w[1]){
+    setStatus("green", cur.label, "✅", "Hall pass OK",
+      "You may leave with a hall pass", "Hall pass closes in", toSec(w[1]));
+  }else{
+    setStatus("red", `${cur.label} · last ${Math.round(cur.e-w[1])} minutes`, "⛔", "Stay in class",
+      "No one leaves the room", "Class ends in", toSec(cur.e));
+  }
+  renderBar(cur, nowMin);
+
+  // study hall: what the class is doing right now
+  const ph = currentPhase(cur, nowMin);
+  if(ph){
+    $("kicker").textContent = `${cur.code} · ${$("kicker").textContent.replace(cur.label, cur.label)}`;
+    // swap: the current block is the big headline, hall pass status goes in the pill
+    const hallText = $("big").textContent, hallIcon = $("icon").textContent;
+    const hallCls = $("status").classList.contains("green") ? "hall-ok" : "hall-no";
+    $("big").textContent = SHORT[ph.k];
+    $("big").style.color = PH_COLOR[ph.k];
+    $("icon").textContent = PH[ph.k].icon;
+    // hall pass status + its countdown move to the top-right corner
+    const hc = $("hallCorner"); hc.className = "hallc " + (hallCls === "hall-ok" ? "ok" : "no"); hc.hidden = false;
+    // "First/Last 10 minutes" is already said by the corner box; keep the period line short
+    $("kicker").textContent = $("kicker").textContent.split(" · ").filter(x => !/minutes/i.test(x)).join(" · ");
+    $("hcIcon").textContent = hallIcon;
+    $("hcName").textContent = hallText;
+    $("hcLabel").textContent = $("cdLabel").textContent;
+    $("hcValue").textContent = $("cdValue").textContent;
+    const sameEnd = $("cdLabel").textContent === "Class ends in";   // closed for the rest of the period
+    $("hcLabel").hidden = $("hcValue").hidden = sameEnd;
+    // the middle countdown is now for the class activity: silent → break → low voice → end of period
+    const endAt = ph.next ? ph.next.s : cur.e;
+    $("cdBox").hidden = false;
+    $("cdLabel").textContent = ph.next ? `${SHORT[ph.next.k]} in` : "Period ends in";
+    $("cdValue").textContent = fmtLeft(toSec(endAt));
+    $("cdValue").style.color = PH_COLOR[ph.k];
+    $("reason").textContent = (ph.k === "low" ? "Work in pairs (per request) · " : "")
+      + (ph.next ? `${SHORT[ph.next.k]} at ${fmtMin(ph.next.s)}` : `Period ends at ${fmtMin(cur.e)}`);
+  }
+}
+
+/* ================= Test mode ================= */
+function setTestTime(ms){
+  testOffsetMs = ms - liveMs();
+  lastListKey = ""; render(); updateTestUI();
+}
+function goLive(){ testOffsetMs = 0; lastListKey = ""; render(); updateTestUI(); }
+function shiftTest(min){ if(testOffsetMs){ testOffsetMs += min * 60000; lastListKey = ""; render(); updateTestUI(); } }
+function toLocalInput(d){
+  return `${toISO(d)}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
+function updateTestUI(){
+  $("testFlag").classList.toggle("on", testOffsetMs !== 0);
+  const inp = $("testDT"); if(inp && document.activeElement !== inp) inp.value = toLocalInput(now());
+}
+// a school day to test on: today if it has classes, otherwise the next one in the calendar
+function testDay(){
+  const d = new Date(liveMs());
+  for(let i = 0; i < 30; i++){
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i);
+    const info = todayInfo(x);
+    if(rowsFor(info).length) return x;
+  }
+  return null;
+}
+function buildPresets(){
+  const el = $("presetBtns"); el.innerHTML = "";
+  const day = testDay(); if(!day) return;
+  const rows = rowsFor(todayInfo(day));
+  const p1 = rows.find(r => ruleApplies(r));
+  const lunch = rows.find(r => r.type === "lunch");
+  const brk = rows.find(r => r.type === "break");
+  const at = m => new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0).getTime() + m * 60000;
+  const list = [];
+  if(p1){
+    list.push(["⛔ Start of class", at(p1.s + 2) - 10000]);
+    list.push(["✅ Hall pass opens", at(p1.s + S.ruleMin) - 10000]);
+    list.push(["✅ Middle of class", at((p1.s + p1.e) / 2)]);
+    list.push(["⛔ Last minutes", at(p1.e - S.ruleMin) - 10000]);
+  }
+  const tr = p1 && p1.sh && p1.sh.phases.find(p => p.k === "brk");
+  if(tr) list.push(["☕ Break", at(tr.s) - 10000]);
+  if(brk) list.push(["🚶 Transition", at(brk.s + 1)]);
+  if(lunch) list.push(["🍽️ Lunch", at(lunch.s + 5)]);
+  list.push(["🌅 Before school", at(rows[0].s - 15)]);
+  list.push(["👋 After school", at(rows[rows.length - 1].e + 10)]);
+  list.forEach(([text, ms]) => {
+    const b = document.createElement("button"); b.textContent = text;
+    b.onclick = () => { setTestTime(ms); closeDlg(); };
+    el.appendChild(b);
+  });
+}
+$("testGo").onclick = () => {
+  const v = $("testDT").value; if(!v) return;
+  const ms = new Date(v).getTime(); if(!isNaN(ms)){ setTestTime(ms); closeDlg(); }
+};
+$("testLive").onclick = () => { goLive(); };
+$("testFlag").onclick = goLive;
+
+/* ================= Settings dialog ================= */
+function segButtons(elId, options, current, onPick){
+  const el = $(elId); el.innerHTML = "";
+  options.forEach(([val, text]) => {
+    const b = document.createElement("button");
+    b.textContent = text; if(val === current) b.classList.add("on");
+    b.onclick = () => { onPick(val); save(); buildDialog(); lastListKey = ""; render(); };
+    el.appendChild(b);
+  });
+}
+function buildDialog(){
+  const iso = toISO(now());
+  segButtons("bandBtns", Object.entries(BAND_LABELS), S.band, v => S.band = v);
+  segButtons("ovBtns", [["auto","Auto"],["regular","Block"],["wednesday","Wednesday"],["noschool","No school"]],
+    S.overrides[iso] || "auto", v => { if(v === "auto") delete S.overrides[iso]; else S.overrides[iso] = v; });
+  segButtons("themeBtns", [["dark","Dark"],["light","Light"]], S.theme, v => { S.theme = v; applyTheme(); });
+  segButtons("pinOnBtns", [[true,"On"],[false,"Off"]], S.pinOn !== false, v => { S.pinOn = v; });
+  $("ruleMin").value = S.ruleMin;
+  $("offInput").value = (+S.offsetSec).toFixed(1);
+  renderSyncText();
+  hpBuildSettings();
+  if($("phTables").childElementCount) buildPhases();     // band change moves the period times
+}
+function applyTheme(){ document.body.dataset.theme = S.theme; }
+/* ---- PIN lock ---- */
+let pinEntry = "";
+function buildPinPad(){
+  const pad = $("pinPad"); pad.innerHTML = "";
+  ["1","2","3","4","5","6","7","8","9","✕","0","⌫"].forEach(k => {
+    const b = document.createElement("button"); b.textContent = k;
+    b.onclick = () => pinKey(k === "✕" ? "cancel" : k === "⌫" ? "back" : k);
+    pad.appendChild(b);
+  });
+}
+function showPinDots(){ [...$("pinDots").children].forEach((d, i) => d.classList.toggle("on", i < pinEntry.length)); }
+function askPin(){
+  pinEntry = ""; showPinDots();
+  $("pinMsg").textContent = "Enter the 4-digit PIN to open settings"; $("pinMsg").className = "pinmsg";
+  $("pinOverlay").classList.add("open");
+}
+function closePin(){ $("pinOverlay").classList.remove("open"); pinEntry = ""; }
+function pinKey(k){
+  if(k === "cancel") return closePin();
+  if(k === "back"){ pinEntry = pinEntry.slice(0, -1); showPinDots(); return; }
+  if(pinEntry.length >= 4) return;
+  pinEntry += k; showPinDots();
+  if(pinEntry.length === 4){
+    if(pinEntry === String(S.pin || DEFAULT_PIN)){ closePin(); openDlgNow(); }
+    else{
+      const box = $("pinOverlay").querySelector(".pinbox");
+      box.classList.remove("shake"); void box.offsetWidth; box.classList.add("shake");
+      $("pinMsg").textContent = "Wrong PIN — try again"; $("pinMsg").className = "pinmsg err";
+      setTimeout(() => { pinEntry = ""; showPinDots(); }, 350);
+    }
+  }
+}
+buildPinPad();
+$("pinOverlay").addEventListener("click", e => { if(e.target.id === "pinOverlay") closePin(); });
+$("pinSave").onclick = () => {
+  const a = $("pinNew").value.trim(), b = $("pinNew2").value.trim();
+  const hint = $("pinHint");
+  if(!/^\d{4}$/.test(a)){ hint.textContent = "PIN must be exactly 4 digits"; hint.style.color = "var(--red)"; return; }
+  if(a !== b){ hint.textContent = "The two PINs don't match"; hint.style.color = "var(--red)"; return; }
+  S.pin = a; save();
+  $("pinNew").value = ""; $("pinNew2").value = "";
+  hint.textContent = "✓ New PIN set — press Save to keep it"; hint.style.color = "var(--green)";
+};
+
+function openDlg(){ if(S.pinOn === false) openDlgNow(); else askPin(); }
+function openDlgNow(){
+  committed = settingsPart(S);
+  $("pinHint").textContent = "4 digits"; $("pinHint").style.color = "";
+  buildDialog(); buildPresets(); updateTestUI(); roomFill(); buildDests(); sndBuild(); buildPhases();
+  $("overlay").classList.add("open"); hpBuildSettings(); dlgDirty();
+}
+function dlgIsDirty(){ return !!committed && JSON.stringify(settingsPart(S)) !== JSON.stringify(committed); }
+function dlgDirty(){
+  const d = dlgIsDirty();
+  $("dlgApply").disabled = !d; $("dlgSave").disabled = false;
+  $("dirtyNote").textContent = d ? "● Unsaved changes" : "";
+}
+function dlgApply(){ committed = settingsPart(S); save(); dlgDirty(); }
+function dlgSave(){ committed = settingsPart(S); save(); committed = null; $("overlay").classList.remove("open"); }
+function dlgCancel(){
+  if(committed){
+    const back = committed, urlChanged = back.hp.url !== S.hp.url || back.hp.key !== S.hp.key;
+    Object.keys(back).forEach(k => { S[k] = clone(back[k]); });
+    Object.keys(S).forEach(k => { if(!(k in back) && !RUNTIME_KEYS.includes(k)) delete S[k]; });
+    committed = null; save();
+    applyTheme(); lastListKey = ""; hpOutKey = ""; render(); sndNeedsTap();
+    if(urlChanged) hpLoadRoster().then(hpFlush);
+  }
+  $("overlay").classList.remove("open");
+}
+const closeDlg = dlgCancel;      // Esc / S key = Cancel
+
+/* ⚙ opens on a double tap (two taps within 0.4 s), so a stray touch does nothing */
+let gearTap = 0, gearTimer = null;
+$("gearBtn").onclick = () => {
+  const t = Date.now();
+  if(t - gearTap < 400){ gearTap = 0; clearTimeout(gearTimer); $("gearBtn").classList.remove("armed"); openDlg(); return; }
+  gearTap = t; $("gearBtn").classList.add("armed");
+  clearTimeout(gearTimer); gearTimer = setTimeout(() => { gearTap = 0; $("gearBtn").classList.remove("armed"); }, 400);
+};
+$("gearBtn").title = "Settings: tap twice (or press S)";
+$("dlgCancel").onclick = dlgCancel;
+$("dlgApply").onclick = dlgApply;
+$("dlgSave").onclick = dlgSave;
+$("ruleMin").addEventListener("change", e => {
+  const v = Math.round(+e.target.value); if(v >= 1 && v <= 40){ S.ruleMin = v; save(); lastListKey = ""; render(); }
+  e.target.value = S.ruleMin;
+});
+$("offInput").addEventListener("change", e => {
+  const v = +e.target.value; if(!isNaN(v)){ S.offsetSec = Math.round(v*10)/10; save(); renderSyncText(); }
+  e.target.value = (+S.offsetSec).toFixed(1);
+});
+document.querySelectorAll("[data-off]").forEach(b => b.onclick = () => {
+  S.offsetSec = Math.round(((+S.offsetSec) + (+b.dataset.off)) * 10) / 10;
+  save(); buildDialog();
+});
+
+function toggleFullscreen(){
+  try{
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+    else document.exitFullscreen && document.exitFullscreen();
+  }catch(e){}
+}
+document.addEventListener("dblclick", e => { if(!e.target.closest(".dlg, .hpov, .slots, .gear, .overlay")) toggleFullscreen(); });
+document.addEventListener("keydown", e => {
+  if(e.target.matches("input")) return;
+  const k = e.key.toLowerCase();
+  if($("pinOverlay").classList.contains("open")){
+    if(/^\d$/.test(e.key)) pinKey(e.key);
+    else if(e.key === "Backspace") pinKey("back");
+    else if(e.key === "Escape") closePin();
+    return;
+  }
+  if(k === "s") { $("overlay").classList.contains("open") ? closeDlg() : openDlg(); }
+  else if(k === "escape") closeDlg();
+  else if(k === "f") toggleFullscreen();
+  else if(k === "l") goLive();
+  else if(e.key === "ArrowRight") shiftTest(e.shiftKey ? 10 : 1);
+  else if(e.key === "ArrowLeft") shiftTest(e.shiftKey ? -10 : -1);
+});
+
+/* keep the TV screen awake where the browser allows it */
+let wakeLock = null;
+async function keepAwake(){
+  try{ if("wakeLock" in navigator && document.visibilityState === "visible") wakeLock = await navigator.wakeLock.request("screen"); }catch(e){}
+}
+document.addEventListener("visibilitychange", keepAwake);
+
+/* ================= Hall pass sign-out =================
+   This page talks to the school's Hall Pass script (the same one as the main Hall Pass Board):
+   the names come from it with the teacher's CODE, and every finished trip is sent to the
+   shared Log tab as ONE row when the student comes back. The record is queued on this device
+   first; if the network is down it is resent later.
+   Test-mode records are sent too, marked TEST in the Log's Mode column. */
+/* ---- Built-in connection (optional) ----
+   Paste the Web app URL and the teacher's CODE here, and the board connects on its own.
+   Whatever is entered in Settings (or loaded from a file) takes priority over these.
+   Better: leave them empty and use the personal setup link (...studyhall/#code=CODE&u=URL). */
+const HP_BUILTIN = {
+  url: "",   // e.g. "https://script.google.com/macros/s/AKfycb…/exec"
+  key: ""    // the teacher's code from the Teachers tab
+};
+// destinations come from Settings (S.dests); each pass remembers its own limit when it is taken
+const hpDests = () => S.dests.filter(d => d.min > 0);
+const hpDestLabel = d => `${d.icon} ${d.name}`;
+function hpLimitOf(a){
+  if(a && a.limit > 0) return a.limit;
+  const d = S.dests.find(x => a && x.name === a.dest);
+  return d && d.min > 0 ? d.min : S.hp.limitMin;
+}
+const HP_IDLE_SEC = 30;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const shortName = full => { const p = String(full).trim().split(/\s+/); if(p.length > 1 && /\.$/.test(p[p.length-1])) return p.join(" "); return p.length > 1 ? `${p[0]} ${p[p.length-1][0]}.` : p[0]; };   // the script already sends "Jane D." (or "Alex Smi." when two are alike): kept as it is
+const mmss = sec => { sec = Math.max(0, Math.floor(sec)); return `${Math.floor(sec/60)}:${pad2(sec%60)}`; };
+const clockOf = ms => { const d = new Date(ms); return `${(d.getHours()%12)||12}:${pad2(d.getMinutes())}`; };
+
+let hpPick = { section: null, name: null, dest: null };
+let hpIdle = null, hpOutKey = "", hpNet = "", hpBusy = false, hpLastErr = "", hpLastSent = 0;
+
+function hpNormalize(){
+  S.hp = { ...DEFAULTS.hp, ...(S.hp || {}) };
+  if(!S.hp.url && HP_BUILTIN.url) S.hp.url = HP_BUILTIN.url.trim();
+  if(!S.hp.key && HP_BUILTIN.key) S.hp.key = HP_BUILTIN.key.trim();
+  if(!S.hp.device) { S.hp.device = "board-" + Math.random().toString(36).slice(2, 7); save(); }
+  if(!Array.isArray(S.hpActive)) S.hpActive = [];
+  if(!Array.isArray(S.hpQueue)) S.hpQueue = [];
+  if(!S.hpLog || typeof S.hpLog !== "object") S.hpLog = {};
+  if(!S.roster || typeof S.roster !== "object") S.roster = {};
+  if(!S.rosterIds || typeof S.rosterIds !== "object") S.rosterIds = {};
+  const cutoff = toISO(new Date(Date.now() - 14 * 864e5));       // keep two weeks on the board
+  Object.keys(S.hpLog).forEach(k => { if(k < cutoff) delete S.hpLog[k]; });
+}
+
+/* ---- talking to Google ---- */
+async function hpCall(action, params){            // GET only: the code travels in the address, the answer is JSON
+  const url = (S.hp.url || "").trim();
+  if(!url) throw new Error("no url");
+  const q = new URLSearchParams({ action, code: S.hp.key || "" });
+  Object.keys(params || {}).forEach(k => { if(params[k] !== "" && params[k] != null) q.set(k, String(params[k])); });
+  const r = await fetch(`${url}${url.includes("?") ? "&" : "?"}${q.toString()}`, { cache: "no-store" });
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.error === "unknown code" || /cannot/.test(String(j.error)) ? "bad key" : (j.error || "script error"));
+  return j;
+}
+async function hpLoadRoster(){
+  if(!S.hp.url){ hpNet = "not set"; hpBuildSettings(); return false; }
+  try{
+    const j = await hpCall("hello");
+    if(j.role && j.role !== "teacher") throw new Error("bad key");
+    const roster = {}, ids = {};
+    (j.sections || []).forEach(sec => {                // one list per block (A1 ... B4, LUNCH), with the student IDs for the log
+      const names = [], map = {};
+      (sec.students || []).forEach(st => { if(st && st.n){ names.push(String(st.n)); map[String(st.n)] = String(st.id || ""); } });
+      if(names.length){ roster[String(sec.block)] = names; ids[String(sec.block)] = map; }
+    });
+    S.roster = roster; S.rosterIds = ids; S.teacherName = String(j.display || ""); S.rosterAt = Date.now(); save();
+    hpNet = "online";
+  }catch(e){ hpNet = e.message === "bad key" ? "wrong key" : "offline"; }
+  hpBuildSettings();
+  return hpNet === "online";
+}
+async function hpFlush(){
+  if(hpBusy || !S.hp.url || !S.hpQueue.length) return;
+  hpBusy = true;
+  try{
+    while(S.hpQueue.length){
+      const it = S.hpQueue[0];
+      if(!it || it.v !== 2){ S.hpQueue.shift(); save(); continue; }       // a record in the old format (leave / return) can not be sent any more: dropped
+      try{
+        await hpCall("log", { i: it.i, s: it.s, sec: it.sec, w: it.w, to: it.to, ti: it.ti, st: it.st, m: it.m, b: it.b, g: it.g });
+        S.hpQueue.shift(); save(); hpNet = "online"; hpLastErr = ""; hpLastSent = Date.now();
+      }catch(e){
+        const msg = String(e.message || e);
+        if(/^bad (trip id|times|status)$/.test(msg)){ S.hpQueue.shift(); save(); hpLastErr = msg + " (skipped)"; continue; }       // this record can never be accepted: skip it, do not block the others
+        hpNet = msg === "bad key" ? "wrong key" : "offline"; hpLastErr = msg; break;
+      }
+    }
+  }finally{ hpBusy = false; hpBuildSettings(); }
+}
+function stampId(outD, inD){                       // the trip's ID: yyyyMMdd + HHmmss out + HHmmss back, e.g. 20261005100312100745
+  const p = n => String(n).padStart(2, "0");
+  const d = x => x.getFullYear() + p(x.getMonth() + 1) + p(x.getDate());
+  const t = x => p(x.getHours()) + p(x.getMinutes()) + p(x.getSeconds());
+  return d(outD) + t(outD) + t(inD);
+}
+function hpLogTrip(a, back, status){               // one finished trip = one row in the Log (when the student is back)
+  S.hpQueue.push({ v: 2, i: stampId(new Date(a.out), new Date(back)), s: a.sid || "", sec: a.section || "", w: a.dest, to: a.out, ti: back, st: status, m: a.test ? "TEST" : "LIVE", b: S.hp.device, g: a.sid ? "" : a.name });
+  save(); hpFlush();
+}
+
+/* ---- what is happening right now ---- */
+function hpContext(){
+  const d = now();
+  const nowMin = (d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds()) / 60;
+  const cur = rowsFor(todayInfo(d)).find(r => nowMin >= r.s && nowMin < r.e);
+  const inClass = !!cur && ruleApplies(cur);
+  return { cur, code: cur && cur.code, inClass, open: inClass && $("status").classList.contains("green") };
+}
+
+/* ---- pass slots on the left of the status panel ---- */
+function hpSlotCount(){ return Math.max(S.hp.maxOut, ...S.hpActive.map(a => (a.slot ?? -1) + 1)); }
+function hpFixSlots(){
+  // give every active pass its own slot (older records had none)
+  const used = new Set();
+  S.hpActive.forEach(a => {
+    if(Number.isInteger(a.slot) && a.slot >= 0 && !used.has(a.slot)){ used.add(a.slot); return; }
+    let i = 0; while(used.has(i)) i++; a.slot = i; used.add(i);
+  });
+}
+function renderHP(){
+  hpFixSlots();
+  const ctx = hpContext();
+  const nowMs = now().getTime();
+  const n = hpSlotCount();
+  const box = $("hpSlots");
+  const show = ctx.inClass || S.hpActive.length > 0;
+  box.hidden = !show;
+
+  // rebuild only when something structural changes; timers are updated in place every second
+  const key = [n, ctx.open, S.hpActive.map(a => a.id + ":" + a.slot).join(",")].join("|");
+  if(show && key !== hpOutKey){
+    hpOutKey = key;
+    let html = "";
+    for(let i = 0; i < n; i++){
+      const a = S.hpActive.find(x => x.slot === i);
+      if(a){
+        html += `<div class="slot taken" data-id="${a.id}">
+          <span class="nm"><b>#${i + 1}</b>${esc(shortName(a.name))}</span>
+          <span class="ss">${esc(a.dest)} · ${hpLimitOf(a)} min · left ${clockOf(a.out)}</span>
+          <div class="row"><span class="tm">0:00</span><button data-back="${a.id}">I'm back</button></div>
+        </div>`;
+      }else if(i < S.hp.maxOut){
+        html += ctx.open
+          ? `<button class="slot" data-slot="${i}"><span class="sn">🎫 Pass #${i + 1}</span><span class="ss">Tap to sign out</span></button>`
+          : `<button class="slot closed" disabled><span class="sn">Pass #${i + 1}</span><span class="ss">Closed now</span></button>`;
+      }
+    }
+    box.innerHTML = html;
+    slotFitKey = "";
+  }
+  if(show) fitSlots();
+  S.hpActive.forEach(a => {
+    const card = box.querySelector(`[data-id="${a.id}"]`); if(!card) return;
+    const sec = (nowMs - a.out) / 1000, late = sec > hpLimitOf(a) * 60;
+    card.classList.toggle("late", late);
+    const t = card.querySelector(".tm"); t.textContent = mmss(sec); t.classList.toggle("late-t", late);
+  });
+
+  // window closed (or the chosen pass got taken) while someone was choosing: close the picker
+  if($("hpSheet").classList.contains("open") &&
+     (!ctx.open || S.hpActive.some(a => a.slot === hpPick.slot))) hpClose();
+}
+
+/* ---- name picker (right-side panel) ---- */
+function hpOpen(slot){
+  const ctx = hpContext();
+  if(!ctx.open || S.hpActive.some(a => a.slot === slot)) return;
+  const sections = Object.keys(S.roster);
+  // the current period's list is picked automatically; if the sheet has no list for it, nothing is preselected
+  hpPick = { slot, section: S.roster[ctx.code] ? ctx.code : (sections.length === 1 ? sections[0] : null), name: null, dest: null };
+  $("hpSheet").classList.add("open");
+  hpShowNames();
+  hpBump();
+}
+function hpClose(){ $("hpSheet").classList.remove("open"); clearTimeout(hpIdle); }
+function hpBump(){ clearTimeout(hpIdle); hpIdle = setTimeout(hpClose, HP_IDLE_SEC * 1000); }
+
+// lay the buttons out so they all fit in the panel without scrolling; more names = shorter buttons
+function hpFitGrid(count, minRatio){
+  const g = $("hpGrid");
+  g.style.gridTemplateColumns = g.style.gridTemplateRows = "";
+  const W = g.clientWidth, H = g.clientHeight;
+  if(!count || !W || !H) return;
+  const gap = Math.max(4, Math.round(Math.min(W, H) * 0.012));
+  let best = { score: -1, c: 1, r: count, w: W, h: H };
+  for(let c = 1; c <= 6; c++){
+    const r = Math.ceil(count / c);
+    const w = (W - gap * (c - 1)) / c, h = (H - gap * (r - 1)) / r;
+    const score = Math.min(w / minRatio, h);         // text height a cell can hold
+    if(score > best.score) best = { score, c, r, w, h };
+  }
+  g.style.setProperty("--g", gap + "px");
+  g.style.gridTemplateColumns = `repeat(${best.c}, minmax(0, 1fr))`;
+  g.style.gridTemplateRows = `repeat(${best.r}, minmax(0, 1fr))`;
+  // font: as big as the cell allows, but the longest label must still fit on one line
+  const btns = [...g.querySelectorAll("button")];
+  const longest = Math.max(4, ...btns.map(b => {
+    const t = (b.querySelector(".lb") || b).textContent.trim();       // the main label decides the size
+    return [...t].length + (/\p{Extended_Pictographic}/u.test(t) ? 1 : 0);
+  }));
+  const fs = Math.max(11, Math.min(best.h * 0.6, (best.w * 0.85) / (longest * 0.68), 40));
+  btns.forEach(b => b.style.fontSize = fs + "px");
+}
+
+function hpShowNames(){
+  const ctx = hpContext();
+  $("hpTitle").textContent = `Pass #${hpPick.slot + 1} · tap your name`;
+  $("hpFoot").hidden = true;
+  const sections = Object.keys(S.roster).sort();
+  const showChips = !S.roster[ctx.code] && sections.length > 1;     // only when this period has no list of its own
+  $("hpChips").hidden = !showChips;
+  $("hpChips").innerHTML = showChips ? sections.map(s => `<button data-sec="${esc(s)}" class="${s === hpPick.section ? "on" : ""}">${esc(s)}</button>`).join("") : "";
+  const grid = $("hpGrid");
+  const outNow = new Set(S.hpActive.map(a => a.name));
+  const names = (S.roster[hpPick.section] || []).filter(n => !outNow.has(n)).sort((a, b) => a.localeCompare(b));
+  if(!sections.length){
+    grid.innerHTML = `<div class="msg">No student names yet. The teacher can connect the Google Sheet in Settings (⚙).</div>`;
+    grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
+  }else if(!hpPick.section){
+    grid.innerHTML = `<div class="msg">There is no list for ${esc(ctx.code || "this period")} yet.<br>Tap your class above.</div>`;
+    grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
+  }else if(!names.length){
+    grid.innerHTML = `<div class="msg">No names for ${esc(hpPick.section || "this period")}.</div>`;
+    grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
+  }else{
+    grid.innerHTML = names.map(n => `<button data-name="${esc(n)}">${esc(shortName(n))}</button>`).join("");
+    hpSizePanel(names.length);
+    hpFitGrid(names.length, 4.5);
+  }
+}
+/* the panel is ~1/8 of the screen for a normal class, and widens (more columns)
+   only as much as needed so a big Study Hall list still has finger-sized buttons */
+function hpSizePanel(count){
+  const panel = document.querySelector(".hppanel"), g = $("hpGrid");
+  panel.style.width = "";
+  const H = g.clientHeight || window.innerHeight * 0.8;
+  const minRow = Math.max(38, window.innerHeight * 0.042);       // smallest comfortable tap height
+  const gap = 6;
+  const rows = Math.max(1, Math.floor((H + gap) / (minRow + gap)));
+  const cols = Math.ceil(count / rows);
+  if(cols <= 1) return;                                          // fits in the narrow panel
+  const colW = Math.max(150, window.innerWidth * 0.085);
+  const pad = panel.offsetWidth - g.clientWidth;
+  panel.style.width = Math.min(window.innerWidth * 0.62, cols * colW + (cols - 1) * gap + pad) + "px";
+}
+function hpShowDest(){
+  document.querySelector(".hppanel").style.width = "";
+  $("hpTitle").textContent = `${shortName(hpPick.name)}, where are you going?`;
+  $("hpChips").hidden = true;
+  $("hpFoot").hidden = false;
+  const list = hpDests();
+  // each option shows its time limit, so the student sees how long they have (and that it is timed)
+  $("hpGrid").innerHTML = list.map(d => `<button class="dst ${d.name === hpPick.dest ? "on" : ""}" data-dest="${esc(d.name)}">
+      <span class="lb">${esc(hpDestLabel(d))}</span><span class="lim">⏱ ${d.min} min</span></button>`).join("");
+  hpFitGrid(list.length, 5);
+  $("hpGo").disabled = !hpPick.dest;
+}
+
+$("hpSlots").onclick = e => {
+  const back = e.target.closest("[data-back]");
+  if(back){ hpReturn(back.dataset.back); return; }
+  const s = e.target.closest("[data-slot]");
+  if(s) hpOpen(+s.dataset.slot);
+};
+$("hpSheet").onclick = e => { if(e.target === $("hpSheet")) hpClose(); };   // tap outside the panel = cancel
+$("hpCancel").onclick = hpClose;
+$("hpNotMe").onclick = () => { hpPick.name = hpPick.dest = null; hpShowNames(); hpBump(); };
+$("hpChips").onclick = e => { const b = e.target.closest("[data-sec]"); if(!b) return; hpPick.section = b.dataset.sec; hpShowNames(); hpBump(); };
+$("hpGrid").onclick = e => {
+  const n = e.target.closest("[data-name]"), d = e.target.closest("[data-dest]");
+  if(n){ hpPick.name = n.dataset.name; hpPick.dest = null; hpShowDest(); }
+  else if(d){ hpPick.dest = d.dataset.dest; hpShowDest(); }
+  hpBump();
+};
+$("hpGo").onclick = () => {
+  if(!hpPick.name || !hpPick.dest) return;
+  if(S.hpActive.some(a => a.slot === hpPick.slot)){ hpClose(); return; }
+  const ctx = hpContext();
+  const out = now().getTime();
+  const a = { id: `${S.hp.device}-${out}`, slot: hpPick.slot, name: hpPick.name, section: ctx.code || hpPick.section || "",
+              dest: hpPick.dest, limit: (S.dests.find(d => d.name === hpPick.dest) || {}).min || S.hp.limitMin,
+              out, test: !!testOffsetMs, sid: ((S.rosterIds[hpPick.section] || S.rosterIds[ctx.code] || {})[hpPick.name]) || "" };
+  S.hpActive.push(a); save();                       // (nothing is sent yet: the row goes to the Log when the student is back)
+  hpClose(); renderHP();
+};
+window.addEventListener("resize", () => {
+  if(!$("hpSheet").classList.contains("open")) return;
+  if(hpPick.name) hpShowDest(); else hpShowNames();
+});
+
+/* make every pass button fit in the column, however many there are */
+let slotFitKey = "";
+function fitSlots(){
+  const box = $("hpSlots");
+  const k = box.clientHeight + "|" + box.clientWidth + "|" + box.children.length + "|" + hpOutKey;
+  if(k === slotFitKey) return; slotFitKey = k;
+  box.style.fontSize = "";
+  let fs = parseFloat(getComputedStyle(box).fontSize);
+  const fits = () => box.scrollHeight <= box.clientHeight + 1 &&
+    [...box.querySelectorAll(".row")].every(r => r.scrollWidth <= r.clientWidth + 1);
+  for(let i = 0; i < 40 && !fits() && fs > 9; i++){ fs *= 0.93; box.style.fontSize = fs + "px"; }
+}
+window.addEventListener("resize", () => { slotFitKey = ""; fitSlots(); });
+
+/* the period line ("A3 · PERIOD 3 · FIRST 10 MINUTES") must not run under the hall-pass box */
+let kickKey = "";
+function fitKicker(){
+  const el = $("kicker"), core = el.parentElement, hc = $("hallCorner");
+  const k = el.textContent + "|" + core.clientWidth + "|" + hc.hidden + "|" + hc.offsetWidth;
+  if(k === kickKey) return; kickKey = k;
+  el.style.fontSize = "";
+  const cr = core.getBoundingClientRect(), mid = cr.left + cr.width / 2;
+  let half = cr.width / 2;
+  if(!hc.hidden){ const r = hc.getBoundingClientRect(); half = Math.min(half, r.left - mid - 12); }
+  const avail = Math.max(80, half * 2);
+  if(el.scrollWidth > avail){
+    const cur = parseFloat(getComputedStyle(el).fontSize);
+    el.style.fontSize = Math.max(cur * 0.6, Math.floor(cur * avail / el.scrollWidth)) + "px";
+  }
+}
+
+/* shrink the big word (SILENT WORK, STAY IN CLASS…) when it would not fit next to the pass slots */
+let fitKey = "";
+function fitBig(){
+  const el = $("big"), box = el.parentElement;
+  const k = el.textContent + "|" + box.clientWidth + "|" + $("hpSlots").hidden;
+  if(k === fitKey) return; fitKey = k;
+  el.style.fontSize = "";
+  const avail = box.clientWidth * 0.98;
+  if(el.scrollWidth > avail){
+    const cur = parseFloat(getComputedStyle(el).fontSize);
+    el.style.fontSize = Math.floor(cur * avail / el.scrollWidth) + "px";
+  }
+}
+
+function hpReturn(id){
+  const i = S.hpActive.findIndex(a => a.id === id); if(i < 0) return;
+  const a = S.hpActive.splice(i, 1)[0];
+  const back = Math.max(now().getTime(), a.out);
+  const minutes = Math.round((back - a.out) / 6000) / 10;
+  const day = toISO(new Date(a.out));
+  (S.hpLog[day] = S.hpLog[day] || []).push({ ...a, back, minutes });
+  save();
+  hpLogTrip(a, back, "Returned");
+  renderHP(); hpBuildSettings();
+}
+
+
+/* ---- settings section ---- */
+function hpBuildSettings(){
+  if(!$("overlay").classList.contains("open")) return;
+  const count = Object.values(S.roster).reduce((n, l) => n + l.length, 0);
+  const secs = Object.keys(S.roster).length;
+  const state = { "online": "✓ connected", "offline": "⚠ can't reach Google", "wrong key": "⚠ wrong teacher code", "not set": "not set up", "": "…" }[hpNet] || hpNet;
+  $("hpStatusLine").textContent =
+    `${state}${hpNet === "online" && S.teacherName ? " as " + S.teacherName : ""} · ${count} names in ${secs} section${secs === 1 ? "" : "s"}` +
+    (S.hpQueue.length ? ` · ${S.hpQueue.length} waiting to send` : "") +
+    (hpLastErr ? ` · last error: ${hpLastErr}` : "") +
+    (hpLastSent ? ` · last sent ${clockOf(hpLastSent)}` : "") +
+    (testOffsetMs ? " · test mode: rows are marked TEST" : "");
+  const inp = [["hpUrl", S.hp.url], ["hpKey", S.hp.key], ["hpMax", S.hp.maxOut]];
+  inp.forEach(([id, v]) => { if(document.activeElement !== $(id)) $(id).value = v; });
+  const log = (S.hpLog[toISO(now())] || []).slice().reverse();
+  $("hpLogBox").innerHTML = log.length
+    ? `<table class="hptable"><tr><th>Student</th><th>Sec</th><th>Where</th><th>Out</th><th>Back</th><th>Min</th></tr>${
+        log.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.section)}</td><td>${esc(r.dest)}</td><td>${clockOf(r.out)}</td><td>${clockOf(r.back)}</td>
+          <td class="${r.minutes > hpLimitOf(r) ? "late" : ""}">${r.minutes}</td></tr>`).join("")}</table>`
+    : `<div class="hint" style="margin-top:6px">No passes yet today.</div>`;
+}
+$("hpUrl").addEventListener("change", e => { S.hp.url = e.target.value.trim(); save(); hpLoadRoster().then(hpFlush); });
+$("hpKey").addEventListener("change", e => { S.hp.key = e.target.value.trim(); save(); hpLoadRoster().then(hpFlush); });
+
+$("hpMax").addEventListener("change", e => { const v = Math.round(+e.target.value); if(v >= 1 && v <= 6){ S.hp.maxOut = v; save(); } hpBuildSettings(); });
+/* load URL + key from a small text file (USB stick / Downloads), so nothing has to be typed on the board.
+   Accepted formats:
+     url=https://script.google.com/macros/s/…/exec      code=ABCD2345
+   or just two lines: the URL on one line, the code on the other. */
+function hpParseConfig(text){
+  text = String(text).replace(/^\uFEFF/, "");
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith("#"));
+  let url = "", key = "";
+  for(const l of lines){
+    const m = /^(url|key|secret|code)\s*[=:]\s*(.+)$/i.exec(l);
+    if(m){ if(/url/i.test(m[1])) url = m[2].trim(); else key = m[2].trim(); }
+  }
+  if(!url){ const u = lines.find(l => /^https:\/\/script\.google\.com\//i.test(l)); if(u) url = u; }
+  if(!key){ const k = lines.find(l => !/^https?:\/\//i.test(l) && !/^(url|key|secret|code)\s*[=:]/i.test(l)); if(k) key = k; }
+  url = url.replace(/^["']|["']$/g, "").replace(/\/u\/\d+\//, "/").replace(/\?.*$/, "");   // drop /u/1/ and any ?action=… part
+  key = key.replace(/^["']|["']$/g, "");
+  return { url, key };
+}
+$("hpFileBtn").onclick = () => { $("hpFile").value = ""; $("hpFile").click(); };
+$("hpFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const { url, key } = hpParseConfig(r.result);
+    if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url) || !key){
+      $("hpStatusLine").textContent = "⚠ File not understood. It needs the /exec URL and the teacher code.";
+      return;
+    }
+    S.hp.url = url; S.hp.key = key; save();
+    hpNet = ""; hpBuildSettings(); hpLoadRoster().then(hpFlush);
+  };
+  r.readAsText(f);
+});
+// writes one row marked TEST (a guest called "Connection test"), at any time of day, to check that the Log receives rows
+$("hpTestRow").onclick = () => {
+  const t = liveMs();
+  S.hpQueue.push({ v: 2, i: stampId(new Date(t), new Date(t + 1000)), s: "", sec: "Guest", w: "Test", to: t, ti: t + 1000, st: "Returned", m: "TEST", b: S.hp.device, g: "Connection test" });
+  save(); hpBuildSettings(); hpFlush();
+};
+$("hpReload").onclick = () => { hpNet = ""; hpBuildSettings(); hpLoadRoster().then(hpFlush); };
+$("hpEndAll").onclick = () => { S.hpActive.map(a => a.id).forEach(hpReturn); };
+
+function render(){ renderSchedule(); renderHP(); fitBig(); fitKicker(); sndCheck(); }
+
+/* room + teacher names (header line under the title) */
+function roomFill(){
+  if(document.activeElement !== $("roomIn")) $("roomIn").value = S.room ?? "";
+  if(document.activeElement !== $("teachIn")) $("teachIn").value = S.teachers ?? "";
+}
+$("roomIn").addEventListener("input", e => { S.room = e.target.value; save(); render(); });
+$("teachIn").addEventListener("input", e => { S.teachers = e.target.value; save(); render(); });
+
+/* ================= Destination limits (settings) ================= */
+function destNormalize(){
+  const ok = Array.isArray(S.dests) && S.dests.length && S.dests.every(d => d && d.name);
+  if(!ok) S.dests = JSON.parse(JSON.stringify(DEFAULTS.dests));
+  // a board saved before Locker existed gets it added
+  DEFAULTS.dests.forEach((d, i) => { if(!S.dests.some(x => x.name === d.name)) S.dests.splice(Math.min(i, S.dests.length), 0, { ...d }); });
+  S.snd = S.snd || {};
+  Object.keys(DEFAULTS.snd).forEach(k => { S.snd[k] = { ...DEFAULTS.snd[k], ...(S.snd[k] || {}) }; });
+}
+function buildDests(){
+  $("destGrid").innerHTML = S.dests.map((d, i) => `
+    <label>${esc(d.icon)} ${esc(d.name)}
+      <input type="number" min="0" max="60" step="1" value="${d.min}" data-di="${i}">
+    </label>`).join("");
+}
+$("destGrid").addEventListener("change", e => {
+  const i = e.target.dataset.di; if(i === undefined) return;
+  const v = Math.round(+e.target.value);
+  if(v >= 0 && v <= 60){ S.dests[i].min = v; save(); }
+  e.target.value = S.dests[i].min;
+});
+
+/* ================= Bell sounds =================
+   MP3 files are chosen from the board's file system and kept in their own IndexedDB
+   database, so they survive reloads. Each moment has its own file and volume. */
+const SND_EVENTS = [
+  { k: "start",    label: "Start of class",  when: "When a class period begins" },
+  { k: "brkStart", label: "Break starts",    when: "Study Hall: silent work → break" },
+  { k: "brkEnd",   label: "Break ends",      when: "Study Hall: break → low voice" },
+  { k: "end",      label: "End of class",    when: "When a class period ends" }
+];
+let sndLib = [];                 // [{ id, name, size }]
+const sndUrls = {};              // id -> object URL
+let sndPlaying = null, sndPlayingKey = "", sndLastSec = null;
+
+function sndDB(){
+  return new Promise((res, rej) => {
+    if(!("indexedDB" in window)) return rej(new Error("no idb"));
+    const r = indexedDB.open("hallpass_1010_sounds", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("files", { keyPath: "id" });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function sndLoadLib(){
+  try{
+    const db = await sndDB();
+    const all = await new Promise(res => {
+      const q = db.transaction("files", "readonly").objectStore("files").getAll();
+      q.onsuccess = () => res(q.result || []); q.onerror = () => res([]);
+    });
+    sndLib = all.map(f => ({ id: f.id, name: f.name, size: f.size })).sort((a, b) => a.name.localeCompare(b.name));
+  }catch(e){ sndLib = []; }
+  sndBuild();
+}
+async function sndGetUrl(id){
+  if(sndUrls[id]) return sndUrls[id];
+  const db = await sndDB();
+  const rec = await new Promise(res => {
+    const q = db.transaction("files", "readonly").objectStore("files").get(id);
+    q.onsuccess = () => res(q.result || null); q.onerror = () => res(null);
+  });
+  if(!rec) return null;
+  return (sndUrls[id] = URL.createObjectURL(rec.blob));
+}
+async function sndAddFiles(files){
+  const db = await sndDB();
+  for(const f of files){
+    if(!/audio|mpeg/.test(f.type) && !/\.mp3$/i.test(f.name)) continue;
+    const id = "snd-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const blob = new Blob([await f.arrayBuffer()], { type: f.type || "audio/mpeg" });
+    await new Promise((res, rej) => {
+      const t = db.transaction("files", "readwrite");
+      t.objectStore("files").put({ id, name: f.name.replace(/\.[^.]+$/, ""), size: f.size, blob });
+      t.oncomplete = res; t.onerror = () => rej(t.error);
+    });
+  }
+  await sndLoadLib();
+}
+async function sndDelete(id){
+  try{
+    const db = await sndDB();
+    await new Promise(res => { const t = db.transaction("files", "readwrite"); t.objectStore("files").delete(id); t.oncomplete = res; t.onerror = res; });
+  }catch(e){}
+  if(sndUrls[id]){ URL.revokeObjectURL(sndUrls[id]); delete sndUrls[id]; }
+  Object.values(S.snd).forEach(c => { if(c.id === id) c.id = ""; });
+  save(); await sndLoadLib();
+}
+
+function sndStop(){
+  if(sndPlaying){ sndPlaying.pause(); sndPlaying = null; }
+  const k = sndPlayingKey; sndPlayingKey = "";
+  if(k) sndBuildRowState();
+}
+async function sndPlay(k, isTest){
+  const c = S.snd[k]; if(!c || !c.id) return;
+  const url = await sndGetUrl(c.id); if(!url) return;
+  sndStop();
+  const a = new Audio(url);
+  a.volume = Math.max(0, Math.min(1, c.vol / 100));
+  sndPlaying = a; sndPlayingKey = isTest ? k : "";
+  a.onended = () => { if(sndPlaying === a){ sndPlaying = null; sndStop(); } };
+  try{ await a.play(); $("sndWarn").hidden = true; }
+  catch(e){ $("sndWarn").hidden = false; }            // the browser blocked it until someone taps the page
+  sndBuildRowState();
+}
+
+/* fire a sound when the clock crosses one of today's moments */
+function sndCheck(){
+  const d = now();
+  const sec = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+  const prev = sndLastSec; sndLastSec = sec;
+  if(prev === null || sec <= prev || sec - prev > 5) return;      // first tick, new day, or a test-mode jump
+  const hit = t => prev < t && t <= sec;
+  for(const r of rowsFor(todayInfo(d))){
+    if(r.type !== "class") continue;
+    if(hit(r.s * 60)) { sndPlay("start"); return; }
+    if(hit(r.e * 60)) { sndPlay("end"); return; }
+    if(r.sh){
+      const ph = r.sh.phases, i = ph.findIndex(p => p.k === "brk");
+      if(i >= 0 && hit(ph[i].s * 60)) { sndPlay("brkStart"); return; }
+      if(i >= 0 && ph[i + 1] && hit(ph[i + 1].s * 60)) { sndPlay("brkEnd"); return; }
+    }
+  }
+}
+
+/* ---- settings UI ---- */
+function sndBuild(){
+  const kb = s => s > 1e6 ? (s / 1e6).toFixed(1) + " MB" : Math.round(s / 1e3) + " KB";
+  $("sndLib").innerHTML = sndLib.length
+    ? sndLib.map(f => `<span title="${esc(f.name)}"><b>🎵 ${esc(f.name)}</b> ${kb(f.size)} <button data-del="${f.id}" title="Delete">✕</button></span>`).join("")
+    : `<div class="hint">No sound files yet. Tap “＋ Add MP3…” to pick files from this board or a USB stick.</div>`;
+  const opts = id => `<option value="">— None —</option>` + sndLib.map(f => `<option value="${f.id}" title="${esc(f.name)}" ${f.id === id ? "selected" : ""}>${esc(f.name.length > 34 ? f.name.slice(0, 32) + "…" : f.name)}</option>`).join("");
+  $("sndRows").innerHTML = SND_EVENTS.map(ev => {
+    const c = S.snd[ev.k];
+    return `<div class="sndrow" data-k="${ev.k}">
+      <div class="top"><span>${ev.label}<div class="when">${ev.when}</div></span>
+        <button class="play" data-play="${ev.k}">▶ Test</button></div>
+      <div class="ctl">
+        <select data-pick="${ev.k}">${opts(c.id)}</select>
+        <input type="range" min="0" max="100" step="5" value="${c.vol}" data-vol="${ev.k}" aria-label="${ev.label} volume">
+        <span class="vol">${c.vol}%</span>
+      </div>
+    </div>`;
+  }).join("");
+  sndBuildRowState();
+}
+function sndBuildRowState(){
+  document.querySelectorAll("[data-play]").forEach(b => {
+    const k = b.dataset.play, on = sndPlayingKey === k;
+    b.textContent = on ? "■ Stop" : "▶ Test";
+    b.disabled = !S.snd[k].id;
+    b.classList.toggle("on", on);
+  });
+}
+$("sndAdd").onclick = () => { $("sndFile").value = ""; $("sndFile").click(); };
+$("sndFile").addEventListener("change", e => { const f = [...(e.target.files || [])]; if(f.length) sndAddFiles(f); });
+$("sndLib").onclick = e => {
+  const b = e.target.closest("[data-del]"); if(!b) return;
+  const f = sndLib.find(x => x.id === b.dataset.del);
+  if(f && confirm(`Delete “${f.name}” from this board?`)) sndDelete(f.id);
+};
+$("sndRows").addEventListener("change", e => {
+  const k = e.target.dataset.pick; if(!k) return;
+  S.snd[k].id = e.target.value; save(); sndStop(); sndBuildRowState();
+});
+$("sndRows").addEventListener("input", e => {
+  const k = e.target.dataset.vol; if(!k) return;
+  S.snd[k].vol = +e.target.value;
+  e.target.parentElement.querySelector(".vol").textContent = S.snd[k].vol + "%";
+  if(sndPlaying && sndPlayingKey === k) sndPlaying.volume = S.snd[k].vol / 100;     // live while testing
+  save();
+});
+$("sndRows").onclick = e => {
+  const b = e.target.closest("[data-play]"); if(!b) return;
+  if(sndPlayingKey === b.dataset.play) sndStop(); else sndPlay(b.dataset.play, true);
+};
+// browsers only allow sound after someone has touched the page once since it was loaded
+$("sndWarn").onclick = () => { $("sndWarn").hidden = true; };
+function sndNeedsTap(){
+  const any = Object.values(S.snd).some(c => c.id);
+  const active = navigator.userActivation ? navigator.userActivation.hasBeenActive : false;
+  $("sndWarn").hidden = !any || active;
+}
+document.addEventListener("pointerdown", () => { if(!$("sndWarn").hidden) setTimeout(sndNeedsTap, 50); }, true);
+
+/* ================= Study Hall phases (settings) ================= */
+const PH_DAYS = [["regular", "Block days · Mon, Tue, Thu, Fri"], ["wednesday", "Wednesday"]];
+const PH_PERIODS = ["1", "2", "4"];
+function phNormalize(){
+  const d = DEFAULTS.phases;
+  if(!S.phases || typeof S.phases !== "object") S.phases = clone(d);
+  for(const [t] of PH_DAYS){
+    S.phases[t] = S.phases[t] || {};
+    for(const n of PH_PERIODS){
+      const c = S.phases[t][n] || {};
+      S.phases[t][n] = { silent: Number.isFinite(+c.silent) ? +c.silent : d[t][n].silent,
+                         brk:    Number.isFinite(+c.brk)    ? +c.brk    : d[t][n].brk };
+    }
+  }
+}
+// the period's start/end for this grade band and day type, straight from the bell schedule
+function phPeriod(type, n){
+  const t = window.SCHEDULE_TABLES[S.band] && window.SCHEDULE_TABLES[S.band][type];
+  const r = t && t.rows.find(x => x.label === `Period ${n}`);
+  return r ? { s: toMin(r.start), e: toMin(r.end) } : null;
+}
+const fmtHM = m => `${((Math.floor(m / 60) + 11) % 12) + 1}:${pad2(m % 60)}`;
+
+function buildPhases(){
+  const stepper = (t, n, f, v) => `<div class="stepper">
+      <button data-step="-1" data-t="${t}" data-n="${n}" data-f="${f}" aria-label="less">−</button>
+      <input type="number" inputmode="numeric" min="0" step="1" value="${v}" data-t="${t}" data-n="${n}" data-f="${f}">
+      <button data-step="1" data-t="${t}" data-n="${n}" data-f="${f}" aria-label="more">+</button></div>`;
+  let html = "";
+  for(const [t, label] of PH_DAYS){
+    html += `<div class="phday">${label}</div>`;
+    for(const n of PH_PERIODS){
+      const P = phPeriod(t, n); if(!P) continue;
+      const c = S.phases[t][n], L = P.e - P.s;
+      html += `<div class="phrow" data-row="${t}-${n}">
+        <div class="ph-h">Period ${n} <span>${fmtHM(P.s)}–${fmtHM(P.e)} · ${L} min</span></div>
+        <div class="ph-c">
+          <div class="ph-cell silent"><b>Silent work</b>${stepper(t, n, "silent", c.silent)}<div class="ph-t" data-pt="silent"></div></div>
+          <div class="ph-cell brk"><b>Break</b>${stepper(t, n, "brk", c.brk)}<div class="ph-t" data-pt="brk"></div></div>
+          <div class="ph-cell low"><b>${n === "4" ? "Low noise" : "Low voice"}</b><div class="ph-low"></div><div class="ph-t" data-pt="low"></div></div>
+        </div>
+        <div class="ph-msg"></div>
+      </div>`;
+    }
+  }
+  html += `<div class="hint" style="margin-top:8px">Period 3 is always one long Low voice period.</div>`;
+  $("phTables").innerHTML = html;
+  for(const [t] of PH_DAYS) for(const n of PH_PERIODS) phUpdateRow(t, n);
+}
+function phUpdateRow(t, n, msg, cls){
+  const row = document.querySelector(`[data-row="${t}-${n}"]`); if(!row) return;
+  const P = phPeriod(t, n), c = S.phases[t][n];
+  const L = P.e - P.s, low = L - c.silent - c.brk;
+  const a = P.s + c.silent, b = a + c.brk;
+  row.querySelectorAll("input[data-f]").forEach(i => { if(document.activeElement !== i) i.value = c[i.dataset.f]; });
+  const lowEl = row.querySelector(".ph-low");
+  lowEl.textContent = `${low} min`;
+  lowEl.className = "ph-low" + (low <= 0 ? " bad" : low < 5 ? " warn" : "");
+  row.querySelector('[data-pt="silent"]').textContent = c.silent ? `${fmtHM(P.s)}–${fmtHM(a)}` : "none";
+  row.querySelector('[data-pt="brk"]').textContent = c.brk ? `${fmtHM(a)}–${fmtHM(b)}` : "none";
+  row.querySelector('[data-pt="low"]').textContent = low > 0 ? `${fmtHM(b)}–${fmtHM(P.e)}` : "none";
+  if(!msg){
+    if(low <= 0){ msg = "No time left for Low voice: the period ends right after the break."; cls = "bad"; }
+    else if(low < 5){ msg = `Only ${low} min of Low voice left.`; cls = "warn"; }
+  }
+  const m = row.querySelector(".ph-msg"); m.textContent = msg || ""; m.className = "ph-msg" + (cls ? " " + cls : "");
+}
+// set one value, keeping Silent + Break inside the period (the nearest possible value is used)
+function phSet(t, n, f, raw){
+  const P = phPeriod(t, n); if(!P) return;
+  const c = S.phases[t][n], L = P.e - P.s;
+  const other = f === "silent" ? c.brk : c.silent;
+  const max = L - other;
+  let v = Math.round(+raw), msg = "", cls = "";
+  if(!Number.isFinite(v)) v = c[f];
+  if(v < 0){ v = 0; }
+  if(v > max){
+    v = max; cls = "bad";
+    msg = `Silent work + Break can't be longer than the ${L}-min period, so ${f === "silent" ? "Silent work" : "Break"} was set to ${max} min.`;
+  }
+  c[f] = v;
+  save(); lastListKey = ""; render();
+  phUpdateRow(t, n, msg, cls);
+}
+$("phTables").addEventListener("change", e => {
+  const i = e.target.closest("input[data-f]"); if(!i) return;
+  phSet(i.dataset.t, i.dataset.n, i.dataset.f, i.value);
+  i.value = S.phases[i.dataset.t][i.dataset.n][i.dataset.f];
+});
+// − / + buttons: tap = 1 minute, hold = keeps counting
+let phHold = null;
+function phStep(b){ const c = S.phases[b.dataset.t][b.dataset.n]; phSet(b.dataset.t, b.dataset.n, b.dataset.f, c[b.dataset.f] + (+b.dataset.step)); }
+function phStop(){ if(phHold){ clearTimeout(phHold.t); clearInterval(phHold.i); phHold = null; } }
+$("phTables").addEventListener("pointerdown", e => {
+  const b = e.target.closest("[data-step]"); if(!b) return;
+  e.preventDefault(); phStop(); phStep(b);
+  phHold = { t: setTimeout(() => { phHold.i = setInterval(() => phStep(b), 90); }, 450), i: null };
+});
+["pointerup", "pointerleave", "pointercancel"].forEach(ev => $("phTables").addEventListener(ev, phStop));
+$("phReset").onclick = () => { S.phases = clone(DEFAULTS.phases); save(); lastListKey = ""; render(); buildPhases(); };
+
+/* ================= Setup link =================
+   https://…/studyhall/#code=TEACHERCODE&u=https://script.google.com/macros/s/…/exec
+   The part after # is read once, removed from the address bar right away
+   (it never reaches GitHub's server), and only the URL and code are changed;
+   every other setting stays as it is. */
+function readSetupHash(){
+  const h = location.hash.replace(/^#/, "");
+  if(!/(^|&)(code|key|u|url)=/i.test(h)) return null;
+  const out = {};
+  for(const part of h.split("&")){
+    const i = part.indexOf("="); if(i < 1) continue;
+    const name = part.slice(0, i).toLowerCase();
+    let val = part.slice(i + 1);
+    try{ val = decodeURIComponent(val); }catch(e){}           // "+" is kept as "+", not turned into a space
+    if(name === "code" || name === "key") out.key = val.trim();
+    if(name === "u" || name === "url") out.url = val.trim();
+  }
+  // wipe it from the address bar and from this history entry
+  try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){ location.hash = ""; }
+  return out;
+}
+let setupFromLink = readSetupHash();          // read before anything else runs
+
+function showToast(text, bad){
+  const t = $("toast"); t.textContent = text; t.classList.toggle("bad", !!bad); t.hidden = false;
+  clearTimeout(showToast.tm); showToast.tm = setTimeout(() => { t.hidden = true; }, 6000);
+}
+function applySetupLink(link){
+  if(!link) return;
+  const notes = [];
+  if(link.url !== undefined){
+    const url = hpParseConfig(`url=${link.url}`).url;       // same clean-up as Load from file (drops /u/1/, ?…)
+    if(/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)){ S.hp.url = url; notes.push("script address"); }
+    else { showToast("⚠ Link ignored: the script address must end with /exec", true); return; }
+  }
+  if(link.key){ S.hp.key = link.key; notes.push("teacher code"); }
+  if(!notes.length) return;
+  save();
+  hpNet = ""; hpLoadRoster().then(ok => {
+    hpFlush();
+    showToast(ok ? `✓ Updated from link: ${notes.join(" + ")} · connected` : `⚠ Updated ${notes.join(" + ")}, but Google said: ${hpNet}`, !ok);
+  });
+}
+// the link can also be opened in a tab where the page is already running
+window.addEventListener("hashchange", () => {
+  const link = readSetupHash();
+  if(!link) return;
+  if($("overlay").classList.contains("open")) dlgCancel();
+  applySetupLink(link);
+});
+
+/* ================= Start ================= */
+(async function start(){
+  await loadSettings();
+  hpNormalize();
+  destNormalize();
+  phNormalize();
+  applySetupLink(setupFromLink); setupFromLink = null;
+  sndLoadLib().then(sndNeedsTap);
+  applyTheme();
+  try{
+    const q = new URLSearchParams(location.search).get("test");
+    if(q){ const ms = new Date(q).getTime(); if(!isNaN(ms)) testOffsetMs = ms - liveMs(); }
+  }catch(e){}
+  updateTestUI();
+  render();
+  // tick aligned to the second
+  (function loop(){ render(); setTimeout(loop, 1000 - (now().getMilliseconds())); })();
+  syncTime();
+  setInterval(syncTime, 30 * 60 * 1000);
+  hpLoadRoster().then(hpFlush);
+  setInterval(hpFlush, 60 * 1000);                   // resend anything that failed
+  setInterval(hpLoadRoster, 6 * 60 * 60 * 1000);     // refresh names a few times a day      // re-sync every 30 min
+  setInterval(() => { lastListKey = ""; }, 60 * 1000);
+  keepAwake();
+})();
+</script>
+</body>
+</html>

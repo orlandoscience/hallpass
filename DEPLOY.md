@@ -62,3 +62,14 @@ The address alone gives nobody any student data: every request needs a personal 
 | Names are missing or out of date | Press *Check code and load names* in the settings. After an import the boards refresh within an hour on their own. |
 | The log has no new rows | Check the script address and the deployment: *Execute as* **Me**, *Who has access* **Anyone**; after changing the script deploy a **New version**. |
 | An error mentioning a method name when you run a menu item | The script was not saved or not redeployed. Save, reload the sheet, try again. |
+
+## The Study Hall page (a second page in the same repository, the same sheet)
+
+The folder `studyhall/` holds the Study Hall board: its own page, with its own look, at `https://<user>.github.io/<repository>/studyhall/` (for example `https://orlandoscience.github.io/hallpass/studyhall/`; without the last slash GitHub adds it by itself). It works with **this** script and sheet: the names come from the Hall Pass script with a teacher's code, and every finished trip is written to the **same `Log` tab** (one row when the student comes back). The old Study Hall script and sheet are no longer written to (their old data stay where they are).
+
+1. Upload the folder `studyhall/` (the file `studyhall/index.html`) with the rest of the update. The service worker (`sw.js`) leaves this folder alone, so it never shows the Hall Pass Board in its place.
+2. The Study Hall board uses the **code of the teacher whose sections are in that room** (Room 244: Alina Cabeza). Take that teacher's personal link from the `Teachers` tab (or from *4. Make setup links*) and add `studyhall/` to its address before the `#`. It ends up like `https://orlandoscience.github.io/hallpass/studyhall/#code=CODE&u=ENCODED_SCRIPT_ADDRESS`. Open it once on the board: the code and the address are saved there and removed from the address bar.
+3. A board that used the old address keeps its saved settings, names and sounds: the browser keeps them per website (`orlandoscience.github.io`), not per folder. Only the address (bookmark, shortcut) has to be changed.
+4. The Study Hall settings (the double tap on the gear) say **Teacher code** instead of *Secret key*; *Send test row* writes one row marked TEST for a guest called "Connection test".
+
+What is different from the Hall Pass Board: the Study Hall page has no timer, Live Agenda, cards or synced settings; its bell schedule and calendar are built in (updated by hand each year); a trip is written when the student is back (a board switched off while someone is out loses that row). If the same board needs a substitute or a second teacher in the header, type the names in the room and teachers boxes of its settings.
