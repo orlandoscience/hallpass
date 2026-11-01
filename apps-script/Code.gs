@@ -23,7 +23,7 @@ const QA_HEAD = ['Teacher', 'Question', 'Answer'].concat(BLOCKS, ['Updated']);
 const PREFS_HEAD = ['Teacher', 'Key', 'Value', 'Updated'];                                  // one row per teacher and setting; Value is JSON; Updated is a time in milliseconds
 const DEFAULTS_HEAD = ['Key', 'Value', 'Locked', 'Note'];                              // the school's defaults; Locked = x means a teacher cannot change it
 // The settings that follow a teacher from board to board. (Theme, screen width, sounds, volumes, the bell shift and the connection stay on each board.)
-const PREF_KEY_RE = /^(extras\.(hallPass|cards|agenda|timer|ann|qa|live)|stage\.(phases|arc|facts|riddles|messages|calendar|weather|alerts|cardSec)|pass\.(slots|autoLeaveSec|useWindow|closedStartMin|closedEndMin|allowOutside|maxMinutes|reasons|limits)|pass\.profile\.(name|room|nameEdited|roomEdited)|pin|pinEnabled|agenda\.(clearDaily|leadMin)|agenda\.texts\.[AB][1-4]|live\.texts\.[AB][1-4]|live\.sound|timer\.(duration|threshold|thresholdUnit|endOn|endSound|warnOn|warnSound|presets)|countdownFormat|hour12)$/;
+const PREF_KEY_RE = /^(extras\.(hallPass|cards|agenda|timer|ann|qa|live)|stage\.(phases|arc|facts|riddles|messages|calendar|weather|alerts|cardSec)|pass\.(slots|autoLeaveSec|useWindow|closedStartMin|closedEndMin|allowOutside|maxMinutes|reasons|limits)|pass\.profile\.(name|room|nameEdited|roomEdited)|pin|pinEnabled|agenda\.(clearDaily|leadMin)|agenda\.texts\.[AB][1-4]|live\.texts\.[AB][1-4]|live\.(sound|volume)|timer\.(duration|threshold|thresholdUnit|endOn|endSound|endVolume|warnOn|warnSound|warnVolume|presets)|notify\.(sound|ringSound|distractorSound|volume|ringVolume|distractorVolume)|theme|countdownFormat|hour12|sh\.(pin|pinOn|band|hour12|theme|phases|ruleMin|clubsRule|room|teachers|limitMin|maxOut|dests|snd))$/;
 const PREF_MAX = 40000;                                                                     // characters in one value (a cell holds 50,000)
 const BELLS_HEAD = ['Band', 'Day type', 'Day name', 'Label', 'Kind', 'Start', 'End'];      // Band: 912 or 1011. Kind: class, break or lunch. Times like 07:50 (24 hours)
 const CAL_HEAD = ['Date', 'Day', 'Type', 'Event', 'Event kind'];                          // Day: A or B, empty = no school. Type: regular, wednesday... Event kind: break, end or year
@@ -677,8 +677,10 @@ function showPrefKeys() {
        'pass.profile.name, pass.profile.room   (text, e.g. "Room 214")\n' +
        'pin (text, e.g. "1234"), pinEnabled (true or false)\n' +
        'agenda.clearDaily, agenda.leadMin, agenda.texts.A1 ... B4   |   live.texts.A1 ... B4, live.sound\n' +
-       'timer.duration / threshold (seconds), timer.thresholdUnit ("s" or "m"), timer.endOn / warnOn, timer.endSound / warnSound, timer.presets ("1,2,5,10")\n' +
-       'countdownFormat ("hms" or "ms"), hour12 (true or false)\n\n' +
+       'timer.duration / threshold (seconds), timer.thresholdUnit ("s" or "m"), timer.endOn / warnOn, timer.endSound / warnSound, timer.endVolume / warnVolume (0-100), timer.presets ("1,2,5,10")\n' +
+       'notify.sound / ringSound / distractorSound (the name of a sound from the sounds folder, like "school_gong", or "bell" / "chime"), notify.volume / ringVolume / distractorVolume (0-100), live.volume\n' +
+       'countdownFormat ("hms" or "ms"), hour12 (true or false), theme ("dark" or "light")\n' +
+       'sh.pin, sh.pinOn, sh.band, sh.hour12, sh.theme, sh.phases, sh.ruleMin, sh.clubsRule, sh.room, sh.teachers, sh.limitMin, sh.maxOut, sh.dests, sh.snd (the settings of the Study Hall page)\n\n' +
        'Locked = x on the School defaults tab means the teachers cannot change that setting.');
 }
 

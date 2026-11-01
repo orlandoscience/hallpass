@@ -34,7 +34,7 @@ The **pass indicator** ("PASSES OPEN, closes in 20:27") is always the small one 
 
 **A teacher whose grade group differs between A days and B days:** the group chosen with the buttons at the top right is remembered separately for the A days and for the B days, and the board switches by itself when the kind of day changes (set it once on an A day and once on a B day).
 
-**Colours in the settings:** the title bar of each section is **blue** if what it holds is kept on the school's sheet and follows the teacher, and **orange** if it stays on this board only; in the sections that have both (Display, Left screen, Timer, Live Agenda, Teacher code) a small blue or orange dot marks every item, and a lock sign marks what the school has locked. A legend at the top of the settings explains it.
+**Colours in the settings:** the title bar of each section is **blue** if what it holds is kept on the school's sheet and follows the teacher, and **orange** if it stays on this board only; in the sections that have both (Display, Attention Signal, Teacher code) a small blue or orange dot marks every item, and a lock sign marks what the school has locked. A legend at the top of the settings explains it. **The melodies** chosen from the school's `sounds/` folder, **all the volumes** and **the theme** follow the teacher too (a sound file loaded from the device does not: it stays on that device).
 
 **The Study Hall page** is a second, separate page in the folder `studyhall/` of the same repository (`.../hallpass/studyhall/`) with its own look; it writes to the same `Log` tab through the same script, with a teacher's code (see `DEPLOY.md`).
 

@@ -1160,32 +1160,32 @@
       <div class="perm-note" id="permNote"></div>
     </div>
 
-    <div class="section" data-follows="exSounds" data-store="brd">
+    <div class="section" data-follows="exSounds" data-store="srv">
       <h2>Alert Sound</h2>
 
       <h3>Warning Sound <span style="font-weight:400; text-transform:none; letter-spacing:0;">(for the 15/10/5-minute notices above)</span></h3>
-      <div class="btn-row" style="margin-top:10px;">
+      <div class="btn-row" style="margin-top:10px;" data-pref="notify.sound">
         <select id="soundSelect">
           <option value="bell">School Bell (triple ring)</option>
           <option value="chime">Digital Chime (two-tone)</option>
         </select>
         <button id="testSoundBtn">▶ Test Sound</button>
       </div>
-      <div class="volume-row">
+      <div class="volume-row" data-pref="notify.volume">
         <span style="min-width:80px;">Volume</span>
         <input type="range" id="volumeSlider" min="0" max="100" value="2" style="flex:1;">
         <span id="volumeValue" style="min-width:42px; text-align:right;">2%</span>
       </div>
 
       <h3 style="border-top:1px solid rgba(127,127,127,.15); padding-top:14px;">Bell Ring Sound <span style="font-weight:400; text-transform:none; letter-spacing:0;">(for "Ring the bell" above — completely independent selection &amp; volume)</span></h3>
-      <div class="btn-row" style="margin-top:10px;">
+      <div class="btn-row" style="margin-top:10px;" data-pref="notify.ringSound">
         <select id="ringSoundSelect">
           <option value="bell">School Bell (triple ring)</option>
           <option value="chime">Digital Chime (two-tone)</option>
         </select>
         <button id="testRingSoundBtn">▶ Test Sound</button>
       </div>
-      <div class="volume-row">
+      <div class="volume-row" data-pref="notify.ringVolume">
         <span style="min-width:80px;">Volume</span>
         <input type="range" id="ringVolumeSlider" min="0" max="100" value="2" style="flex:1;">
         <span id="ringVolumeValue" style="min-width:42px; text-align:right;">2%</span>
@@ -1197,19 +1197,19 @@
       </div>
     </div>
 
-    <div class="section" data-switch="exDing" data-store="brd">
+    <div class="section" data-switch="exDing" data-store="brd" data-mixed="1">
       <div class="sec-head"><h2>Attention Signal</h2><label class="switch sec-switch"><input type="checkbox" id="exDing"><span class="slider"></span></label></div>
       <div class="override-note">
         A manual bell you can trigger any time &mdash; independent of the actual schedule &mdash;
         e.g. to cut through classroom noise. The button itself lives on the main screen; here you choose its sound and volume.
       </div>
-      <div class="btn-row" style="margin-top:10px;">
+      <div class="btn-row" style="margin-top:10px;" data-store="srv" data-pref="notify.distractorSound">
         <select id="distractorSoundSelect">
           <option value="bell">School Bell (triple ring)</option>
           <option value="chime">Digital Chime (two-tone)</option>
         </select>
       </div>
-      <div class="volume-row">
+      <div class="volume-row" data-store="srv" data-pref="notify.distractorVolume">
         <span style="min-width:80px;">Volume</span>
         <input type="range" id="distractorVolumeSlider" min="0" max="100" value="2" style="flex:1;">
         <span id="distractorVolumeValue" style="min-width:42px; text-align:right;">2%</span>
@@ -1247,7 +1247,7 @@
       <h2>Display</h2>
       <div class="field-row">
         <span>Theme</span>
-        <div class="btn-row" id="themeButtons" data-store="brd"></div>
+        <div class="btn-row" id="themeButtons" data-store="srv" data-pref="theme"></div>
       </div>
       <div class="field-row">
         <span>Time format</span>
@@ -1275,21 +1275,21 @@
     </div>
 
 
-    <div class="section" data-switch="exCards" data-store="srv" data-mixed="1">
+    <div class="section" data-switch="exCards" data-store="srv">
       <div class="sec-head" data-pref="extras.cards"><h2>Left screen</h2><label class="switch sec-switch"><input type="checkbox" id="exCards"><span class="slider"></span></label></div>
-      <div class="toggle-row" data-store="srv" data-pref="stage.phases"><span>Lesson phases (Warm-up, Focus time, Wrap up, Last 2 minutes)</span><label class="switch"><input type="checkbox" id="stPhases"><span class="slider"></span></label></div>
-      <div class="toggle-row" data-store="srv" data-pref="stage.weather"><span>Weather cards (the little weather box at the top is always there)</span><label class="switch"><input type="checkbox" id="stWeather"><span class="slider"></span></label></div>
-      <div class="toggle-row" data-store="srv" data-pref="stage.alerts"><span>Severe weather warnings</span><label class="switch"><input type="checkbox" id="stAlerts"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-pref="stage.phases"><span>Lesson phases (Warm-up, Focus time, Wrap up, Last 2 minutes)</span><label class="switch"><input type="checkbox" id="stPhases"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-pref="stage.weather"><span>Weather cards (the little weather box at the top is always there)</span><label class="switch"><input type="checkbox" id="stWeather"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-pref="stage.alerts"><span>Severe weather warnings</span><label class="switch"><input type="checkbox" id="stAlerts"><span class="slider"></span></label></div>
       <div class="btn-row" style="margin-top:8px;"><button id="stLoadWxBtn">Refresh weather</button></div>
       <div class="perm-note" id="wxStatus"></div>
 
       <div class="override-note" style="margin-top:0;">What the rotating cards on the left may show. Switch off anything you don't want.</div>
-      <div class="toggle-row" data-store="srv" data-pref="stage.arc"><span>Day arc (sun moving across the school day)</span><label class="switch"><input type="checkbox" id="stArc"><span class="slider"></span></label></div>
-      <div class="toggle-row" data-store="srv" data-pref="stage.facts"><span>Facts and phrases</span><label class="switch"><input type="checkbox" id="stFacts"><span class="slider"></span></label></div>
-      <div class="toggle-row" data-store="srv" data-pref="stage.riddles"><span>Quick questions (the answer appears after 30 seconds)</span><label class="switch"><input type="checkbox" id="stRiddles"><span class="slider"></span></label></div>
-      <div class="toggle-row" data-store="srv" data-pref="stage.messages"><span>Announcements from the "Messages" tab</span><label class="switch"><input type="checkbox" id="stMessages"><span class="slider"></span></label></div>
-      <div class="toggle-row" data-store="srv" data-pref="stage.calendar"><span>School calendar numbers</span><label class="switch"><input type="checkbox" id="stCalendar"><span class="slider"></span></label></div>
-      <div class="field-row" data-store="srv" data-pref="stage.cardSec">
+      <div class="toggle-row" data-pref="stage.arc"><span>Day arc (sun moving across the school day)</span><label class="switch"><input type="checkbox" id="stArc"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-pref="stage.facts"><span>Facts and phrases</span><label class="switch"><input type="checkbox" id="stFacts"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-pref="stage.riddles"><span>Quick questions (the answer appears after 30 seconds)</span><label class="switch"><input type="checkbox" id="stRiddles"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-pref="stage.messages"><span>Announcements from the "Messages" tab</span><label class="switch"><input type="checkbox" id="stMessages"><span class="slider"></span></label></div>
+      <div class="toggle-row" data-pref="stage.calendar"><span>School calendar numbers</span><label class="switch"><input type="checkbox" id="stCalendar"><span class="slider"></span></label></div>
+      <div class="field-row" data-pref="stage.cardSec">
         <span>Seconds per card</span>
         <input type="number" id="stCardSec" class="num-input" min="8" max="90">
       </div>
@@ -1306,17 +1306,17 @@
       </div>
     </div>
 
-    <div class="section" data-switch="exTimer" data-store="srv" data-mixed="1">
+    <div class="section" data-switch="exTimer" data-store="srv">
       <div class="sec-head" data-pref="extras.timer"><h2>Timer</h2><label class="switch sec-switch"><input type="checkbox" id="exTimer"><span class="slider"></span></label></div>
-      <div class="field-row" data-store="srv" data-pref="timer.duration"><span>Time</span><span><input type="number" id="tmSetMin" class="num-input" min="0" max="99" style="width:4.5em;"> min &nbsp;<input type="number" id="tmSetSec" class="num-input" min="0" max="59" style="width:4.5em;"> s</span></div>
-      <div class="field-row" data-store="srv" data-pref="timer.threshold timer.thresholdUnit"><span>Turns red when this much is left</span><span class="thr"><input type="number" id="tmThreshold" class="num-input" min="0" max="3600" step="any" style="width:5em;"> <button type="button" id="tmThrMin" class="seg">min</button><button type="button" id="tmThrSec" class="seg on">sec</button></span></div>
-      <div class="toggle-row" data-store="srv" data-pref="timer.endOn"><span>Play a sound when the time is up</span><label class="switch"><input type="checkbox" id="tmEndOn"><span class="slider"></span></label></div>
-      <div class="field-row" data-store="srv" data-pref="timer.endSound"><span>Sound</span><span><select id="tmEndSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmEndTest">&#9654; Test</button></span></div>
-      <div class="volume-row" data-store="brd"><span style="min-width:80px;">Volume</span><input type="range" id="tmEndVol" min="0" max="100" value="5" style="flex:1;"><span id="tmEndVolVal" style="min-width:42px; text-align:right;">5%</span></div>
-      <div class="toggle-row" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);" data-store="srv" data-pref="timer.warnOn"><span>Play a sound when it turns red (once)</span><label class="switch"><input type="checkbox" id="tmWarnOn"><span class="slider"></span></label></div>
-      <div class="field-row" data-store="srv" data-pref="timer.warnSound"><span>Sound</span><span><select id="tmWarnSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmWarnTest">&#9654; Test</button></span></div>
-      <div class="volume-row" data-store="brd"><span style="min-width:80px;">Volume</span><input type="range" id="tmWarnVol" min="0" max="100" value="5" style="flex:1;"><span id="tmWarnVolVal" style="min-width:42px; text-align:right;">5%</span></div>
-      <div class="field-row" data-store="srv" data-pref="timer.presets"><span>Quick choices in the editor (minutes, with commas)</span><input type="text" id="tmPresets" class="num-input" style="width:14em;" maxlength="40"></div>
+      <div class="field-row" data-pref="timer.duration"><span>Time</span><span><input type="number" id="tmSetMin" class="num-input" min="0" max="99" style="width:4.5em;"> min &nbsp;<input type="number" id="tmSetSec" class="num-input" min="0" max="59" style="width:4.5em;"> s</span></div>
+      <div class="field-row" data-pref="timer.threshold timer.thresholdUnit"><span>Turns red when this much is left</span><span class="thr"><input type="number" id="tmThreshold" class="num-input" min="0" max="3600" step="any" style="width:5em;"> <button type="button" id="tmThrMin" class="seg">min</button><button type="button" id="tmThrSec" class="seg on">sec</button></span></div>
+      <div class="toggle-row" data-pref="timer.endOn"><span>Play a sound when the time is up</span><label class="switch"><input type="checkbox" id="tmEndOn"><span class="slider"></span></label></div>
+      <div class="field-row" data-pref="timer.endSound"><span>Sound</span><span><select id="tmEndSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmEndTest">&#9654; Test</button></span></div>
+      <div class="volume-row" data-pref="timer.endVolume"><span style="min-width:80px;">Volume</span><input type="range" id="tmEndVol" min="0" max="100" value="5" style="flex:1;"><span id="tmEndVolVal" style="min-width:42px; text-align:right;">5%</span></div>
+      <div class="toggle-row" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);" data-pref="timer.warnOn"><span>Play a sound when it turns red (once)</span><label class="switch"><input type="checkbox" id="tmWarnOn"><span class="slider"></span></label></div>
+      <div class="field-row" data-pref="timer.warnSound"><span>Sound</span><span><select id="tmWarnSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="tmWarnTest">&#9654; Test</button></span></div>
+      <div class="volume-row" data-pref="timer.warnVolume"><span style="min-width:80px;">Volume</span><input type="range" id="tmWarnVol" min="0" max="100" value="5" style="flex:1;"><span id="tmWarnVolVal" style="min-width:42px; text-align:right;">5%</span></div>
+      <div class="field-row" data-pref="timer.presets"><span>Quick choices in the editor (minutes, with commas)</span><input type="text" id="tmPresets" class="num-input" style="width:14em;" maxlength="40"></div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="tmOpenEditor">Open the timer editor</button><button type="button" id="tmReset">Reset</button></div>
       <div class="override-note">The two sounds are the timer's own: they work whenever the timer is on, whatever the Sound alerts switch says. The lists include the school sounds.</div>
       <div class="override-note">The timer sits in the middle of the top row on the left. Closing the settings does not start it, it only shows it. On the board: tap to start, tap again to pause. When it shows 00:00, or when you hold it for a moment, the editor opens.</div>
@@ -1363,18 +1363,18 @@
       <div class="override-note">On the basic screen the note simply stays during its class; with the rotating cards on, the note is one of the cards and gets the same time as the others. It shows during the class you pick here (and a few minutes before it). Start a line with <b>[x]</b> to cross it out. Plain text only: it is shown to students exactly as typed.</div>
     </div>
 
-    <div class="section" data-switch="exLive" data-store="srv" data-mixed="1">
+    <div class="section" data-switch="exLive" data-store="srv">
       <div class="sec-head" data-pref="extras.live"><h2>Live Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exLive"><span class="slider"></span></label></div>
       <div class="override-note">A plan with times for a class. The first line is how many minutes <b>before the bell</b> it starts; then one part per line: <b>name | minutes</b>. For example <b>2</b>, then <b>Bell work | 10</b>, <b>Activity | 20</b>: two minutes before the bell the board shows Bell work with a bar that fills over 10 minutes, then Activity for 20 minutes, and so on. A sound plays at the end of each part. While it runs it takes the place of the cards and the agenda note.</div>
-      <div class="field-row" data-store="srv"><span>Class (A or B day, and period)</span>
+      <div class="field-row"><span>Class (A or B day, and period)</span>
         <select id="lvBlock" class="num-input"><option>A1</option><option>A2</option><option>A3</option><option>A4</option><option>B1</option><option>B2</option><option>B3</option><option>B4</option></select></div>
       <textarea id="lvText" class="area-input" rows="8" style="width:100%;box-sizing:border-box;" placeholder="2&#10;Bell work | 10&#10;Activity | 20&#10;Free work | 20&#10;Work with a partner | 10"></textarea>
       <div class="perm-note" id="lvPreview"></div>
       <div class="btn-row" style="margin-top:8px;"><button type="button" id="lvSample">Write a sample</button><button type="button" id="lvCopyTo">Copy to...</button><button type="button" id="lvCopyDay">Copy to this day's periods</button><button type="button" id="lvCopyAll">Copy to all 8 classes</button><button type="button" id="lvClear">Clear this plan</button></div>
       <div class="perm-note" id="lvStatus"></div>
       <h3>Sound at the end of each part</h3>
-      <div class="btn-row" data-store="srv" data-pref="live.sound"><select id="lvSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="lvTest">&#9654; Test Sound</button></div>
-      <div class="volume-row" data-store="brd"><span style="min-width:80px;">Volume</span><input type="range" id="lvVol" min="0" max="100" value="5" style="flex:1;"><span id="lvVolVal" style="min-width:42px; text-align:right;">5%</span></div>
+      <div class="btn-row" data-pref="live.sound"><select id="lvSound"><option value="bell">School Bell (triple ring)</option><option value="chime">Digital Chime (two-tone)</option></select> <button type="button" id="lvTest">&#9654; Test Sound</button></div>
+      <div class="volume-row" data-pref="live.volume"><span style="min-width:80px;">Volume</span><input type="range" id="lvVol" min="0" max="100" value="5" style="flex:1;"><span id="lvVolVal" style="min-width:42px; text-align:right;">5%</span></div>
     </div>
 
     <div class="section" data-switch="exHallPass" data-store="srv">
@@ -4192,14 +4192,18 @@ const PREF_FIXED = ["extras.hallPass", "extras.cards", "extras.agenda", "extras.
   "stage.phases", "stage.arc", "stage.facts", "stage.riddles", "stage.messages", "stage.calendar", "stage.weather", "stage.alerts", "stage.cardSec",
   "pass.slots", "pass.autoLeaveSec", "pass.useWindow", "pass.closedStartMin", "pass.closedEndMin", "pass.allowOutside", "pass.maxMinutes", "pass.reasons", "pass.limits",
   "pass.profile.name", "pass.profile.room", "pass.profile.nameEdited", "pass.profile.roomEdited", "pin", "pinEnabled", "agenda.clearDaily", "agenda.leadMin",
-  "live.sound", "timer.duration", "timer.threshold", "timer.thresholdUnit", "timer.endOn", "timer.endSound", "timer.warnOn", "timer.warnSound", "timer.presets", "countdownFormat", "hour12"];
+  "live.sound", "live.volume", "timer.duration", "timer.threshold", "timer.thresholdUnit", "timer.endOn", "timer.endSound", "timer.endVolume", "timer.warnOn", "timer.warnSound", "timer.warnVolume", "timer.presets", "countdownFormat", "hour12",
+  "notify.sound", "notify.ringSound", "notify.distractorSound", "notify.volume", "notify.ringVolume", "notify.distractorVolume", "theme"];
 const PREF_LABELS = { "pass.useWindow": "the 10/10 rule", "pass.closedStartMin": "the closed first minutes", "pass.closedEndMin": "the closed last minutes", "pass.allowOutside": "passes in the closed minutes", "pass.slots": "the number of pass buttons",
-  "pass.maxMinutes": "the pass time limit", "pass.reasons": "the places to go", "pass.limits": "the limits per place", "pin": "the PIN", "pinEnabled": "the PIN switch", "extras.hallPass": "hall passes", "extras.timer": "the timer", "extras.cards": "the cards", "extras.agenda": "the agenda", "extras.live": "the Live Agenda" };
+  "pass.maxMinutes": "the pass time limit", "pass.reasons": "the places to go", "pass.limits": "the limits per place", "pin": "the PIN", "pinEnabled": "the PIN switch", "extras.hallPass": "hall passes", "extras.timer": "the timer", "extras.cards": "the cards", "extras.agenda": "the agenda", "extras.live": "the Live Agenda",
+  "notify.sound": "the alert sound", "notify.ringSound": "the bell sound", "notify.distractorSound": "the attention signal sound", "notify.volume": "the alert volume", "notify.ringVolume": "the bell volume", "notify.distractorVolume": "the attention signal volume", "live.volume": "the Live Agenda volume", "timer.endVolume": "the timer volume", "timer.warnVolume": "the timer warning volume", "theme": "the theme" };
 function prefKeys(){ return PREF_FIXED.concat(PREF_BLOCKS.map(b => "agenda.texts." + b), PREF_BLOCKS.map(b => "live.texts." + b)); }
 const prefJSON = k => { const v = getPath(settings, k); return v === undefined ? "null" : JSON.stringify(v); };
 let prefDefaults = null;
 const defJSON = k => { if(!prefDefaults) prefDefaults = getDefaultSettings(); const v = getPath(prefDefaults, k); return v === undefined ? "null" : JSON.stringify(v); };
-function prefApply(k, json){ let v; try{ v = JSON.parse(json); }catch(e){ return; } if(v === null){ if(/\.texts\./.test(k)) setPath(settings, k, undefined); return; } setPath(settings, k, v); }
+const SOUND_KEYS = ["notify.sound", "notify.ringSound", "notify.distractorSound", "live.sound", "timer.endSound", "timer.warnSound"];
+const isLocalSound = v => /^"?lib_/.test(String(v));                  // a file loaded from this device (Sound Library): it cannot follow the teacher
+function prefApply(k, json){ let v; try{ v = JSON.parse(json); }catch(e){ return; } if(SOUND_KEYS.indexOf(k) >= 0 && isLocalSound(v)) return; if(v === null){ if(/\.texts\./.test(k)) setPath(settings, k, undefined); return; } setPath(settings, k, v); }
 function prefsState(){ if(!settings.prefs) settings.prefs = { teacher: "", synced: {}, pending: {}, locked: [], at: 0, migrated: false, note: "" }; return settings.prefs; }
 let prefsDeferred = null, prefsBusy = false, prefsTimer = 0;
 function renderPrefsStatus(){
@@ -4251,7 +4255,7 @@ function prefsMerge(r){                           // the school's locks > what i
   });
   if(nothing && !P.migrated){ P.migrated = true; keys.forEach(k => { const c = prefJSON(k); if(c !== defJSON(k) && !P.pending[k]) P.pending[k] = { j: c, t: Date.now() }; }); }      // the first time: what this board already has becomes the teacher's own
   P.locked = locked; P.at = Date.now();
-  writeSettings(); if(changed) reapplyAll(); else renderPrefsStatus();
+  writeSettings(); if(changed){ reapplyAll(); preloadSelectedSounds(); } else renderPrefsStatus();
   prefsFlush();
 }
 function prefsPush(){                             // what was changed here and is not on the sheet yet is queued (and sent)
@@ -4261,6 +4265,7 @@ function prefsPush(){                             // what was changed here and i
   const locked = new Set(P.locked || []), reverted = []; let moved = false;
   prefKeys().forEach(k => {
     const cur = prefJSON(k), base = P.synced[k] ? P.synced[k].j : defJSON(k);
+    if(SOUND_KEYS.indexOf(k) >= 0 && isLocalSound(cur)) return;            // a sound loaded on this device stays on this device
     if(locked.has(k)){ if(P.synced[k] && cur !== P.synced[k].j){ prefApply(k, P.synced[k].j); reverted.push(k); } return; }
     if(P.pending[k] && P.pending[k].j === cur) return;
     if(cur === base){ if(P.pending[k]){ delete P.pending[k]; moved = true; } return; }
@@ -4642,7 +4647,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.13 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.14 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -5311,8 +5316,11 @@ function renderSchoolSoundsStatus(msg){
 function setSchoolSounds(files){
   schoolSounds = schoolSoundItems(files);
   rebuildSoundSelectOptions();
-  [settings.notify.sound, settings.notify.ringSound, settings.notify.distractorSound].forEach(k => { const it = schoolSounds.find(x => x.id === k); if(it) loadSchoolSound(it); });   // the ones in use are ready at once
+  preloadSelectedSounds();
   renderSchoolSoundsStatus();
+}
+function preloadSelectedSounds(){                 // the school sounds in use (alert, bell, attention, timer, Live Agenda) are fetched now, so that they are on the device before they are needed
+  [settings.notify.sound, settings.notify.ringSound, settings.notify.distractorSound, settings.timer.endSound, settings.timer.warnSound, settings.live.sound].forEach(k => { const it = schoolSounds.find(x => x.id === k); if(it) loadSchoolSound(it); });
 }
 async function refreshSchoolSounds(force){
   const saved = settings.notify.schoolSounds || { at: 0, files: [] };
@@ -5357,13 +5365,16 @@ function rebuildSoundSelectOptions(){
     });
   });
   const libIds = new Set(soundLibrary.map(i => i.id).concat(schoolSounds.map(i => i.id)));
-  if(settings.notify.sound !== "bell" && settings.notify.sound !== "chime" && !libIds.has(settings.notify.sound)){
+  const listAt = (settings.notify.schoolSounds || {}).at || 0, listFresh = Date.now() - listAt < 5 * 60000;
+  let keptUnknown = false;
+  const soundKnown = v => { if(libIds.has(v)) return true; if(/^school_/.test(String(v)) && !listFresh){ keptUnknown = true; return true; } return false; };      // a melody chosen on another board is kept until the sounds folder has been read afresh
+  if(settings.notify.sound !== "bell" && settings.notify.sound !== "chime" && !soundKnown(settings.notify.sound)){
     settings.notify.sound = "bell"; saveSettings();
   }
-  if(settings.notify.ringSound !== "bell" && settings.notify.ringSound !== "chime" && !libIds.has(settings.notify.ringSound)){
+  if(settings.notify.ringSound !== "bell" && settings.notify.ringSound !== "chime" && !soundKnown(settings.notify.ringSound)){
     settings.notify.ringSound = "bell"; saveSettings();
   }
-  if(settings.notify.distractorSound !== "bell" && settings.notify.distractorSound !== "chime" && !libIds.has(settings.notify.distractorSound)){
+  if(settings.notify.distractorSound !== "bell" && settings.notify.distractorSound !== "chime" && !soundKnown(settings.notify.distractorSound)){
     settings.notify.distractorSound = "bell"; saveSettings();
   }
   document.getElementById("soundSelect").value = settings.notify.sound;
@@ -5371,13 +5382,15 @@ function rebuildSoundSelectOptions(){
   document.getElementById("distractorSoundSelect").value = settings.notify.distractorSound;
   ["endSound", "warnSound"].forEach(k => {                 // the timer's own two sounds: a sound that no longer exists falls back to the bell
     const v = settings.timer[k];
-    if(v !== "bell" && v !== "chime" && !libIds.has(v)){ settings.timer[k] = "bell"; saveSettings(); }
+    if(v !== "bell" && v !== "chime" && !soundKnown(v)){ settings.timer[k] = "bell"; saveSettings(); }
   });
-  if(settings.live.sound !== "bell" && settings.live.sound !== "chime" && !libIds.has(settings.live.sound)){ settings.live.sound = "bell"; saveSettings(); }
+  if(settings.live.sound !== "bell" && settings.live.sound !== "chime" && !soundKnown(settings.live.sound)){ settings.live.sound = "bell"; saveSettings(); }
   if(document.getElementById("lvSound") && document.getElementById("lvSound").querySelector('option[value="' + settings.live.sound + '"]')) document.getElementById("lvSound").value = settings.live.sound;
   syncTimerSoundUI();
   syncVolumeUI();
+  if(keptUnknown && !rebuildSoundsRefreshing){ rebuildSoundsRefreshing = true; refreshSchoolSounds(true).then(() => { rebuildSoundsRefreshing = false; }, () => { rebuildSoundsRefreshing = false; }); }     // look in the folder now: the file may be a new one
 }
+let rebuildSoundsRefreshing = false;
 
 function renderLibraryList(){
   const list = document.getElementById("libraryList");
