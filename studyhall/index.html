@@ -413,6 +413,20 @@
   .dlg .hptable .late{ color: var(--red); font-weight: 700; }
   .hpbox{ margin: 12px 0; padding: 12px; border-radius: 10px; border: 1px dashed var(--accent); }
   .dlg input[type=text], .dlg input[type=url]{ cursor: text; width: 100%; }
+
+  /* ---- where a setting is kept: blue = the school's sheet (follows the teacher), orange = this board only ---- */
+  .store-legend{ font-size: 12px; line-height: 1.7; margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(127,127,127,.3); }
+  .store-legend .lg{ display: inline-block; padding: 0 8px; border-radius: 6px; font-weight: 700; }
+  .store-legend .lg.srv{ background: rgba(56,189,248,.28); border-left: 4px solid #38bdf8; } .store-legend .lg.brd{ background: rgba(251,146,60,.30); border-left: 4px solid #fb923c; }
+  .dlg .f[data-store], .dlg #sndRows[data-store], .dlg #sndLib[data-store]{ position: relative; padding-left: 20px; }
+  .dlg .f[data-store]::before{ content: ""; position: absolute; left: 3px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; }
+  .dlg #sndRows[data-store]::before, .dlg #sndLib[data-store]::before{ content: ""; position: absolute; left: 3px; top: 14px; width: 10px; height: 10px; border-radius: 50%; }
+  .dlg [data-store="srv"]::before{ background: #38bdf8; } .dlg [data-store="brd"]::before{ background: #fb923c; }
+  .dlg .phbox[data-store], .dlg .hpbox[data-store], .dlg .testbox[data-store]{ border-left-width: 5px; border-left-style: solid; }
+  .dlg .phbox[data-store="srv"]{ border-left-color: #38bdf8; } .dlg .hpbox[data-store="brd"], .dlg .testbox[data-store="brd"]{ border-left-color: #fb923c; }
+  .dlg .phbox[data-store]::before, .dlg .hpbox[data-store]::before, .dlg .testbox[data-store]::before{ display: none; }
+  .school-lock{ position: relative; outline: 1px dashed rgba(148,163,184,.75); outline-offset: 2px; border-radius: 6px; }
+  .school-lock::after{ content: "\1F512"; position: absolute; right: 4px; top: -2px; font-size: 12px; opacity: .9; pointer-events: none; }
 </style>
 </head>
 <body data-theme="dark">
@@ -512,29 +526,30 @@
   <div class="dlg">
     <h3>Settings</h3>
 
-    <div class="f"><span>Grade band</span><div class="seg-btns" id="bandBtns"></div></div>
+    <div class="store-legend"><b>Where a setting is kept:</b> <span class="lg srv">blue</span> on the school's sheet, it follows the teacher to any board &nbsp; <span class="lg brd">orange</span> on this board only. A <span class="lg-lock">&#128274;</span> means the school set it.</div>
+    <div class="f" data-store="srv" data-pref="sh.band"><span>Grade band</span><div class="seg-btns" id="bandBtns"></div></div>
 
-    <div class="f">
+    <div class="f" data-store="brd">
       <div>Today's schedule<div class="hint">For today only. Auto follows the A/B calendar.</div></div>
       <div class="seg-btns" id="ovBtns"></div>
     </div>
 
-    <div class="f">
+    <div class="f" data-store="srv" data-pref="sh.ruleMin sh.clubsRule">
       <div>No-leave window<div class="hint">Minutes at the start and at the end of class.</div></div>
       <input type="number" id="ruleMin" min="1" max="40" step="1">
     </div>
 
-    <div class="f"><span>Theme</span><div class="seg-btns" id="themeBtns"></div></div>
-    <div class="f">
+    <div class="f" data-store="srv" data-pref="sh.theme"><span>Theme</span><div class="seg-btns" id="themeBtns"></div></div>
+    <div class="f" data-store="srv" data-pref="sh.room">
       <div>Room<div class="hint">Shown under the title. Leave empty to hide.</div></div>
       <input type="text" id="roomIn" style="width:200px" placeholder="Room 244">
     </div>
-    <div class="f">
+    <div class="f" data-store="srv" data-pref="sh.teachers">
       <div>Teacher(s)<div class="hint">Separate names with · or a comma.</div></div>
       <input type="text" id="teachIn" style="width:260px" placeholder="Ms. Ebru · Ms. Cabeza">
     </div>
 
-    <div class="f">
+    <div class="f" data-store="brd">
       <div>Bell shift (seconds)<div class="hint">Match the school bell. + makes the page run later.</div></div>
       <div class="seg-btns">
         <button data-off="-1">−1</button>
@@ -544,19 +559,19 @@
     </div>
 
 
-    <div class="phbox">
-      <div class="f" style="border:none;padding-top:0">
+    <div class="phbox" data-store="srv">
+      <div class="f" style="border:none;padding-top:0" data-store="srv" data-pref="sh.phases">
         <div>📚 Study Hall phases<div class="hint">Silent work and Break in minutes. Low voice gets the rest of the period.</div></div>
         <button id="phReset">Reset to slides</button>
       </div>
       <div id="phTables"></div>
     </div>
 
-    <div class="f">
+    <div class="f" data-store="srv" data-pref="sh.pinOn">
       <div>🔒 Require PIN<div class="hint">Off: the ⚙ button opens Settings without a PIN.</div></div>
       <div class="seg-btns" id="pinOnBtns"></div>
     </div>
-    <div class="f">
+    <div class="f" data-store="srv" data-pref="sh.pin">
       <div>🔒 Settings PIN<div class="hint" id="pinHint">4 digits</div></div>
       <div class="seg-btns">
         <input type="password" id="pinNew" inputmode="numeric" maxlength="4" placeholder="New" style="width:78px;cursor:text">
@@ -565,9 +580,9 @@
       </div>
     </div>
 
-    <div class="hpbox">
-      <div class="f" style="border:none;padding-top:0">
-        <div>🎫 Hall pass sign-out<div class="hint" id="hpStatusLine">Not connected</div></div>
+    <div class="hpbox" data-store="brd">
+      <div class="f" style="border:none;padding-top:0" data-store="brd">
+        <div>🎫 Hall pass sign-out<div class="hint" id="hpStatusLine">Not connected</div><div class="hint" id="hpPrefsLine"></div></div>
         <div class="seg-btns">
           <button id="hpFileBtn">📄 Load from file</button>
           <button id="hpReload">Reload names</button>
@@ -575,23 +590,23 @@
           <input type="file" id="hpFile" accept=".txt,.json,text/plain" hidden>
         </div>
       </div>
-      <div class="f" style="display:block">
+      <div class="f" style="display:block" data-store="brd">
         <div>Google Apps Script URL<div class="hint">From Deploy → Web app. Ends with /exec.</div></div>
         <input type="url" id="hpUrl" placeholder="https://script.google.com/macros/s/…/exec" style="margin-top:6px">
       </div>
-      <div class="f">
+      <div class="f" data-store="brd">
         <div>Teacher code<div class="hint">The teacher's personal code (the setup link fills it in).</div></div>
         <input type="password" id="hpKey" style="width:170px;cursor:text">
       </div>
-      <div class="f" style="display:block">
+      <div class="f" style="display:block" data-store="srv" data-pref="sh.dests sh.limitMin">
         <div>Time limit by destination<div class="hint">Minutes before the pass card turns red. 0 hides that option from students.</div></div>
         <div class="destgrid" id="destGrid"></div>
       </div>
-      <div class="f">
+      <div class="f" data-store="srv" data-pref="sh.maxOut">
         <div>Number of hall passes<div class="hint">How many "Pass #" buttons are shown.</div></div>
         <input type="number" id="hpMax" min="1" max="6" step="1">
       </div>
-      <div class="f" style="display:block">
+      <div class="f" style="display:block" data-store="brd">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span>Today's passes (this board)</span>
           <button id="hpEndAll">End all open passes</button>
@@ -600,7 +615,7 @@
       </div>
     </div>
 
-    <div class="hpbox sndbox">
+    <div class="hpbox sndbox" data-store="brd">
       <div class="f" style="border:none;padding-top:0">
         <div>🔔 Sounds<div class="hint" id="sndHint">Pick an MP3 for each moment. Files stay saved on this board.</div></div>
         <div class="seg-btns">
@@ -608,11 +623,11 @@
           <input type="file" id="sndFile" accept="audio/mpeg,audio/mp3,audio/*,.mp3" multiple hidden>
         </div>
       </div>
-      <div class="sndlib" id="sndLib"></div>
-      <div id="sndRows"></div>
+      <div class="sndlib" data-store="brd" id="sndLib"></div>
+      <div data-store="srv" data-pref="sh.snd" id="sndRows"></div>
     </div>
 
-    <div class="testbox">
+    <div class="testbox" data-store="brd">
       <div class="f" style="border:none;padding-top:0">
         <div>🧪 Test mode<div class="hint">Pretend it is another time. The clock keeps running from there. Resets when the page is reloaded.</div></div>
       </div>
@@ -760,7 +775,7 @@ const DEFAULTS = {
     brkEnd:   { id: "", vol: 80 },
     end:      { id: "", vol: 80 }
   },
-  hpActive: [], hpQueue: [], hpLog: {}, roster: {}, rosterIds: {}, teacherName: "", rosterAt: 0
+  hpActive: [], hpQueue: [], hpLog: {}, roster: {}, rosterIds: {}, teacherName: "", rosterAt: 0, prefs: null
 };
 let S = JSON.parse(JSON.stringify(DEFAULTS));
 
@@ -795,7 +810,7 @@ async function loadSettings(){
 /* While Settings is open, changes are only a preview: what gets stored is the last
    applied version (committed) plus live data such as passes and the send queue.
    Apply / Save store the preview; Cancel puts the applied version back. */
-const RUNTIME_KEYS = ["hpActive", "hpQueue", "hpLog", "roster", "rosterIds", "teacherName", "rosterAt"];
+const RUNTIME_KEYS = ["hpActive", "hpQueue", "hpLog", "roster", "rosterIds", "teacherName", "rosterAt", "prefs"];
 let committed = null;
 const clone = o => JSON.parse(JSON.stringify(o));
 function settingsPart(o){ const c = clone(o); RUNTIME_KEYS.forEach(k => delete c[k]); return c; }
@@ -806,6 +821,7 @@ function toStore(){
   return o;
 }
 async function save(){
+  if(!committed && typeof prefsSchedule === "function") prefsSchedule();       // a change outside the settings window goes to the sheet too
   const data = toStore();
   try{ localStorage.setItem("hallpass_1010", JSON.stringify(data)); }catch(e){}
   try{
@@ -1277,8 +1293,13 @@ function dlgDirty(){
   $("dlgApply").disabled = !d; $("dlgSave").disabled = false;
   $("dirtyNote").textContent = d ? "● Unsaved changes" : "";
 }
-function dlgApply(){ committed = settingsPart(S); save(); dlgDirty(); }
-function dlgSave(){ committed = settingsPart(S); save(); committed = null; $("overlay").classList.remove("open"); }
+function dlgApply(){
+  committed = settingsPart(S); save();
+  const reverted = prefsPush();                    // to the sheet (a setting the school locked is put back)
+  if(reverted){ committed = settingsPart(S); buildDialog(); buildDests(); sndBuild(); buildPhases(); roomFill(); }
+  dlgDirty();
+}
+function dlgSave(){ committed = settingsPart(S); save(); committed = null; $("overlay").classList.remove("open"); prefsPush(); prefsRunDeferred(); }
 function dlgCancel(){
   if(committed){
     const back = committed, urlChanged = back.hp.url !== S.hp.url || back.hp.key !== S.hp.key;
@@ -1289,6 +1310,7 @@ function dlgCancel(){
     if(urlChanged) hpLoadRoster().then(hpFlush);
   }
   $("overlay").classList.remove("open");
+  prefsRunDeferred();
 }
 const closeDlg = dlgCancel;      // Esc / S key = Cancel
 
@@ -1401,7 +1423,7 @@ async function hpCall(action, params){            // GET only: the code travels 
   Object.keys(params || {}).forEach(k => { if(params[k] !== "" && params[k] != null) q.set(k, String(params[k])); });
   const r = await fetch(`${url}${url.includes("?") ? "&" : "?"}${q.toString()}`, { cache: "no-store" });
   const j = await r.json();
-  if(!j.ok) throw new Error(j.error === "unknown code" || /cannot/.test(String(j.error)) ? "bad key" : (j.error || "script error"));
+  if(!j.ok) throw new Error(j.error === "unknown code" || /cannot/.test(String(j.error)) ? "bad key" : (j.error === "bad key" ? "bad setting" : (j.error || "script error")));
   return j;
 }
 async function hpLoadRoster(){
@@ -1417,6 +1439,7 @@ async function hpLoadRoster(){
     });
     S.roster = roster; S.rosterIds = ids; S.teacherName = String(j.display || ""); S.rosterAt = Date.now(); save();
     hpNet = "online";
+    prefsPull();                                     // the teacher's own settings and the school's defaults
   }catch(e){ hpNet = e.message === "bad key" ? "wrong key" : "offline"; }
   hpBuildSettings();
   return hpNet === "online";
@@ -1448,6 +1471,138 @@ function stampId(outD, inD){                       // the trip's ID: yyyyMMdd + 
 function hpLogTrip(a, back, status){               // one finished trip = one row in the Log (when the student is back)
   S.hpQueue.push({ v: 2, i: stampId(new Date(a.out), new Date(back)), s: a.sid || "", sec: a.section || "", w: a.dest, to: a.out, ti: back, st: status, m: a.test ? "TEST" : "LIVE", b: S.hp.device, g: a.sid ? "" : a.name });
   save(); hpFlush();
+}
+
+/* ---------- The settings follow the teacher: they are kept on the school's sheet (Teacher settings), under the school's defaults (School defaults) ---------- */
+const SND_SLOTS = ["start", "brkStart", "brkEnd", "end"];
+const isLocalSnd = id => /^snd-/.test(String(id || ""));                       // a file loaded on this board: it cannot follow the teacher
+const clampN = (v, a, b) => Math.min(b, Math.max(a, Math.round(+v)));
+function validPhases(v){ try{ return ["regular", "wednesday"].every(t => ["1", "2", "4"].every(p => { const x = v[t][p]; return x && x.silent >= 0 && x.silent <= 240 && x.brk >= 0 && x.brk <= 120; })); }catch(e){ return false; } }
+function validDests(v){ return Array.isArray(v) && v.length >= 1 && v.length <= 12 && v.every(d => d && typeof d.name === "string" && d.name.length > 0 && d.name.length <= 30 && +d.min >= 0 && +d.min <= 240 && typeof d.icon === "string" && d.icon.length <= 8); }
+function sndShared(o){ const out = {}; SND_SLOTS.forEach(k => { const c = (o && o[k]) || {}; out[k] = { id: isLocalSnd(c.id) ? "" : String(c.id || ""), vol: clampN(c.vol == null ? 80 : c.vol, 0, 100) }; }); return out; }
+function sndMerge(v){                              // the volumes come from the sheet; a melody only if it is not a file of another board; the file of this board is kept
+  if(!v || typeof v !== "object") return;
+  SND_SLOTS.forEach(k => { const c = v[k]; if(!c) return; if(!S.snd[k]) S.snd[k] = { id: "", vol: 80 }; S.snd[k].vol = clampN(c.vol, 0, 100); if(c.id && !isLocalSnd(c.id)) S.snd[k].id = String(c.id); });
+}
+const SH = {                                       // the name on the sheet is "sh." + the name here
+  pin:       { get: o => o.pin,           set: v => { if(/^\d{4}$/.test(String(v))) S.pin = String(v); } },
+  pinOn:     { get: o => o.pinOn,         set: v => { S.pinOn = !!v; } },
+  band:      { get: o => o.band,          set: v => { if(BAND_LABELS[v]) S.band = v; } },
+  hour12:    { get: o => o.hour12,        set: v => { S.hour12 = !!v; } },
+  theme:     { get: o => o.theme,         set: v => { if(v === "dark" || v === "light") S.theme = v; } },
+  phases:    { get: o => o.phases,        set: v => { if(validPhases(v)) S.phases = clone(v); } },
+  ruleMin:   { get: o => o.ruleMin,       set: v => { if(+v >= 1 && +v <= 40) S.ruleMin = Math.round(+v); } },
+  clubsRule: { get: o => o.clubsRule,     set: v => { S.clubsRule = !!v; } },
+  room:      { get: o => o.room,          set: v => { S.room = String(v).slice(0, 60); } },
+  teachers:  { get: o => o.teachers,      set: v => { S.teachers = String(v).slice(0, 120); } },
+  limitMin:  { get: o => o.hp.limitMin,   set: v => { if(+v >= 1 && +v <= 120) S.hp.limitMin = Math.round(+v); } },
+  maxOut:    { get: o => o.hp.maxOut,     set: v => { if(+v >= 1 && +v <= 6) S.hp.maxOut = Math.round(+v); } },
+  dests:     { get: o => o.dests,         set: v => { if(validDests(v)) S.dests = clone(v); } },
+  snd:       { get: o => sndShared(o.snd), set: v => sndMerge(v) }
+};
+const SH_NAMES = Object.keys(SH);
+const SH_LABELS = { pin: "the settings PIN", pinOn: "the PIN switch", band: "the grade band", hour12: "the clock format", theme: "the theme", phases: "the phases", ruleMin: "the no-leave window", clubsRule: "the clubs rule", room: "the room", teachers: "the teachers' names", limitMin: "the time limit", maxOut: "the number of passes", dests: "the places and their limits", snd: "the sound volumes" };
+const shJSON = n => JSON.stringify(SH[n].get(S));
+const shDef = n => JSON.stringify(SH[n].get(DEFAULTS));
+function shApply(n, json){ let v; try{ v = JSON.parse(json); }catch(e){ return; } SH[n].set(v); }
+function prefsState(){ if(!S.prefs) S.prefs = { teacher: "", synced: {}, pending: {}, locked: [], at: 0, migrated: false, note: "" }; return S.prefs; }
+let prefsDeferred = null, prefsBusy = false, prefsTimer = 0;
+function renderPrefsLine(){
+  const el = $("hpPrefsLine"); if(!el) return;
+  if(!S.hp.url || !S.hp.key){ el.textContent = ""; paintLocks(); return; }
+  const P = S.prefs, waiting = P ? Object.keys(P.pending || {}).length : 0, parts = [];
+  parts.push(P && P.at ? "Your settings are kept on the school's sheet." : "Your settings will be kept on the school's sheet.");
+  if(waiting) parts.push(waiting + " change" + (waiting > 1 ? "s" : "") + " waiting to be sent.");
+  if(P && P.locked && P.locked.length) parts.push("Set by the school (cannot be changed here): " + P.locked.map(n => SH_LABELS[n] || n).join(", ") + ".");
+  if(P && P.note) parts.push(P.note);
+  el.textContent = parts.join(" ");
+  paintLocks();
+}
+function paintLocks(){                             // a lock sign on every setting the school set
+  const set = new Set(S.hp.url && S.hp.key && S.prefs && S.prefs.locked ? S.prefs.locked : []);
+  document.querySelectorAll("[data-pref]").forEach(el => {
+    const on = el.getAttribute("data-pref").split(" ").some(k => set.has(k.replace(/^sh\./, "")));
+    el.classList.toggle("school-lock", on);
+    if(on) el.title = "Set by the school"; else if(el.title === "Set by the school") el.removeAttribute("title");
+  });
+}
+function reapplyPrefs(){ applyTheme(); lastListKey = ""; hpOutKey = ""; render(); roomFill(); renderPrefsLine(); }
+async function prefsPull(){
+  if(!S.hp.url || !S.hp.key) return;
+  let r;
+  try{ const j = await hpCall("prefs_get"); r = { school: j.school || {}, mine: j.mine || {} }; }catch(e){ return; }
+  if(committed){ prefsDeferred = r; return; }      // the settings window is open: what the sheet says waits until it is closed
+  prefsMerge(r);
+}
+function prefsRunDeferred(){ if(prefsDeferred && !committed){ const r = prefsDeferred; prefsDeferred = null; prefsMerge(r); } }
+function prefsMerge(r){                            // the school's locks > the teacher's own settings (unless a newer change here is waiting) > the school's defaults > this board
+  const P = prefsState(), who = S.hp.key;
+  if(P.teacher !== who){ P.teacher = who; P.synced = {}; P.pending = {}; P.migrated = false; P.note = ""; }
+  const school = {}, mine = {}, locked = []; let changed = false;
+  SH_NAMES.forEach(n => { if(r.school["sh." + n]) school[n] = r.school["sh." + n]; if(r.mine["sh." + n]) mine[n] = r.mine["sh." + n]; });
+  const nothing = !Object.keys(school).length && !Object.keys(mine).length;
+  SH_NAMES.forEach(n => {
+    const sch = school[n], m = mine[n], cur = shJSON(n);
+    if(sch && sch.lock){ locked.push(n); if(cur !== sch.v){ shApply(n, sch.v); changed = true; } P.synced[n] = { j: sch.v, t: 0 }; delete P.pending[n]; return; }
+    if(m){
+      const pend = P.pending[n];
+      if(pend && pend.t > m.t) return;
+      if(cur !== m.v){ shApply(n, m.v); changed = true; }
+      P.synced[n] = { j: m.v, t: m.t }; delete P.pending[n]; return;
+    }
+    if(sch){
+      if(!P.synced[n] && !P.pending[n]){ if(cur !== sch.v){ shApply(n, sch.v); changed = true; } P.synced[n] = { j: sch.v, t: 0 }; }
+      else if(P.synced[n] && P.synced[n].t === 0 && P.synced[n].j !== sch.v && !P.pending[n]){ shApply(n, sch.v); changed = true; P.synced[n] = { j: sch.v, t: 0 }; }
+      return;
+    }
+    if(P.synced[n] && !P.pending[n]){ const dj = shDef(n); if(cur !== dj){ shApply(n, dj); changed = true; } delete P.synced[n]; }       // the row is gone from the sheet: back to the default
+  });
+  if(nothing && !P.migrated){ P.migrated = true; SH_NAMES.forEach(n => { const c = shJSON(n); if(c !== shDef(n) && !P.pending[n]) P.pending[n] = { j: c, t: Date.now() }; }); }       // the first time: what this board already has becomes the teacher's own
+  P.locked = locked; P.at = Date.now();
+  save(); if(changed) reapplyPrefs(); else renderPrefsLine();
+  prefsFlush();
+}
+function prefsPush(){                              // what was changed here and is not on the sheet yet is queued (and sent)
+  if(!S.hp.url || !S.hp.key) return;
+  const P = prefsState();
+  if(P.teacher !== S.hp.key) return;               // the sheet has not been read yet
+  const locked = new Set(P.locked || []), reverted = []; let moved = false;
+  SH_NAMES.forEach(n => {
+    const cur = shJSON(n), base = P.synced[n] ? P.synced[n].j : shDef(n);
+    if(locked.has(n)){ if(P.synced[n] && cur !== P.synced[n].j){ shApply(n, P.synced[n].j); reverted.push(n); } return; }
+    if(P.pending[n] && P.pending[n].j === cur) return;
+    if(cur === base){ if(P.pending[n]){ delete P.pending[n]; moved = true; } return; }
+    P.pending[n] = { j: cur, t: Date.now() }; moved = true;
+  });
+  P.note = reverted.length ? "Kept as the school set it: " + reverted.map(n => SH_LABELS[n] || n).join(", ") + "." : "";
+  save();
+  if(reverted.length) reapplyPrefs(); else renderPrefsLine();
+  if(moved || Object.keys(P.pending).length) prefsFlush();
+  return reverted.length;
+}
+function prefsSchedule(){ clearTimeout(prefsTimer); prefsTimer = setTimeout(() => { if(!committed) prefsPush(); }, 3000); }
+async function prefsFlush(){
+  if(prefsBusy || !S.hp.url || !S.hp.key) return;
+  const P = prefsState(); if(!Object.keys(P.pending).length){ renderPrefsLine(); return; }
+  prefsBusy = true;
+  try{
+    for(const n of Object.keys(P.pending)){
+      const it = P.pending[n], parts = [];
+      for(let at = 0; at < it.j.length; at += 1200) parts.push(it.j.slice(at, at + 1200));
+      const x = Math.random().toString(36).slice(2, 12);
+      let res = null;
+      try{
+        for(let i = 0; i < parts.length; i++) res = await hpCall("prefs_set", { k: "sh." + n, v: parts[i], n: parts.length, i, x, t: it.t });
+      }catch(e){
+        const msg = String(e.message || e);
+        if(/^bad (value|part|transfer)$|too long/.test(msg)){ delete P.pending[n]; continue; }          // can never be accepted: dropped
+        if(msg === "bad setting"){ P.note = "The school's script does not know this setting yet (it needs the newest version)."; break; }
+        break;                                                                                         // no connection (or a wrong code): it waits
+      }
+      if(res && res.locked){ if(P.synced[n]) shApply(n, P.synced[n].j); delete P.pending[n]; continue; }
+      P.synced[n] = { j: it.j, t: it.t }; delete P.pending[n];
+    }
+  }finally{ prefsBusy = false; save(); renderPrefsLine(); }
 }
 
 /* ---- what is happening right now ---- */
@@ -1701,6 +1856,7 @@ function hpReturn(id){
 /* ---- settings section ---- */
 function hpBuildSettings(){
   if(!$("overlay").classList.contains("open")) return;
+  renderPrefsLine();
   const count = Object.values(S.roster).reduce((n, l) => n + l.length, 0);
   const secs = Object.keys(S.roster).length;
   const state = { "online": "✓ connected", "offline": "⚠ can't reach Google", "wrong key": "⚠ wrong teacher code", "not set": "not set up", "": "…" }[hpNet] || hpNet;
