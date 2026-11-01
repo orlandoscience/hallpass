@@ -1280,7 +1280,10 @@ $("pinSave").onclick = () => {
   hint.textContent = "✓ New PIN set — press Save to keep it"; hint.style.color = "var(--green)";
 };
 
-function openDlg(){ if(S.pinOn === false) openDlgNow(); else askPin(); }
+async function openDlg(){                       // the sheet is asked first (while the PIN is typed), so that the window shows the newest settings
+  prefsLastTry = Date.now(); const p = prefsPull();
+  if(S.pinOn === false){ await Promise.race([p, new Promise(r => setTimeout(r, 1200))]); openDlgNow(); } else askPin();
+}
 function openDlgNow(){
   committed = settingsPart(S);
   $("pinHint").textContent = "4 digits"; $("pinHint").style.color = "";
@@ -1506,12 +1509,14 @@ const shJSON = n => JSON.stringify(SH[n].get(S));
 const shDef = n => JSON.stringify(SH[n].get(DEFAULTS));
 function shApply(n, json){ let v; try{ v = JSON.parse(json); }catch(e){ return; } SH[n].set(v); }
 function prefsState(){ if(!S.prefs) S.prefs = { teacher: "", synced: {}, pending: {}, locked: [], at: 0, migrated: false, note: "" }; return S.prefs; }
-let prefsDeferred = null, prefsBusy = false, prefsTimer = 0;
+let prefsDeferred = null, prefsDeferredNew = false, prefsBusy = false, prefsTimer = 0;
 function renderPrefsLine(){
   const el = $("hpPrefsLine"); if(!el) return;
   if(!S.hp.url || !S.hp.key){ el.textContent = ""; paintLocks(); return; }
   const P = S.prefs, waiting = P ? Object.keys(P.pending || {}).length : 0, parts = [];
-  parts.push(P && P.at ? "Your settings are kept on the school's sheet." : "Your settings will be kept on the school's sheet.");
+  const hm = t => String(new Date(t).getHours()).padStart(2, "0") + ":" + String(new Date(t).getMinutes()).padStart(2, "0");
+  parts.push(P && P.at ? "Your settings are kept on the school's sheet (checked " + hm(P.at) + ")." : "Your settings will be kept on the school's sheet.");
+  if(prefsDeferred && prefsDeferredNew) parts.push("The sheet has newer settings: they are applied when this window is closed.");
   if(waiting) parts.push(waiting + " change" + (waiting > 1 ? "s" : "") + " waiting to be sent.");
   if(P && P.locked && P.locked.length) parts.push("Set by the school (cannot be changed here): " + P.locked.map(n => SH_LABELS[n] || n).join(", ") + ".");
   if(P && P.note) parts.push(P.note);
@@ -1531,10 +1536,19 @@ async function prefsPull(){
   if(!S.hp.url || !S.hp.key) return;
   let r;
   try{ const j = await hpCall("prefs_get"); r = { school: j.school || {}, mine: j.mine || {} }; }catch(e){ return; }
-  if(committed){ prefsDeferred = r; return; }      // the settings window is open: what the sheet says waits until it is closed
+  if(committed){ prefsDeferred = r; prefsDeferredNew = prefsWouldChange(r); renderPrefsLine(); return; }      // the settings window is open: what the sheet says waits until it is closed
   prefsMerge(r);
 }
-function prefsRunDeferred(){ if(prefsDeferred && !committed){ const r = prefsDeferred; prefsDeferred = null; prefsMerge(r); } }
+let prefsLastTry = 0;
+function prefsTick(){ if(committed || !S.hp.url || !S.hp.key) return; prefsLastTry = Date.now(); prefsPull(); }
+setInterval(prefsTick, 5 * 60 * 1000);                                            // a board that stays open all day picks up the changes made on another board
+document.addEventListener("visibilitychange", () => { if(!document.hidden && Date.now() - prefsLastTry > 2 * 60 * 1000) prefsTick(); });
+function prefsWouldChange(r){                      // does the sheet say something that this board does not have yet?
+  const P = prefsState();
+  return SH_NAMES.some(n => { const m = r.mine["sh." + n], sch = r.school["sh." + n], j = P.synced[n] ? P.synced[n].j : null;
+    return (m && m.v !== j) || (sch && sch.lock && sch.v !== j); });
+}
+function prefsRunDeferred(){ if(prefsDeferred && !committed){ const r = prefsDeferred; prefsDeferred = null; prefsDeferredNew = false; prefsMerge(r); } }
 function prefsMerge(r){                            // the school's locks > the teacher's own settings (unless a newer change here is waiting) > the school's defaults > this board
   const P = prefsState(), who = S.hp.key;
   if(P.teacher !== who){ P.teacher = who; P.synced = {}; P.pending = {}; P.migrated = false; P.note = ""; }
