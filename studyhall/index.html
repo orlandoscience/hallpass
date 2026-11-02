@@ -617,8 +617,9 @@
 
     <div class="hpbox sndbox" data-store="brd">
       <div class="f" style="border:none;padding-top:0">
-        <div>🔔 Sounds<div class="hint" id="sndHint">Pick an MP3 for each moment. Files stay saved on this board.</div></div>
+        <div>🔔 Sounds<div class="hint" id="sndHint">Pick a sound for each moment: one from the school's sounds folder, or an MP3 loaded on this board.</div><div class="hint" id="schoolSoundsStatus"></div></div>
         <div class="seg-btns">
+          <button id="schoolSoundsRefresh" style="white-space:nowrap">↻ Sound list</button>
           <button id="sndAdd" style="white-space:nowrap">＋ Add MP3…</button>
           <input type="file" id="sndFile" accept="audio/mpeg,audio/mp3,audio/*,.mp3" multiple hidden>
         </div>
@@ -775,7 +776,7 @@ const DEFAULTS = {
     brkEnd:   { id: "", vol: 80 },
     end:      { id: "", vol: 80 }
   },
-  hpActive: [], hpQueue: [], hpLog: {}, roster: {}, rosterIds: {}, teacherName: "", rosterAt: 0, prefs: null
+  hpActive: [], hpQueue: [], hpLog: {}, roster: {}, rosterIds: {}, teacherName: "", rosterAt: 0, prefs: null, schoolSounds: null
 };
 let S = JSON.parse(JSON.stringify(DEFAULTS));
 
@@ -810,7 +811,7 @@ async function loadSettings(){
 /* While Settings is open, changes are only a preview: what gets stored is the last
    applied version (committed) plus live data such as passes and the send queue.
    Apply / Save store the preview; Cancel puts the applied version back. */
-const RUNTIME_KEYS = ["hpActive", "hpQueue", "hpLog", "roster", "rosterIds", "teacherName", "rosterAt", "prefs"];
+const RUNTIME_KEYS = ["hpActive", "hpQueue", "hpLog", "roster", "rosterIds", "teacherName", "rosterAt", "prefs", "schoolSounds"];
 let committed = null;
 const clone = o => JSON.parse(JSON.stringify(o));
 function settingsPart(o){ const c = clone(o); RUNTIME_KEYS.forEach(k => delete c[k]); return c; }
@@ -1485,7 +1486,7 @@ function validDests(v){ return Array.isArray(v) && v.length >= 1 && v.length <= 
 function sndShared(o){ const out = {}; SND_SLOTS.forEach(k => { const c = (o && o[k]) || {}; out[k] = { id: isLocalSnd(c.id) ? "" : String(c.id || ""), vol: clampN(c.vol == null ? 80 : c.vol, 0, 100) }; }); return out; }
 function sndMerge(v){                              // the volumes come from the sheet; a melody only if it is not a file of another board; the file of this board is kept
   if(!v || typeof v !== "object") return;
-  SND_SLOTS.forEach(k => { const c = v[k]; if(!c) return; if(!S.snd[k]) S.snd[k] = { id: "", vol: 80 }; S.snd[k].vol = clampN(c.vol, 0, 100); if(c.id && !isLocalSnd(c.id)) S.snd[k].id = String(c.id); });
+  SND_SLOTS.forEach(k => { const c = v[k]; if(!c) return; if(!S.snd[k]) S.snd[k] = { id: "", vol: 80 }; S.snd[k].vol = clampN(c.vol, 0, 100); if(c.id && /^school_[a-z0-9_]{1,60}$/.test(String(c.id))) S.snd[k].id = String(c.id); });
 }
 const SH = {                                       // the name on the sheet is "sh." + the name here
   pin:       { get: o => o.pin,           set: v => { if(/^\d{4}$/.test(String(v))) S.pin = String(v); } },
@@ -1531,7 +1532,7 @@ function paintLocks(){                             // a lock sign on every setti
     if(on) el.title = "Set by the school"; else if(el.title === "Set by the school") el.removeAttribute("title");
   });
 }
-function reapplyPrefs(){ applyTheme(); lastListKey = ""; hpOutKey = ""; render(); roomFill(); renderPrefsLine(); }
+function reapplyPrefs(){ applyTheme(); lastListKey = ""; hpOutKey = ""; render(); roomFill(); renderPrefsLine(); sndFixUnknown(); sndBuild(); sndPreloadSelected(); }
 async function prefsPull(){
   if(!S.hp.url || !S.hp.key) return;
   let r;
@@ -1980,6 +1981,90 @@ let sndLib = [];                 // [{ id, name, size }]
 const sndUrls = {};              // id -> object URL
 let sndPlaying = null, sndPlayingKey = "", sndLastSec = null;
 
+/* ---------- School sounds: every sound file in the "sounds" folder of the school's GitHub page (the same folder and the same names as in the main Hall Pass Board) ---------- */
+const SCHOOL_SOUND_EXT = /\.(mp3|wav|ogg|m4a|aac)$/i;
+const SOUND_CACHE = "studyhall-sounds-v1";
+let schoolSounds = [], sndRefreshing = false;                       // [{ id, file, name, url, objUrl, loading }]
+function schoolSoundItems(files){
+  const seen = {};
+  return files.filter(f => SCHOOL_SOUND_EXT.test(f)).sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : (a.toLowerCase() > b.toLowerCase() ? 1 : 0)).map(f => {
+    let id = "school_" + f.toLowerCase().replace(/\.[^.]+$/, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    while(seen[id]) id += "_2";
+    seen[id] = 1;
+    return { id, file: f, name: f.replace(/\.[^.]+$/, "").replace(/_+/g, " ").trim(), url: "../sounds/" + encodeURIComponent(f), objUrl: "", loading: null };
+  });
+}
+async function fetchSchoolSoundFiles(){
+  const m = /^([^.]+)\.github\.io$/i.exec(location.hostname), repo = location.pathname.split("/").filter(Boolean)[0];
+  if(m && repo){                                    // 1. the folder itself, for owner.github.io/repo/studyhall/ (nothing to maintain)
+    try{
+      const r = await fetch("https://api.github.com/repos/" + m[1] + "/" + repo + "/contents/sounds");
+      if(r.ok){ const j = await r.json(); if(Array.isArray(j)) return j.filter(x => x.type === "file").map(x => x.name); }
+    }catch(e){ /* GitHub did not answer (for example too many requests): try the list below */ }
+  }
+  const r = await fetch("../sounds/index.json", { cache: "no-store" });         // 2. a list written by hand next to the files (optional)
+  if(r.ok){
+    const j = await r.json();
+    const arr = (Array.isArray(j) ? j : (j.files || [])).map(x => typeof x === "string" ? x : (x && (x.file || x.name))).filter(Boolean);
+    if(arr.length) return arr;
+  }
+  throw new Error("no list");
+}
+function renderSchoolSoundsStatus(msg){
+  const el = $("schoolSoundsStatus"); if(!el) return;
+  const saved = S.schoolSounds || { at: 0, files: [] };
+  el.textContent = msg || (schoolSounds.length
+    ? schoolSounds.length + " school sound" + (schoolSounds.length > 1 ? "s" : "") + " from the sounds folder" + (saved.at ? " (looked up at " + String(new Date(saved.at).getHours()).padStart(2, "0") + ":" + String(new Date(saved.at).getMinutes()).padStart(2, "0") + ")" : "") + "."
+    : "No school sounds yet. Add sound files to the sounds folder on GitHub and press “Sound list”.");
+}
+function setSchoolSounds(files){
+  schoolSounds = schoolSoundItems(files);
+  sndFixUnknown(); sndBuild(); sndPreloadSelected(); renderSchoolSoundsStatus();
+}
+async function refreshSchoolSounds(force){
+  const saved = S.schoolSounds || { at: 0, files: [] };
+  if(!force && saved.files.length && Date.now() - saved.at < 6 * 3600 * 1000){ setSchoolSounds(saved.files); return; }
+  try{
+    const files = (await fetchSchoolSoundFiles()).filter(f => SCHOOL_SOUND_EXT.test(f));
+    S.schoolSounds = { at: Date.now(), files }; save();
+    setSchoolSounds(files);
+  }catch(e){
+    if(saved.files.length){ setSchoolSounds(saved.files); renderSchoolSoundsStatus("Couldn't read the sounds folder just now. Using the saved list (" + schoolSounds.length + ")."); }
+    else renderSchoolSoundsStatus("Couldn't read the sounds folder. Check the internet and press “Sound list” again.");
+  }
+}
+function schoolSoundUrl(item){                       // the file is fetched once and kept in the browser's cache (Cache Storage): afterwards it plays from there, with no internet
+  if(item.objUrl) return Promise.resolve(item.objUrl);
+  if(item.loading) return item.loading;
+  item.loading = (async () => {
+    try{
+      let resp = null;
+      if("caches" in window){
+        const c = await caches.open(SOUND_CACHE);
+        resp = await c.match(item.url);
+        if(!resp){ const r = await fetch(item.url); if(!r.ok) throw new Error("HTTP " + r.status); await c.put(item.url, r.clone()); resp = r; }
+      }else{ resp = await fetch(item.url); if(!resp.ok) throw new Error("HTTP " + resp.status); }
+      item.objUrl = URL.createObjectURL(await resp.blob());
+      return item.objUrl;
+    }catch(e){ return null; }
+    finally{ item.loading = null; }
+  })();
+  return item.loading;
+}
+function sndPreloadSelected(){                      // the sounds in use are on this board before they are needed (a board that has just got the teacher's settings downloads them at once)
+  Object.keys(S.snd || {}).forEach(k => { const it = schoolSounds.find(x => x.id === (S.snd[k] || {}).id); if(it) schoolSoundUrl(it); });
+}
+function sndFixUnknown(){                           // a sound chosen on another board is kept until the folder has been read afresh; one that really is not in the folder any more is taken off
+  const fresh = Date.now() - ((S.schoolSounds || {}).at || 0) < 5 * 60 * 1000; let kept = false, fixed = false;
+  SND_EVENTS.forEach(ev => {
+    const c = S.snd[ev.k]; if(!c || !/^school_/.test(c.id || "") || schoolSounds.some(x => x.id === c.id)) return;
+    if(!fresh){ kept = true; return; }
+    c.id = ""; fixed = true;
+  });
+  if(fixed) save();
+  if(kept && !sndRefreshing){ sndRefreshing = true; refreshSchoolSounds(true).then(() => { sndRefreshing = false; }, () => { sndRefreshing = false; }); }
+}
+
 function sndDB(){
   return new Promise((res, rej) => {
     if(!("indexedDB" in window)) return rej(new Error("no idb"));
@@ -2001,6 +2086,7 @@ async function sndLoadLib(){
   sndBuild();
 }
 async function sndGetUrl(id){
+  if(/^school_/.test(String(id))){ const it = schoolSounds.find(x => x.id === id); return it ? schoolSoundUrl(it) : null; }
   if(sndUrls[id]) return sndUrls[id];
   const db = await sndDB();
   const rec = await new Promise(res => {
@@ -2077,7 +2163,13 @@ function sndBuild(){
   $("sndLib").innerHTML = sndLib.length
     ? sndLib.map(f => `<span title="${esc(f.name)}"><b>🎵 ${esc(f.name)}</b> ${kb(f.size)} <button data-del="${f.id}" title="Delete">✕</button></span>`).join("")
     : `<div class="hint">No sound files yet. Tap “＋ Add MP3…” to pick files from this board or a USB stick.</div>`;
-  const opts = id => `<option value="">— None —</option>` + sndLib.map(f => `<option value="${f.id}" title="${esc(f.name)}" ${f.id === id ? "selected" : ""}>${esc(f.name.length > 34 ? f.name.slice(0, 32) + "…" : f.name)}</option>`).join("");
+  const opts = id => {
+    const lab = n => esc(n.length > 34 ? n.slice(0, 32) + "…" : n);
+    const school = schoolSounds.map(f => `<option value="${f.id}" title="${esc(f.name)}" ${f.id === id ? "selected" : ""}>🔔 ${lab(f.name)}</option>`).join("");
+    const unknown = /^school_/.test(id || "") && !schoolSounds.some(f => f.id === id) ? `<option value="${esc(id)}" selected>🔔 ${lab(id.replace(/^school_/, "").replace(/_/g, " "))} (not read yet)</option>` : "";
+    const local = sndLib.map(f => `<option value="${f.id}" title="${esc(f.name)}" ${f.id === id ? "selected" : ""}>${lab(f.name)}</option>`).join("");
+    return `<option value="">— None —</option>` + (school ? `<optgroup label="School sounds">${school}</optgroup>` : "") + unknown + (local ? `<optgroup label="Loaded on this board">${local}</optgroup>` : "");
+  };
   $("sndRows").innerHTML = SND_EVENTS.map(ev => {
     const c = S.snd[ev.k];
     return `<div class="sndrow" data-k="${ev.k}">
@@ -2100,6 +2192,7 @@ function sndBuildRowState(){
     b.classList.toggle("on", on);
   });
 }
+$("schoolSoundsRefresh").onclick = () => { renderSchoolSoundsStatus("Looking in the sounds folder…"); refreshSchoolSounds(true); };
 $("sndAdd").onclick = () => { $("sndFile").value = ""; $("sndFile").click(); };
 $("sndFile").addEventListener("change", e => { const f = [...(e.target.files || [])]; if(f.length) sndAddFiles(f); });
 $("sndLib").onclick = e => {
@@ -2109,7 +2202,7 @@ $("sndLib").onclick = e => {
 };
 $("sndRows").addEventListener("change", e => {
   const k = e.target.dataset.pick; if(!k) return;
-  S.snd[k].id = e.target.value; save(); sndStop(); sndBuildRowState();
+  S.snd[k].id = e.target.value; save(); sndStop(); sndBuildRowState(); sndPreloadSelected();
 });
 $("sndRows").addEventListener("input", e => {
   const k = e.target.dataset.vol; if(!k) return;
@@ -2291,6 +2384,7 @@ window.addEventListener("hashchange", () => {
   phNormalize();
   applySetupLink(setupFromLink); setupFromLink = null;
   sndLoadLib().then(sndNeedsTap);
+  refreshSchoolSounds();                             // the list of the school's sounds (from the sounds folder; saved for 6 hours)
   applyTheme();
   try{
     const q = new URLSearchParams(location.search).get("test");
