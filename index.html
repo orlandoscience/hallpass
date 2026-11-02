@@ -2095,7 +2095,7 @@ function playSoundFor(kind){
   let el = document.getElementById("sound-" + soundKey);
   if(!el){
     const it = schoolSounds.find(x => x.id === soundKey);
-    if(it && !it.error && !it.loaded){ loadSchoolSound(it).then(() => { if(it.loaded) playSoundFor(kind); }); return; }      // a school sound that is not loaded yet: load it, then play
+    if(it && !it.error && !it.loaded){ loadSchoolSound(it).then(() => playSoundFor(kind)); return; }      // a school sound that is not loaded yet: load it, then play (if it cannot be loaded the standard bell plays, never silence)
     el = document.getElementById("sound-bell");
   }
   if(!el){ showAudioError("Sound file missing"); return; }
@@ -4647,7 +4647,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.14 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.15 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -5313,8 +5313,9 @@ function renderSchoolSoundsStatus(msg){
     ? schoolSounds.length + " school sound" + (schoolSounds.length > 1 ? "s" : "") + " from the sounds folder" + (saved.at ? " (looked up at " + fmtClock(hms24(new Date(saved.at)).slice(0, 5)) + ")" : "") + "."
     : "No school sounds yet. Add .mp3 files to the sounds folder on GitHub and press the button.");
 }
+let schoolSoundsLoaded = false, schoolSoundsTried = false;       // the list of the school sounds is in memory (after a restart it is not, for a moment); and a look into the folder has been tried at least once
 function setSchoolSounds(files){
-  schoolSounds = schoolSoundItems(files);
+  schoolSounds = schoolSoundItems(files); schoolSoundsLoaded = true;
   rebuildSoundSelectOptions();
   preloadSelectedSounds();
   renderSchoolSoundsStatus();
@@ -5331,6 +5332,7 @@ async function refreshSchoolSounds(force){
     settings.notify.schoolSounds = { at: Date.now(), files: sounds }; saveSettings();
     setSchoolSounds(sounds);
   }catch(e){
+    schoolSoundsTried = true;
     if(saved.files.length){ setSchoolSounds(saved.files); renderSchoolSoundsStatus("Couldn't read the sounds folder just now. Using the saved list (" + schoolSounds.length + ")."); }
     else renderSchoolSoundsStatus("Couldn't read the sounds folder. Check the internet and press the button again.");
   }
@@ -5367,7 +5369,7 @@ function rebuildSoundSelectOptions(){
   const libIds = new Set(soundLibrary.map(i => i.id).concat(schoolSounds.map(i => i.id)));
   const listAt = (settings.notify.schoolSounds || {}).at || 0, listFresh = Date.now() - listAt < 5 * 60000;
   let keptUnknown = false;
-  const soundKnown = v => { if(libIds.has(v)) return true; if(/^school_/.test(String(v)) && !listFresh){ keptUnknown = true; return true; } return false; };      // a melody chosen on another board is kept until the sounds folder has been read afresh
+  const soundKnown = v => { if(libIds.has(v)) return true; if(/^school_/.test(String(v))){ if(!schoolSoundsLoaded){ if(schoolSoundsTried) keptUnknown = true; return true; } if(!listFresh){ keptUnknown = true; return true; } } return false; };       // a school sound is kept while the list is not in memory yet (a restart) or not fresh      // a melody chosen on another board is kept until the sounds folder has been read afresh
   if(settings.notify.sound !== "bell" && settings.notify.sound !== "chime" && !soundKnown(settings.notify.sound)){
     settings.notify.sound = "bell"; saveSettings();
   }
