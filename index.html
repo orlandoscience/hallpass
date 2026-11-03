@@ -1478,7 +1478,6 @@
     </div>
     <div class="hpwarn" id="hpWarn" hidden></div>
     <div class="hpchips" id="hpChips"></div>
-    <div class="hpchips letters" id="hpLetters" hidden></div>
     <div class="hpgrid" id="hpGrid"></div>
     <div class="hpfoot" id="hpFoot" hidden>
       <button type="button" class="x" id="hpNotMe">Not me</button>
@@ -3819,27 +3818,35 @@ function hpClose(){ $("hpSheet").classList.remove("open"); clearTimeout(hpIdle);
 function hpBump(){ clearTimeout(hpIdle); hpIdle = setTimeout(hpClose, HP_IDLE_SEC * 1000); }
 
 // lay the buttons out so they all fit in the panel without scrolling; more names = smaller buttons
-function hpFitGrid(count, minRatio){
+function hpFitGrid(count, minRatio, many){
   const g = $("hpGrid");
-  g.style.gridTemplateColumns = g.style.gridTemplateRows = "";
+  g.style.gridTemplateColumns = g.style.gridTemplateRows = ""; g.style.gridAutoRows = ""; g.style.overflowY = "";
   const W = g.clientWidth, H = g.clientHeight;
   if(!count || !W || !H) return;
-  const gap = Math.max(4, Math.round(Math.min(W, H) * 0.012));
-  let best = { score: -1, c: 1, r: count, w: W, h: H };
-  for(let c = 1; c <= 6; c++){
-    const r = Math.ceil(count / c);
-    const w = (W - gap * (c - 1)) / c, h = (H - gap * (r - 1)) / r;
-    const score = Math.min(w / minRatio, h);
-    if(score > best.score) best = { score, c, r, w, h };
-  }
-  g.style.setProperty("--g", gap + "px");
-  g.style.gridTemplateColumns = "repeat(" + best.c + ", minmax(0, 1fr))";
-  g.style.gridTemplateRows = "repeat(" + best.r + ", minmax(0, 1fr))";
   const btns = Array.from(g.querySelectorAll("button"));
   const longest = Math.max(4, ...btns.map(b => {
     const t = (b.querySelector(".lb") || b).textContent.trim();
     return Array.from(t).length + (/\p{Extended_Pictographic}/u.test(t) ? 1 : 0);
   }));
+  const gap = Math.max(4, Math.round(Math.min(W, H) * 0.012));
+  const maxC = many ? Math.max(6, Math.min(14, Math.floor((W + gap) / (110 + gap)))) : 6;      // a long list of names may use more columns
+  let best = null;
+  for(let c = 1; c <= maxC; c++){
+    const r = Math.ceil(count / c);
+    const w = (W - gap * (c - 1)) / c, h = (H - gap * (r - 1)) / r;
+    const score = Math.min(w / minRatio, h);
+    if(!best || score > best.score) best = { score, c, r, w, h };
+  }
+  const minH = Math.max(34, window.innerHeight * 0.04), minFs = 12, needW = longest * 0.68 * minFs / 0.85;      // a finger-sized row, and a column wide enough for the longest name in readable letters
+  let scroll = false;
+  if(many && (best.h < minH || best.w < needW)){        // so many names that rows would be smaller than a finger (or names would not fit a column): they are all still there, as a list that scrolls
+    const c = Math.max(1, Math.min(maxC, Math.floor((W + gap) / (needW + gap))));
+    best = { score: 0, c, r: Math.ceil(count / c), w: (W - gap * (c - 1)) / c, h: minH }; scroll = true;
+  }
+  g.style.setProperty("--g", gap + "px");
+  g.style.gridTemplateColumns = "repeat(" + best.c + ", minmax(0, 1fr))";
+  if(scroll){ g.style.gridAutoRows = best.h + "px"; g.style.overflowY = "auto"; }
+  else g.style.gridTemplateRows = "repeat(" + best.r + ", minmax(0, 1fr))";
   const fs = Math.max(11, Math.min(best.h * 0.6, (best.w * 0.85) / (longest * 0.68), 40));
   btns.forEach(b => { b.style.fontSize = fs + "px"; });
 }
@@ -3854,7 +3861,7 @@ function hpSizePanel(count){
   if(cols <= 1) return;
   const colW = Math.max(150, window.innerWidth * 0.085);
   const pad = panel.offsetWidth - g.clientWidth;
-  panel.style.width = Math.min(window.innerWidth * 0.62, cols * colW + (cols - 1) * gap + pad) + "px";
+  panel.style.width = Math.min(window.innerWidth * (count > 60 ? 0.94 : 0.62), cols * colW + (cols - 1) * gap + pad) + "px";       // a very long list may take nearly the whole screen
 }
 function hpShowNames(){
   hpAutoStop();
@@ -3867,7 +3874,7 @@ function hpShowNames(){
   if(ps.state === "closed" && !settings.pass.allowOutside){     // the 10/10 minutes and this board does not allow exceptions
     $("hpTitle").textContent = "Passes are closed";
     $("hpGuest").hidden = true;
-    $("hpChips").hidden = true; $("hpLetters").hidden = true;
+    $("hpChips").hidden = true;
     document.querySelector(".hppanel").style.width = "";
     const g = $("hpGrid");
     g.innerHTML = '<div class="msg">Passes are closed right now.<br>' + esc(ps.sub) + ' ' + esc(ps.time) + '</div>';
@@ -3888,30 +3895,17 @@ function hpShowNames(){
     const gm = settings.pass.rosterGroup[hpPick.section];
     names = names.filter(n => gm[n] === undefined || inNow.indexOf(gm[n]) >= 0);
   }
-  // a long list (study hall): first tap the first letter of the name, then the name
-  const lettersOf = n => String(n).trim().charAt(0).toUpperCase();
-  const letters = names.length > 30 ? Array.from(new Set(names.map(lettersOf))).sort() : [];
-  $("hpLetters").hidden = letters.length === 0;
-  let shown = names, needLetter = false;
-  if(letters.length){
-    if(hpPick.letter && letters.indexOf(hpPick.letter) < 0) hpPick.letter = null;
-    $("hpLetters").innerHTML = letters.map(l => '<button type="button" data-letter="' + esc(l) + '" class="' + (l === hpPick.letter ? "on" : "") + '">' + esc(l) + '</button>').join("");
-    if(hpPick.letter) shown = names.filter(n => lettersOf(n) === hpPick.letter); else needLetter = true;
-  }
+  const shown = names;                                 // every name at once, however many (no letters to tap first)
   if(!hpPick.section){
     grid.innerHTML = '<div class="msg">There is no list for ' + esc(hpPick.ctxCode || "this period") + ' yet.<br>Tap your class above.</div>';
     grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
   } else if(!names.length){
     grid.innerHTML = '<div class="msg">No names left for ' + esc(hpPick.section) + '.</div>';
     grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
-  } else if(needLetter){
-    grid.innerHTML = '<div class="msg">Tap the first letter of your name.</div>';
-    grid.style.gridTemplateColumns = grid.style.gridTemplateRows = "";
-    document.querySelector(".hppanel").style.width = "";
   } else {
     grid.innerHTML = shown.map(n => '<button type="button" data-name="' + esc(n) + '">' + esc(shortName(n)) + '</button>').join("");
     hpSizePanel(shown.length);
-    hpFitGrid(shown.length, 4.5);
+    hpFitGrid(shown.length, 4.5, true);
   }
 }
 function hpShowConfirm(){                         // passes are closed but this teacher allows it: one confirmation
@@ -3919,7 +3913,7 @@ function hpShowConfirm(){                         // passes are closed but this 
   hpPick.confirming = true;
   $("hpGuest").hidden = true;
   $("hpTitle").textContent = "Outside the 10/10 window";
-  $("hpChips").hidden = true; $("hpLetters").hidden = true;
+  $("hpChips").hidden = true;
   document.querySelector(".hppanel").style.width = "";
   const g = $("hpGrid");
   g.innerHTML = '<div class="msg">Passes are closed right now.<br>Continue?</div>';
@@ -3948,7 +3942,6 @@ function hpShowReason(){
   hpPick.confirming = false;
   $("hpGuest").hidden = true;
   $("hpNotMe").textContent = "Not me"; $("hpGo").textContent = "Leave class";
-  $("hpLetters").hidden = true;
   document.querySelector(".hppanel").style.width = "";
   $("hpTitle").textContent = shortName(hpPick.name) + ", where are you going?";
   $("hpChips").hidden = true;
@@ -3964,15 +3957,11 @@ $("hpCancel").addEventListener("click", hpClose);
 $("hpGuest").addEventListener("click", () => { const slot = hpPick.slot; hpClose(); openPassDialog(slot, true); });   // a student who is not on this class list
 $("hpNotMe").addEventListener("click", () => {
   if(hpPick.confirming){ hpShowReason(); hpBump(); return; }            // "Back" from the confirmation
-  hpPick.name = hpPick.reason = null; hpPick.letter = null; hpShowNames(); hpBump();
+  hpPick.name = hpPick.reason = null; hpShowNames(); hpBump();
 });
 $("hpChips").addEventListener("click", e => {
   const b = e.target.closest("[data-sec]"); if(!b) return;
-  hpPick.section = b.dataset.sec; hpPick.letter = null; hpShowNames(); hpBump();
-});
-$("hpLetters").addEventListener("click", e => {
-  const b = e.target.closest("[data-letter]"); if(!b) return;
-  hpPick.letter = b.dataset.letter; hpShowNames(); hpBump();
+  hpPick.section = b.dataset.sec; hpShowNames(); hpBump();
 });
 $("hpGrid").addEventListener("click", e => {
   const n = e.target.closest("[data-name]"), r = e.target.closest("[data-reason]");
@@ -4715,7 +4704,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.16 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.17 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){

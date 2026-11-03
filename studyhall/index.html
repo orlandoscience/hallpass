@@ -427,6 +427,23 @@
   .dlg .phbox[data-store]::before, .dlg .hpbox[data-store]::before, .dlg .testbox[data-store]::before{ display: none; }
   .school-lock{ position: relative; outline: 1px dashed rgba(148,163,184,.75); outline-offset: 2px; border-radius: 6px; }
   .school-lock::after{ content: "\1F512"; position: absolute; right: 4px; top: -2px; font-size: 12px; opacity: .9; pointer-events: none; }
+
+  /* ---- someone who is not on the list ---- */
+  #guestSheet{ justify-content: center; }
+  #guestSheet .hppanel{ width: min(760px, 94vw); overflow: auto; }
+  .gform{ display: flex; flex-direction: column; gap: 1.2vh; min-height: 0; font-size: clamp(13px, min(1.25vw, 2.3vh), 28px); }
+  .gform label{ display: flex; flex-direction: column; gap: .3em; font-weight: 800; }
+  .gform input{ font: inherit; font-size: 1.15em; font-weight: 700; padding: .55em .8em; border-radius: 12px; border: 2px solid var(--panel-2); background: var(--panel-2); color: var(--ink); min-width: 0; }
+  .gform .grow{ display: flex; gap: .6em; align-items: stretch; }
+  .gform .grow input{ flex: 1 1 auto; }
+  .gform .gmsg{ min-height: 1.3em; opacity: .85; font-weight: 700; }
+  .gform .gres{ display: flex; flex-wrap: wrap; gap: .5em; }
+  .gform .gres button{ font: inherit; font-weight: 800; cursor: pointer; background: var(--panel-2); color: var(--ink); border: none; border-radius: 999px; padding: .5em 1.1em; }
+  .gform .gres button.on, .gform .gdest button.on{ background: #facc15; color: #1b1400; }
+  .gform .glab{ font-weight: 800; opacity: .9; margin-top: .3em; }
+  .gform .gdest{ display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5em, 1fr)); gap: .6em; }
+  .gform .gdest button{ font: inherit; font-weight: 800; cursor: pointer; background: var(--panel-2); color: var(--ink); border: .2vw solid transparent; border-radius: .8vw; padding: .6em .5em; display: flex; flex-direction: column; align-items: center; gap: .15em; line-height: 1.1; touch-action: manipulation; }
+  .gform .gdest button .lim{ font-size: .7em; font-weight: 700; opacity: .75; }
 </style>
 </head>
 <body data-theme="dark">
@@ -498,6 +515,7 @@
   <div class="hppanel">
     <div class="hd">
       <h2 id="hpTitle">Tap your name</h2>
+      <button class="x" id="hpGuest">Someone else</button>
       <button class="x" id="hpCancel">Cancel</button>
     </div>
     <div class="hpchips" id="hpChips"></div>
@@ -505,6 +523,28 @@
     <div class="hpfoot" id="hpFoot" hidden>
       <button class="x" id="hpNotMe">Not me</button>
       <button class="hpbtn" id="hpGo" disabled>Leave class</button>
+    </div>
+  </div>
+</div>
+
+<div class="hpov" id="guestSheet" aria-label="Someone else">
+  <div class="hppanel">
+    <div class="hd">
+      <h2 id="gTitle">Someone else</h2>
+      <button class="x" id="gCancel">Cancel</button>
+    </div>
+    <div class="gform">
+      <label>Name<input type="text" id="gName" autocomplete="off" placeholder="Name"></label>
+      <label>or the last 4 digits of the student ID
+        <span class="grow"><input type="text" id="gDigits" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="1234"><button type="button" class="x" id="gLookup">Look up</button></span></label>
+      <div class="gmsg" id="gMsg"></div>
+      <div class="gres" id="gRes"></div>
+      <div class="glab">Where are you going?</div>
+      <div class="gdest" id="gDest"></div>
+    </div>
+    <div class="hpfoot">
+      <button class="x" id="gBack">Back</button>
+      <button class="hpbtn" id="gGo" disabled>Leave class</button>
     </div>
   </div>
 </div>
@@ -1456,7 +1496,7 @@ async function hpFlush(){
       const it = S.hpQueue[0];
       if(!it || it.v !== 2){ S.hpQueue.shift(); save(); continue; }       // a record in the old format (leave / return) can not be sent any more: dropped
       try{
-        await hpCall("log", { i: it.i, s: it.s, sec: it.sec, w: it.w, to: it.to, ti: it.ti, st: it.st, m: it.m, b: it.b, g: it.g });
+        await hpCall("log", { i: it.i, s: it.s, sec: it.sec, blk: it.blk, w: it.w, to: it.to, ti: it.ti, st: it.st, m: it.m, b: it.b, g: it.g });
         S.hpQueue.shift(); save(); hpNet = "online"; hpLastErr = ""; hpLastSent = Date.now();
       }catch(e){
         const msg = String(e.message || e);
@@ -1473,7 +1513,8 @@ function stampId(outD, inD){                       // the trip's ID: yyyyMMdd + 
   return d(outD) + t(outD) + t(inD);
 }
 function hpLogTrip(a, back, status){               // one finished trip = one row in the Log (when the student is back)
-  S.hpQueue.push({ v: 2, i: stampId(new Date(a.out), new Date(back)), s: a.sid || "", sec: a.section || "", w: a.dest, to: a.out, ti: back, st: status, m: a.test ? "TEST" : "LIVE", b: S.hp.device, g: a.sid ? "" : a.name });
+  const guest = !!a.guest;                          // someone who was not on the list: section Guest, the block it happened in, and the name (with the ID if it was looked up)
+  S.hpQueue.push({ v: 2, i: stampId(new Date(a.out), new Date(back)), s: a.sid || "", sec: guest ? "Guest" : (a.section || ""), blk: guest ? (a.section || "") : "", w: a.dest, to: a.out, ti: back, st: status, m: a.test ? "TEST" : "LIVE", b: S.hp.device, g: guest ? a.name : (a.sid ? "" : a.name) });
   save(); hpFlush();
 }
 
@@ -1698,34 +1739,42 @@ function hpClose(){ $("hpSheet").classList.remove("open"); clearTimeout(hpIdle);
 function hpBump(){ clearTimeout(hpIdle); hpIdle = setTimeout(hpClose, HP_IDLE_SEC * 1000); }
 
 // lay the buttons out so they all fit in the panel without scrolling; more names = shorter buttons
-function hpFitGrid(count, minRatio){
+function hpFitGrid(count, minRatio, many){
   const g = $("hpGrid");
-  g.style.gridTemplateColumns = g.style.gridTemplateRows = "";
+  g.style.gridTemplateColumns = g.style.gridTemplateRows = ""; g.style.gridAutoRows = ""; g.style.overflowY = "";
   const W = g.clientWidth, H = g.clientHeight;
   if(!count || !W || !H) return;
-  const gap = Math.max(4, Math.round(Math.min(W, H) * 0.012));
-  let best = { score: -1, c: 1, r: count, w: W, h: H };
-  for(let c = 1; c <= 6; c++){
-    const r = Math.ceil(count / c);
-    const w = (W - gap * (c - 1)) / c, h = (H - gap * (r - 1)) / r;
-    const score = Math.min(w / minRatio, h);         // text height a cell can hold
-    if(score > best.score) best = { score, c, r, w, h };
-  }
-  g.style.setProperty("--g", gap + "px");
-  g.style.gridTemplateColumns = `repeat(${best.c}, minmax(0, 1fr))`;
-  g.style.gridTemplateRows = `repeat(${best.r}, minmax(0, 1fr))`;
-  // font: as big as the cell allows, but the longest label must still fit on one line
   const btns = [...g.querySelectorAll("button")];
   const longest = Math.max(4, ...btns.map(b => {
     const t = (b.querySelector(".lb") || b).textContent.trim();       // the main label decides the size
     return [...t].length + (/\p{Extended_Pictographic}/u.test(t) ? 1 : 0);
   }));
+  const gap = Math.max(4, Math.round(Math.min(W, H) * 0.012));
+  const maxC = many ? Math.max(6, Math.min(14, Math.floor((W + gap) / (110 + gap)))) : 6;      // a long list of names may use more columns
+  let best = null;
+  for(let c = 1; c <= maxC; c++){
+    const r = Math.ceil(count / c);
+    const w = (W - gap * (c - 1)) / c, h = (H - gap * (r - 1)) / r;
+    const score = Math.min(w / minRatio, h);         // text height a cell can hold
+    if(!best || score > best.score) best = { score, c, r, w, h };
+  }
+  const minH = Math.max(34, window.innerHeight * 0.04), minFs = 12, needW = longest * 0.68 * minFs / 0.85;
+  let scroll = false;
+  if(many && (best.h < minH || best.w < needW)){        // so many names that rows would be smaller than a finger (or names would not fit a column): all of them, as a list that scrolls
+    const c = Math.max(1, Math.min(maxC, Math.floor((W + gap) / (needW + gap))));
+    best = { score: 0, c, r: Math.ceil(count / c), w: (W - gap * (c - 1)) / c, h: minH }; scroll = true;
+  }
+  g.style.setProperty("--g", gap + "px");
+  g.style.gridTemplateColumns = `repeat(${best.c}, minmax(0, 1fr))`;
+  if(scroll){ g.style.gridAutoRows = best.h + "px"; g.style.overflowY = "auto"; }
+  else g.style.gridTemplateRows = `repeat(${best.r}, minmax(0, 1fr))`;
   const fs = Math.max(11, Math.min(best.h * 0.6, (best.w * 0.85) / (longest * 0.68), 40));
   btns.forEach(b => b.style.fontSize = fs + "px");
 }
 
 function hpShowNames(){
   const ctx = hpContext();
+  $("hpGuest").hidden = false;
   $("hpTitle").textContent = `Pass #${hpPick.slot + 1} · tap your name`;
   $("hpFoot").hidden = true;
   const sections = Object.keys(S.roster).sort();
@@ -1747,7 +1796,7 @@ function hpShowNames(){
   }else{
     grid.innerHTML = names.map(n => `<button data-name="${esc(n)}">${esc(shortName(n))}</button>`).join("");
     hpSizePanel(names.length);
-    hpFitGrid(names.length, 4.5);
+    hpFitGrid(names.length, 4.5, true);
   }
 }
 /* the panel is ~1/8 of the screen for a normal class, and widens (more columns)
@@ -1763,9 +1812,10 @@ function hpSizePanel(count){
   if(cols <= 1) return;                                          // fits in the narrow panel
   const colW = Math.max(150, window.innerWidth * 0.085);
   const pad = panel.offsetWidth - g.clientWidth;
-  panel.style.width = Math.min(window.innerWidth * 0.62, cols * colW + (cols - 1) * gap + pad) + "px";
+  panel.style.width = Math.min(window.innerWidth * (count > 60 ? 0.94 : 0.62), cols * colW + (cols - 1) * gap + pad) + "px";
 }
 function hpShowDest(){
+  $("hpGuest").hidden = true;
   document.querySelector(".hppanel").style.width = "";
   $("hpTitle").textContent = `${shortName(hpPick.name)}, where are you going?`;
   $("hpChips").hidden = true;
@@ -1805,6 +1855,57 @@ $("hpGo").onclick = () => {
   S.hpActive.push(a); save();                       // (nothing is sent yet: the row goes to the Log when the student is back)
   hpClose(); renderHP();
 };
+/* ---- someone who is not on the list: a name, or the last 4 digits of the student ID (looked up at the school) ---- */
+let gPick = null, gIdle = 0;
+let G_IDLE_SEC = 120;
+function guestBump(){ clearTimeout(gIdle); gIdle = setTimeout(guestClose, G_IDLE_SEC * 1000); }
+function guestReady(){ $("gGo").disabled = !($("gName").value.trim() && gPick && gPick.dest); }
+function guestOpen(){
+  const slot = hpPick.slot; hpClose();
+  gPick = { slot, sid: "", dest: null };
+  $("gName").value = ""; $("gDigits").value = ""; $("gMsg").textContent = ""; $("gRes").innerHTML = "";
+  $("gDest").innerHTML = hpDests().map(d => `<button type="button" class="dst" data-dest="${esc(d.name)}"><span class="lb">${esc(hpDestLabel(d))}</span><span class="lim">⏱ ${d.min} min</span></button>`).join("");
+  $("gGo").disabled = true;
+  $("guestSheet").classList.add("open"); guestBump();
+  setTimeout(() => $("gName").focus(), 60);
+}
+function guestClose(){ $("guestSheet").classList.remove("open"); clearTimeout(gIdle); gPick = null; }
+$("hpGuest").onclick = guestOpen;
+$("gCancel").onclick = guestClose; $("gBack").onclick = guestClose;
+$("guestSheet").onclick = e => { if(e.target === $("guestSheet")) guestClose(); };
+$("gName").oninput = () => { if(!gPick) return; gPick.sid = ""; [...$("gRes").children].forEach(c => c.classList.remove("on")); guestReady(); guestBump(); };     // a typed name forgets the ID that was found
+$("gDest").onclick = e => { const b = e.target.closest("[data-dest]"); if(!b || !gPick) return; gPick.dest = b.dataset.dest; [...$("gDest").children].forEach(c => c.classList.toggle("on", c === b)); guestReady(); guestBump(); };
+$("gLookup").onclick = async () => {
+  if(!gPick) return;
+  const dg = $("gDigits").value.replace(/\D/g, ""), msg = t => { $("gMsg").textContent = t; };
+  $("gRes").innerHTML = ""; gPick.sid = ""; guestBump();
+  if(dg.length !== 4){ msg("Type exactly 4 digits."); return; }
+  if(!S.hp.url || !S.hp.key){ msg("The look-up needs the school connection (the teacher code). Type the name instead."); return; }
+  msg("Looking…");
+  let r;
+  try{ r = await hpCall("lookup", { d: dg }); }
+  catch(e){ msg(e.message === "bad key" ? "The teacher code is not accepted. Type the name instead." : "Could not reach the school sheet. Type the name instead."); return; }
+  if(!gPick) return;
+  const ms = r.matches || [];
+  if(!ms.length){ msg("Nobody has an ID ending in " + dg + ". Check the digits or type the name."); return; }
+  msg(ms.length > 1 ? "Tap the right student:" : "");
+  $("gRes").innerHTML = ms.map(m => `<button type="button" data-sid="${esc(m.id)}" data-n="${esc(m.n)}">${esc(m.n)}${m.grade ? " (grade " + esc(m.grade) + ")" : ""}</button>`).join("");
+  const pick = b => { $("gName").value = b.dataset.n; gPick.sid = b.dataset.sid; [...$("gRes").children].forEach(c => c.classList.toggle("on", c === b)); guestReady(); };
+  [...$("gRes").children].forEach(b => { b.onclick = () => { pick(b); guestBump(); }; });
+  if(ms.length === 1) pick($("gRes").firstElementChild);          // usually there is only one
+};
+$("gGo").onclick = () => {
+  const nm = $("gName").value.trim().replace(/\s+/g, " ");
+  if(!gPick || !nm || !gPick.dest) return;
+  if(S.hpActive.some(a => a.slot === gPick.slot)){ guestClose(); return; }
+  const ctx = hpContext(); if(!ctx.open){ guestClose(); return; }
+  const out = now().getTime();
+  const a = { id: `${S.hp.device}-${out}`, slot: gPick.slot, name: nm, section: ctx.code || "", dest: gPick.dest,
+              limit: (S.dests.find(d => d.name === gPick.dest) || {}).min || S.hp.limitMin, out, test: !!testOffsetMs, sid: gPick.sid || "", guest: true };
+  S.hpActive.push(a); save();                       // (nothing is sent yet: the row goes to the Log when the student is back)
+  guestClose(); renderHP();
+};
+
 window.addEventListener("resize", () => {
   if(!$("hpSheet").classList.contains("open")) return;
   if(hpPick.name) hpShowDest(); else hpShowNames();
