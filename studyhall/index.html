@@ -646,6 +646,10 @@
         <div>Number of hall passes<div class="hint">How many "Pass #" buttons are shown.</div></div>
         <input type="number" id="hpMax" min="1" max="6" step="1">
       </div>
+      <div class="f" data-store="brd">
+        <div>Auto-leave (seconds)<div class="hint">After a place is chosen for a name that is already there, the pass is given out by itself after this many seconds (the button counts down). 0 = off. Kept on this board only.</div></div>
+        <input type="number" id="hpAuto" min="0" max="30" step="1">
+      </div>
       <div class="f" style="display:block" data-store="brd">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span>Today's passes (this board)</span>
@@ -799,7 +803,7 @@ const DEFAULTS = {
   offsetSec: 0, localTs: "",
   overrides: {},  // iso -> "regular" | "wednesday" | "noschool"
   room: "Room 244", teachers: "Ms. Ebru · Ms. Cabeza",
-  hp: { url: "", key: "", limitMin: 8, maxOut: 1, device: "" },
+  hp: { url: "", key: "", limitMin: 8, maxOut: 1, device: "", autoLeaveSec: 3 },
   // where students can go, and how many minutes each is allowed (0 = hide the option)
   dests: [
     { icon: "🚻", name: "Restroom", min: 7 },
@@ -1724,6 +1728,26 @@ function renderHP(){
      (!ctx.open || S.hpActive.some(a => a.slot === hpPick.slot))) hpClose();
 }
 
+/* ---- auto-leave: when a place is chosen for a name that is already there, the button counts down and the pass is given out by itself ---- */
+const hpAuto = { timer: null, endAt: 0, kind: "" };
+function autoSec(){ const v = S.hp.autoLeaveSec === undefined ? 3 : Math.round(+S.hp.autoLeaveSec); return v >= 0 && v <= 30 ? v : 3; }      // 0 = off
+function autoBtn(){ return hpAuto.kind === "guest" ? $("gGo") : $("hpGo"); }
+function autoStop(){ clearInterval(hpAuto.timer); hpAuto.timer = null; $("hpGo").textContent = "Leave class"; $("gGo").textContent = "Leave class"; }
+function autoLabel(){ autoBtn().textContent = "Leave class (" + Math.max(0, Math.ceil((hpAuto.endAt - Date.now()) / 1000)) + ")"; }
+function autoStart(kind){                          // every tap on a place starts the count again
+  autoStop();
+  const sec = autoSec(); if(!sec) return;
+  hpAuto.kind = kind; if(autoBtn().disabled) return;
+  hpAuto.endAt = Date.now() + sec * 1000; autoLabel();
+  hpAuto.timer = setInterval(autoTick, 250);
+}
+function autoTick(){
+  const open = hpAuto.kind === "guest" ? $("guestSheet").classList.contains("open") : $("hpSheet").classList.contains("open");
+  if(!open || autoBtn().disabled){ autoStop(); return; }
+  if(Date.now() >= hpAuto.endAt){ const b = autoBtn(); autoStop(); b.click(); return; }       // the same as pressing the button
+  autoLabel();
+}
+
 /* ---- name picker (right-side panel) ---- */
 function hpOpen(slot){
   const ctx = hpContext();
@@ -1735,7 +1759,7 @@ function hpOpen(slot){
   hpShowNames();
   hpBump();
 }
-function hpClose(){ $("hpSheet").classList.remove("open"); clearTimeout(hpIdle); }
+function hpClose(){ $("hpSheet").classList.remove("open"); clearTimeout(hpIdle); autoStop(); }
 function hpBump(){ clearTimeout(hpIdle); hpIdle = setTimeout(hpClose, HP_IDLE_SEC * 1000); }
 
 // lay the buttons out so they all fit in the panel without scrolling; more names = shorter buttons
@@ -1836,15 +1860,16 @@ $("hpSlots").onclick = e => {
 };
 $("hpSheet").onclick = e => { if(e.target === $("hpSheet")) hpClose(); };   // tap outside the panel = cancel
 $("hpCancel").onclick = hpClose;
-$("hpNotMe").onclick = () => { hpPick.name = hpPick.dest = null; hpShowNames(); hpBump(); };
+$("hpNotMe").onclick = () => { autoStop(); hpPick.name = hpPick.dest = null; hpShowNames(); hpBump(); };
 $("hpChips").onclick = e => { const b = e.target.closest("[data-sec]"); if(!b) return; hpPick.section = b.dataset.sec; hpShowNames(); hpBump(); };
 $("hpGrid").onclick = e => {
   const n = e.target.closest("[data-name]"), d = e.target.closest("[data-dest]");
-  if(n){ hpPick.name = n.dataset.name; hpPick.dest = null; hpShowDest(); }
-  else if(d){ hpPick.dest = d.dataset.dest; hpShowDest(); }
+  if(n){ autoStop(); hpPick.name = n.dataset.name; hpPick.dest = null; hpShowDest(); }
+  else if(d){ hpPick.dest = d.dataset.dest; hpShowDest(); autoStart("picker"); }          // the name is there already: the count-down starts
   hpBump();
 };
 $("hpGo").onclick = () => {
+  autoStop();
   if(!hpPick.name || !hpPick.dest) return;
   if(S.hpActive.some(a => a.slot === hpPick.slot)){ hpClose(); return; }
   const ctx = hpContext();
@@ -1869,14 +1894,15 @@ function guestOpen(){
   $("guestSheet").classList.add("open"); guestBump();
   setTimeout(() => $("gName").focus(), 60);
 }
-function guestClose(){ $("guestSheet").classList.remove("open"); clearTimeout(gIdle); gPick = null; }
+function guestClose(){ $("guestSheet").classList.remove("open"); clearTimeout(gIdle); gPick = null; autoStop(); }
 $("hpGuest").onclick = guestOpen;
 $("gCancel").onclick = guestClose; $("gBack").onclick = guestClose;
 $("guestSheet").onclick = e => { if(e.target === $("guestSheet")) guestClose(); };
-$("gName").oninput = () => { if(!gPick) return; gPick.sid = ""; [...$("gRes").children].forEach(c => c.classList.remove("on")); guestReady(); guestBump(); };     // a typed name forgets the ID that was found
-$("gDest").onclick = e => { const b = e.target.closest("[data-dest]"); if(!b || !gPick) return; gPick.dest = b.dataset.dest; [...$("gDest").children].forEach(c => c.classList.toggle("on", c === b)); guestReady(); guestBump(); };
+$("gName").oninput = () => { if(!gPick) return; autoStop(); gPick.sid = ""; [...$("gRes").children].forEach(c => c.classList.remove("on")); guestReady(); guestBump(); };     // a typed name forgets the ID that was found
+$("gDest").onclick = e => { const b = e.target.closest("[data-dest]"); if(!b || !gPick) return; gPick.dest = b.dataset.dest; [...$("gDest").children].forEach(c => c.classList.toggle("on", c === b)); guestReady(); guestBump();
+  if($("gName").value.trim()) autoStart("guest"); else autoStop(); };          // the name was written (or found by the ID) before the place: the count-down; a place first and the name after it: no auto-leave
 $("gLookup").onclick = async () => {
-  if(!gPick) return;
+  if(!gPick) return; autoStop();
   const dg = $("gDigits").value.replace(/\D/g, ""), msg = t => { $("gMsg").textContent = t; };
   $("gRes").innerHTML = ""; gPick.sid = ""; guestBump();
   if(dg.length !== 4){ msg("Type exactly 4 digits."); return; }
@@ -1891,10 +1917,11 @@ $("gLookup").onclick = async () => {
   msg(ms.length > 1 ? "Tap the right student:" : "");
   $("gRes").innerHTML = ms.map(m => `<button type="button" data-sid="${esc(m.id)}" data-n="${esc(m.n)}">${esc(m.n)}${m.grade ? " (grade " + esc(m.grade) + ")" : ""}</button>`).join("");
   const pick = b => { $("gName").value = b.dataset.n; gPick.sid = b.dataset.sid; [...$("gRes").children].forEach(c => c.classList.toggle("on", c === b)); guestReady(); };
-  [...$("gRes").children].forEach(b => { b.onclick = () => { pick(b); guestBump(); }; });
+  [...$("gRes").children].forEach(b => { b.onclick = () => { autoStop(); pick(b); guestBump(); }; });
   if(ms.length === 1) pick($("gRes").firstElementChild);          // usually there is only one
 };
 $("gGo").onclick = () => {
+  autoStop();
   const nm = $("gName").value.trim().replace(/\s+/g, " ");
   if(!gPick || !nm || !gPick.dest) return;
   if(S.hpActive.some(a => a.slot === gPick.slot)){ guestClose(); return; }
@@ -1982,7 +2009,7 @@ function hpBuildSettings(){
     (hpLastErr ? ` · last error: ${hpLastErr}` : "") +
     (hpLastSent ? ` · last sent ${clockOf(hpLastSent)}` : "") +
     (testOffsetMs ? " · test mode: rows are marked TEST" : "");
-  const inp = [["hpUrl", S.hp.url], ["hpKey", S.hp.key], ["hpMax", S.hp.maxOut]];
+  const inp = [["hpUrl", S.hp.url], ["hpKey", S.hp.key], ["hpMax", S.hp.maxOut], ["hpAuto", autoSec()]];
   inp.forEach(([id, v]) => { if(document.activeElement !== $(id)) $(id).value = v; });
   const log = (S.hpLog[toISO(now())] || []).slice().reverse();
   $("hpLogBox").innerHTML = log.length
@@ -1994,6 +2021,7 @@ function hpBuildSettings(){
 $("hpUrl").addEventListener("change", e => { S.hp.url = e.target.value.trim(); save(); hpLoadRoster().then(hpFlush); });
 $("hpKey").addEventListener("change", e => { S.hp.key = e.target.value.trim(); save(); hpLoadRoster().then(hpFlush); });
 
+$("hpAuto").addEventListener("change", e => { const v = Math.round(+e.target.value); S.hp.autoLeaveSec = v >= 0 ? Math.min(30, v) : 3; save(); hpBuildSettings(); });
 $("hpMax").addEventListener("change", e => { const v = Math.round(+e.target.value); if(v >= 1 && v <= 6){ S.hp.maxOut = v; save(); } hpBuildSettings(); });
 /* load URL + key from a small text file (USB stick / Downloads), so nothing has to be typed on the board.
    Accepted formats:
