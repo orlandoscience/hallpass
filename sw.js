@@ -2,12 +2,12 @@
    It keeps a copy of the board on the device so it still opens without internet,
    and quietly checks for a newer index.html each time the page is opened.
    Everything on other websites (weather, time servers, Google Sheets) goes straight to the network.
-   The folder studyhall/ holds a second, separate page (the Study Hall board): this worker leaves it alone,
-   so that address always shows that page and never the Hall Pass Board. */
-const CACHE = "hallpass-v4";
+   The folders studyhall/ and support/ hold separate pages (the Study Hall board, the Support page): this worker leaves
+   them alone, so that their addresses always show those pages and never the Hall Pass Board. */
+const CACHE = "hallpass-v5";
 const SCOPE = self.registration.scope;
 const PAGE = new URL("index.html", SCOPE).href;
-const STUDY = new URL("studyhall", SCOPE).pathname;                    // /hallpass/studyhall  (with or without the slash at the end)
+const OWN = ["studyhall", "support"].map(p => new URL(p, SCOPE).pathname);      // /hallpass/studyhall and /hallpass/support: separate pages (with or without the slash at the end)
 const ASSETS = ["index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "fonts/patrick-hand-latin-400.woff2"]
   .map(p => new URL(p, SCOPE).href);
 
@@ -32,7 +32,7 @@ self.addEventListener("fetch", e => {
   if(req.method !== "GET") return;
   const url = new URL(req.url);
   if(url.origin !== self.location.origin) return;
-  if(url.pathname === STUDY || url.pathname.indexOf(STUDY + "/") === 0) return;      // the Study Hall page: straight to the network
+  if(OWN.some(p => url.pathname === p || url.pathname.indexOf(p + "/") === 0)) return;      // the Study Hall page and the Support page: straight to the network
   const bare = url.origin + url.pathname;
   if(bare === PAGE && url.searchParams.has("fresh")){ e.respondWith(freshPage()); return; }   // the page asking "is there a newer version?"
   if(req.mode === "navigate" || bare === PAGE){ e.respondWith(pageResponse(e)); return; }

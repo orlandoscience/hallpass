@@ -90,6 +90,7 @@ Open the settings by double-tapping the gear button (bottom right), then your PI
 | `sw.js`, `manifest.webmanifest`, `icon*.png/svg` | Make it work offline and installable. |
 | `LICENSE` | The OSHS Free Use License. |
 | `studyhall/index.html` | The Study Hall board: a separate page (its own look) that uses the same script and the same `Log`. Open `.../hallpass/studyhall/`. |
+| `support/index.html` | The Support page (a separate web page, `.../hallpass/support/`): how to thank, and if you wish support, the author. The link "Support the author" at the bottom of the settings opens it. |
 | `SUPPORT.md` | How to thank (and, if you wish, support) the author. The link "Support the author" at the bottom of the settings opens it. |
 | `DEPLOY.md` | How to put the system into use and how to change over to a new document next year. |
 | `apps-script/Code.gs`, `apps-script/SETUP.md` | The school's Google Apps Script (teacher codes, class lists, the log, announcements, weather warnings) and the administrator's guide. |

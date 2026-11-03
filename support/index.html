@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support the author · Hall Pass Board</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%94%3C/text%3E%3C/svg%3E">
+<style>
+  :root{ --bg: #f4f6fb; --card: #ffffff; --ink: #14213d; --dim: #5b6784; --line: #d9e0ee; --accent: #1d6fdc; --accent-ink: #ffffff; --soft: #eaf1fe; --ok: #137a43; }
+  @media (prefers-color-scheme: dark){ :root{ --bg: #0b1220; --card: #141d33; --ink: #e8eefc; --dim: #9aa9cc; --line: #26335a; --accent: #4c9bff; --accent-ink: #06142b; --soft: #182548; --ok: #4ade80; } }
+  *{ box-sizing: border-box; }
+  html, body{ margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
+  main{ max-width: 680px; margin: 0 auto; padding: 5vh 20px 8vh; }
+  .brand{ display: flex; align-items: center; gap: 10px; color: var(--dim); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: .8rem; }
+  .brand b{ font-size: 1.6rem; }
+  h1{ font-size: clamp(1.8rem, 5vw, 2.5rem); line-height: 1.15; margin: .5em 0 .4em; }
+  p{ font-size: 1.05rem; margin: .7em 0; }
+  .card{ background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 24px; margin: 24px 0; box-shadow: 0 8px 28px rgba(20,33,61,.08); }
+  .card h2{ margin: 0 0 .2em; font-size: 1.15rem; }
+  .how{ color: var(--dim); font-size: .95rem; margin: 0 0 14px; }
+  .pay{ display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .pay .lab{ font-weight: 800; }
+  .pay .addr{ font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; flex: 1 1 14em; }
+  button{ font: inherit; font-weight: 800; cursor: pointer; border: none; border-radius: 12px; padding: 10px 18px; min-height: 44px; background: var(--accent); color: var(--accent-ink); }
+  button:active{ transform: translateY(1px); }
+  .copied{ color: var(--ok); font-weight: 800; min-height: 1.4em; margin: 8px 2px 0; }
+  .memo{ margin: 14px 2px 0; }
+  .memo code{ background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 1px 8px; font-weight: 800; }
+  .free{ color: var(--dim); font-size: .95rem; }
+  .links{ display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 26px; }
+  a{ color: var(--accent); font-weight: 700; }
+  noscript{ display: block; color: var(--dim); }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><b>🔔</b> Hall Pass Board</div>
+  <h1>Support the author</h1>
+  <p>Hall Pass Board is made and looked after by <b>Shamil Ganiev</b>, a teacher at Orlando Science High School.</p>
+  <p>If it is useful to you, you are welcome to <b>thank the author in any form you like</b>: a message, a kind word, telling a colleague, or help with ideas and testing.</p>
+
+  <section class="card" aria-labelledby="payh">
+    <h2 id="payh">If you would also like to support the work financially</h2>
+    <p class="how">It is entirely voluntary. Nothing is required, and no feature or support depends on it.</p>
+    <div class="pay">
+      <span class="lab">Zelle to the e-mail</span>
+      <span class="addr" id="addr" data-u="osshallpass" data-d="gmail.com">(the address appears here)</span>
+      <button type="button" id="copy">Copy</button>
+    </div>
+    <div class="copied" id="copied" role="status"></div>
+    <p class="memo">In the comments write <code>support</code>.</p>
+    <noscript>The address is shown with JavaScript on. You can also find it in <a href="https://github.com/orlandoscience/hallpass/blob/main/SUPPORT.md">SUPPORT.md</a> on GitHub.</noscript>
+  </section>
+
+  <p class="free">Questions, or requests for other kinds of use (for example by another school): contact the author through the <a href="https://github.com/orlandoscience/hallpass">GitHub repository</a>.</p>
+  <div class="links"><a href="../">&larr; Back to the Hall Pass Board</a></div>
+</main>
+<script>
+(function(){
+  var el = document.getElementById("addr"), addr = el.getAttribute("data-u") + "@" + el.getAttribute("data-d");     // put together here so that a robot reading the page source does not find it as one piece
+  el.textContent = addr;
+  var out = document.getElementById("copied"), timer = 0;
+  function say(t){ out.textContent = t; clearTimeout(timer); timer = setTimeout(function(){ out.textContent = ""; }, 3500); }
+  document.getElementById("copy").addEventListener("click", function(){
+    function fallback(){
+      var ta = document.createElement("textarea"); ta.value = addr; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+      var ok = false; try{ ok = document.execCommand("copy"); }catch(e){} ta.remove(); say(ok ? "Copied." : "Select the address and copy it.");
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(addr).then(function(){ say("Copied."); }, fallback); }
+    else fallback();
+  });
+})();
+</script>
+</body>
+</html>
