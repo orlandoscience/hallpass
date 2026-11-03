@@ -874,7 +874,7 @@
   .load-note.warn{ border-left-color: #f59e0b; background: rgba(245,158,11,.14); }
   .load-note.info{ border-left-color: #94a3b8; background: rgba(148,163,184,.14); }
   .load-note.hidden{ display: none; }
-  .load-note{ max-height: 34vh; overflow-y: auto; }
+  .load-note{ flex: 0 0 auto; max-height: 34vh; overflow-y: auto; }          /* never squeezed by the window: it shows all its text, and scrolls only when it is really long */
   @media (max-width: 820px){ .load-note ul{ columns: 1; } }
   .load-note ul{ margin: 6px 0 0; padding-left: 20px; columns: 2; column-gap: 28px; }
   .load-note li{ break-inside: avoid; }
@@ -4771,7 +4771,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.19 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.20 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
