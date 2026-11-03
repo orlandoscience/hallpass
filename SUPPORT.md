@@ -8,6 +8,7 @@ If it is useful to you, you are welcome to **thank the author in any form you li
 
 **Zelle by email osshallpass@gmail.com**
 
+In the comments write "support"
 ---
 
 Questions or requests for other kinds of use (for example by another school): contact the author through this GitHub repository.
