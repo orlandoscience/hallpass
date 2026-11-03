@@ -818,19 +818,21 @@
   .ed-btns{ display: flex; gap: 8px; justify-content: flex-end; }
   .sc-item{ margin: .3em 0; }
 
-  /* ---- the Live Agenda: the part of the lesson that is on now, with a bar that fills ---- */
+  /* ---- the Lesson Flow: the part of the lesson that is on now, with a bar that fills ---- */
   .live{
     flex: 1 1 auto; min-height: 0; margin: .6vh calc(1.2 * var(--u)) 0; padding: calc(1.2 * var(--u)) calc(1.6 * var(--u));
     border-radius: 18px; background: rgba(0,0,0,.32); border: 1px solid rgba(255,255,255,.32); box-shadow: 0 6px 24px rgba(0,0,0,.28);
     display: flex; flex-direction: column; justify-content: center; text-align: center; gap: .7vh; overflow: hidden;
   }
   .lv-label{ font-size: clamp(11px, calc(1.1 * var(--u)), 18px); letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
-  .lv-name{ font-weight: 800; font-size: clamp(24px, calc(4.2 * var(--u)), 80px); line-height: 1.1; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; box-sizing: border-box; padding: 0 .15em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .lv-name{ flex: 0 0 auto; font-weight: 800; font-size: clamp(24px, calc(4.2 * var(--u)), 80px); line-height: 1.1; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; box-sizing: border-box; padding: 0 .15em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  #liveAgenda[data-head="1"] .lv-time, #liveAgenda[data-head="1"] .lv-bar{ display: none; }
   .lv-time{ font-family: 'Courier New', monospace; font-weight: 800; font-size: clamp(28px, calc(5.2 * var(--u)), 96px); line-height: 1; }
   .lv-bar{ height: clamp(16px, 3.4vh, 38px); border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; border: 2px solid rgba(255,255,255,.55); }
   .lv-bar i{ display: block; height: 100%; width: 0; background: linear-gradient(90deg, #38bdf8, #22c55e); transition: width 1s linear; }
-  .lv-steps{ display: flex; gap: 3px; height: .7em; margin-top: .2em; }
-  .lv-steps i{ display: block; border-radius: 4px; background: rgba(255,255,255,.2); min-width: 4px; }
+  .lv-steps{ display: flex; gap: 3px; height: .7em; margin: .2em 0 1.5em; position: relative; }
+  .lv-steps i{ display: block; position: relative; border-radius: 4px; background: rgba(255,255,255,.2); min-width: 4px; }
+  .lv-steps i b{ font-style: normal; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: .15em; font-weight: 600; font-size: clamp(11px, calc(1.3 * var(--u)), 24px); white-space: nowrap; opacity: .92; }
   .lv-steps i.done{ background: rgba(255,255,255,.75); } .lv-steps i.cur{ background: #38bdf8; }
   .lv-next{ font-size: clamp(12px, calc(1.5 * var(--u)), 26px); opacity: .92; overflow-wrap: anywhere; }
   #ambient[data-live="1"] .stage, #ambient[data-live="1"] .stage-note, #ambient[data-live="1"] #agenda{ display: none !important; }
@@ -859,6 +861,13 @@
   .school-lock{ position: relative; outline: 1px dashed rgba(148,163,184,.75); outline-offset: 2px; border-radius: 6px; }
   .school-lock::after{ content: "\1F512"; position: absolute; right: 4px; top: -2px; font-size: .75rem; opacity: .9; pointer-events: none; }
   .sec-head.school-lock::after{ right: 66px; top: 50%; transform: translateY(-50%); font-size: .95rem; }       /* just before the switch */
+
+  /* ---- the menu of a timer that has run out ---- */
+  .timer-menu{ position: fixed; z-index: 60; display: flex; gap: 8px; padding: 8px; border-radius: 14px; background: rgba(15,20,40,.94); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+  .timer-menu.hidden{ display: none; }
+  .timer-menu button{ font: inherit; font-weight: 700; color: #fff; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35); border-radius: 10px; padding: 10px 14px; min-height: 44px; cursor: pointer; white-space: nowrap; }
+  .timer-menu button.tm-go{ background: #16a34a; border-color: #4ade80; }
+  .timer-menu button:active{ transform: translateY(1px); }
 </style>
 </head>
 <body data-theme="dark">
@@ -877,6 +886,7 @@
           <div class="pc-out" id="pcOut"></div>
         </div>
       </div>
+      <div class="timer-menu hidden" id="timerMenu" role="dialog" aria-label="The timer has finished"><button type="button" id="tmRestart" class="tm-go">Restart 5:00</button><button type="button" id="tmChange">Change time</button><button type="button" id="tmClose">Close</button></div>
       <div class="timer-cell empty" id="timerCell" role="button" tabindex="0" aria-label="Timer">
         <div class="tm-time" id="tmTime">00:00</div>
         <div class="tm-label" id="tmLabel"></div>
@@ -903,7 +913,7 @@
     </div>
 
     <div class="live hidden" id="liveAgenda">
-      <div class="lv-label" id="lvLabel">Live agenda</div>
+      <div class="lv-label" id="lvLabel">Lesson flow</div>
       <div class="lv-name" id="lvName"></div>
       <div class="lv-time" id="lvTime">00:00</div>
       <div class="lv-bar"><i id="lvFill"></i></div>
@@ -1364,8 +1374,8 @@
     </div>
 
     <div class="section" data-switch="exLive" data-store="srv">
-      <div class="sec-head" data-pref="extras.live"><h2>Live Agenda</h2><label class="switch sec-switch"><input type="checkbox" id="exLive"><span class="slider"></span></label></div>
-      <div class="override-note">A plan with times for a class. The first line is how many minutes <b>before the bell</b> it starts; then one part per line: <b>name | minutes</b>. For example <b>2</b>, then <b>Bell work | 10</b>, <b>Activity | 20</b>: two minutes before the bell the board shows Bell work with a bar that fills over 10 minutes, then Activity for 20 minutes, and so on. A sound plays at the end of each part. While it runs it takes the place of the cards and the agenda note.</div>
+      <div class="sec-head" data-pref="extras.live"><h2>Lesson Flow</h2><label class="switch sec-switch"><input type="checkbox" id="exLive"><span class="slider"></span></label></div>
+      <div class="override-note">A plan with times for a class. The first line is how many minutes <b>before the bell</b> the board announces what the lesson starts with; then one part per line: <b>name | minutes</b>. For example <b>2</b>, then <b>Bell work | 10</b>, <b>Activity | 20</b>: two minutes before the bell the board says "Starting in 1:45 &middot; First: Bell work" (no timer yet); when the bell rings Bell work starts with a bar that fills over its 10 minutes, then Activity for 20 minutes, and so on. A sound plays at the end of each part. While it runs it takes the place of the cards and the agenda note.</div>
       <div class="field-row"><span>Class (A or B day, and period)</span>
         <select id="lvBlock" class="num-input"><option>A1</option><option>A2</option><option>A3</option><option>A4</option><option>B1</option><option>B2</option><option>B3</option><option>B4</option></select></div>
       <textarea id="lvText" class="area-input" rows="8" style="width:100%;box-sizing:border-box;" placeholder="2&#10;Bell work | 10&#10;Activity | 20&#10;Free work | 20&#10;Work with a partner | 10"></textarea>
@@ -1590,7 +1600,7 @@ function getDefaultSettings(){
     extras: {                    // everything beyond the basic screen is opt-in
       hallPass: false, ding: false, sounds: false, cards: false, agenda: false, timer: false, ann: false, qa: false, live: false
     },
-    live: { texts: {}, block: "A1", sound: "bell", volume: 5 },     // the Live Agenda: a plan with times for each class
+    live: { texts: {}, block: "A1", sound: "bell", volume: 5 },     // the Lesson Flow: a plan with times for each class
     prefs: null,                                  // the teacher's settings that are kept on the school's sheet: what was last agreed, what waits to be sent, what the school locked
     school: null,                                 // the school's own data as the sheet last sent it (bell schedules, calendar, names): kept for offline use
     layout: { leftPct: 50 },                      // the width of the left part, 30..70 percent
@@ -2982,15 +2992,33 @@ function dismissTimer(){                        // the time is up and it was tap
   t.finished = false; t.warned = false; t.remaining = t.duration;
   settings.extras.timer = false; saveSettings(); syncExtrasUI(); applyExtras();
 }
+let TIMER_MENU_MS = 10000, tmMenuTimer = 0;
+function closeTimerMenu(){ clearTimeout(tmMenuTimer); const m = $("timerMenu"); if(m) m.classList.add("hidden"); }
+function openTimerMenu(){                       // the time is up and the timer is tapped: Restart (with the time it ran) / Change time / Close
+  const m = $("timerMenu"), t = settings.timer;
+  $("tmRestart").textContent = "Restart " + fmtTimer(t.duration > 0 ? t.duration : 300);
+  m.classList.remove("hidden");
+  const r = $("timerCell").getBoundingClientRect(), w = m.offsetWidth || 260;
+  m.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + "px";
+  m.style.top = Math.min(innerHeight - m.offsetHeight - 8, r.bottom + 8) + "px";
+  clearTimeout(tmMenuTimer); tmMenuTimer = setTimeout(closeTimerMenu, TIMER_MENU_MS);       // nobody chose: it goes away by itself, the timer stays at 00:00
+}
+function timerRestart(){ const t = settings.timer; timerSet(t.duration > 0 ? t.duration : 300, true); }
 function timerTap(){
   if(!settings.extras.timer) return;
-  if(timerLeft() <= 0){ if(settings.timer.finished) dismissTimer(); else openTimerEditor(); return; }     // time is up: tap = away; 00:00 that was never set: set a time
+  if(timerLeft() <= 0){ if(settings.timer.finished){ if($("timerMenu").classList.contains("hidden")) openTimerMenu(); else closeTimerMenu(); } else openTimerEditor(); return; }     // time is up: the menu; 00:00 that was never set: set a time
   if(settings.timer.running) timerPause(); else timerStart();
 }
 let tmPress = 0, tmLong = false;
 $("timerCell").addEventListener("pointerdown", () => { tmLong = false; clearTimeout(tmPress); tmPress = setTimeout(() => { if(settings.extras.timer){ tmLong = true; openTimerEditor(); } }, 700); });   // holding it opens the editor
 ["pointerup", "pointercancel", "pointerleave"].forEach(ev => $("timerCell").addEventListener(ev, () => clearTimeout(tmPress)));
 $("timerCell").addEventListener("click", () => { if(tmLong){ tmLong = false; return; } timerTap(); });
+document.body.appendChild($("timerMenu"));          // outside every box, so that its position on the screen is the real one
+$("tmRestart").addEventListener("click", () => { closeTimerMenu(); timerRestart(); });
+$("tmChange").addEventListener("click", () => { closeTimerMenu(); openTimerEditor(); });
+$("tmClose").addEventListener("click", () => { closeTimerMenu(); dismissTimer(); });
+document.addEventListener("pointerdown", e => { const m = $("timerMenu"); if(m && !m.classList.contains("hidden") && !m.contains(e.target) && !$("timerCell").contains(e.target)) closeTimerMenu(); }, true);
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeTimerMenu(); });
 $("timerCell").addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); timerTap(); } });
 
 const te = { value: 300, digits: "", fresh: true };     // digits = what was typed (like a microwave), value = the time in seconds
@@ -3169,7 +3197,7 @@ $("pnSend").addEventListener("click", async () => {
 });
 
 
-/* ---------- Live Agenda: a plan with times for the lesson ---------- */
+/* ---------- Lesson Flow: a plan with times for the lesson ---------- */
 function parseLive(text){                        // "2" then "Name | minutes" per line -> { lead, tasks, errors }
   const lines = String(text || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean), out = { lead: 0, tasks: [], errors: [] };
   let n = 0;
@@ -3179,7 +3207,7 @@ function parseLive(text){                        // "2" then "Name | minutes" pe
     const name = at < 0 ? "" : ln.slice(0, at).trim(), min = at < 0 ? NaN : parseFloat(ln.slice(at + 1).trim().replace(",", "."));
     if(!name || !(min > 0) || min > 180){ out.errors.push("line " + (i + n + 1) + ": " + (at < 0 ? "no | and minutes" : !name ? "no name" : "minutes must be above 0 and at most 180")); return; }
     if(out.tasks.length >= 12){ out.errors.push("line " + (i + n + 1) + ": at most 12 parts"); return; }
-    out.tasks.push({ name: name.slice(0, 60), min });
+    out.tasks.push({ name, min });
   });
   return out;
 }
@@ -3191,8 +3219,8 @@ function lessonStartSec(code, info){              // when the bell rings for thi
   const row = rowsFor(settings.activeBand, info.timeType).find(r => r.type === "class" && new RegExp("Period " + code.charAt(1) + "$").test(r.label));
   return row ? rowStartSec(row) : null;
 }
-function liveSegments(plan, start){
-  let t = start - plan.lead * 60;
+function liveSegments(plan, start){             // the parts run one after the other FROM THE BELL, each for its own minutes
+  let t = start;
   return plan.tasks.map(k => { const seg = { name: k.name, min: k.min, a: t, b: t + k.min * 60 }; t = seg.b; return seg; });
 }
 function liveCodes(now){ const cur = currentSectionCode(now), nxt = nextSectionCode(now), c = []; if(cur) c.push(cur); if(nxt && nxt !== cur) c.push(nxt); return c; }
@@ -3203,7 +3231,8 @@ function liveFind(now, info){                     // the plan that is running at
     const plan = livePlan(code), start = plan ? lessonStartSec(code, info) : null;
     if(start === null) continue;
     const segs = liveSegments(plan, start);
-    if(nowSec >= segs[0].a && nowSec < segs[segs.length - 1].b) return { code, segs, nowSec };
+    if(nowSec >= segs[0].a && nowSec < segs[segs.length - 1].b) return { code, segs, nowSec, head: false };
+    if(plan.lead > 0 && nowSec >= start - plan.lead * 60 && nowSec < start) return { code, segs, nowSec, head: true, start };      // the heads-up before the bell: what the lesson starts with
   }
   return null;
 }
@@ -3215,16 +3244,55 @@ function renderLive(now, info){
   if(!f){ if(was){ amb.setAttribute("data-live", "0"); heroFitSig = ""; } box.classList.add("hidden"); liveSig = ""; return; }
   if(!was){ amb.setAttribute("data-live", "1"); heroFitSig = ""; }
   box.classList.remove("hidden");
-  const i = f.segs.findIndex(z => f.nowSec < z.b), z = f.segs[i], left = z.b - f.nowSec, next = f.segs[i + 1];
   const sig = f.code + "|" + f.segs.map(x => x.name + ":" + x.min).join(",");
-  if(sig !== liveSig){ liveSig = sig; $("lvSteps").innerHTML = f.segs.map(x => '<i style="flex-grow:' + x.min + '"></i>').join(""); }
-  Array.from($("lvSteps").children).forEach((el, k) => { el.className = k < i ? "done" : (k === i ? "cur" : ""); });
-  setIfChanged("lvLabel", "Live agenda \u00b7 part " + (i + 1) + " of " + f.segs.length);
-  setIfChanged("lvName", z.name);
-  setIfChanged("lvTime", fmtMS(left));
-  setIfChanged("lvNext", next ? "Next: " + next.name + " \u00b7 " + next.min + " min" : "The last part");
-  $("lvFill").style.width = (Math.max(0, Math.min(1, (f.nowSec - z.a) / (z.b - z.a))) * 100).toFixed(1) + "%";
+  if(sig !== liveSig){ liveSig = sig; lvNameSig = ""; $("lvSteps").innerHTML = f.segs.map(x => '<i style="flex-grow:' + x.min + '"><b>' + (Math.round(x.min * 10) / 10) + ' min</b></i>').join(""); lvFitLabels(); }
+  box.setAttribute("data-head", f.head ? "1" : "0");
+  if(f.head){                                     // before the bell: only the news of what comes first (no timer, no bar)
+    Array.from($("lvSteps").children).forEach(el => { el.className = ""; });
+    setIfChanged("lvLabel", "Lesson flow \u00b7 starting in " + fmtMS(f.start - f.nowSec));
+    setIfChanged("lvName", "First: " + f.segs[0].name);
+    setIfChanged("lvNext", "It starts when the bell rings");
+    $("lvFill").style.width = "0%";
+  }else{
+    const i = f.segs.findIndex(z => f.nowSec < z.b), z = f.segs[i], left = z.b - f.nowSec, next = f.segs[i + 1];
+    Array.from($("lvSteps").children).forEach((el, k) => { el.className = k < i ? "done" : (k === i ? "cur" : ""); });
+    setIfChanged("lvLabel", "Lesson flow \u00b7 part " + (i + 1) + " of " + f.segs.length);
+    setIfChanged("lvName", z.name);
+    setIfChanged("lvTime", fmtMS(left));
+    setIfChanged("lvNext", next ? "Next: " + next.name + " \u00b7 " + next.min + " min" : "The last part");
+    $("lvFill").style.width = (Math.max(0, Math.min(1, (f.nowSec - z.a) / (z.b - z.a))) * 100).toFixed(1) + "%";
+  }
+  lvFitName();
 }
+let lvNameSig = "";
+function lvFitName(){                              // the name of the part is as big as it can be and still fits (as many lines as it takes); three dots only if even a small size is not enough
+  const el = $("lvName"), box = $("liveAgenda"); if(!el || box.classList.contains("hidden")) return;
+  const sig = el.textContent + "|" + box.clientWidth + "x" + box.clientHeight + "|" + box.getAttribute("data-head");
+  if(sig === lvNameSig) return; lvNameSig = sig;
+  el.style.webkitLineClamp = "unset"; el.style.display = "block"; el.style.fontSize = "";
+  const max = parseFloat(getComputedStyle(el).fontSize) || 60;
+  const bcs = getComputedStyle(box), others = Array.from(box.children).filter(c => c !== el && getComputedStyle(c).display !== "none");       // what else must fit in the box: its own space is what is left
+  const used = others.reduce((t, c) => { const k = getComputedStyle(c); return t + c.getBoundingClientRect().height + (parseFloat(k.marginTop) || 0) + (parseFloat(k.marginBottom) || 0); }, 0);
+  const left = box.clientHeight - (parseFloat(bcs.paddingTop) || 0) - (parseFloat(bcs.paddingBottom) || 0) - used - (parseFloat(bcs.rowGap) || 0) * others.length;
+  const room = Math.max(box.clientHeight * 0.18, Math.min(left, box.clientHeight * 0.6));
+  let fs = max;
+  for(let n = 0; n < 40 && el.scrollHeight > room && fs > 16; n++){ fs = Math.max(16, fs * 0.93); el.style.fontSize = fs + "px"; }
+  if(el.scrollHeight > room + 2){                  // even the small size does not fit: clamp with three dots
+    const lines = Math.max(2, Math.floor(room / (fs * 1.1)));
+    el.style.display = "-webkit-box"; el.style.webkitLineClamp = String(lines);
+  }
+}
+function lvFitLabels(){                            // the minutes under each part of the strip: "10 min", or just the number if the part is narrow, or nothing if it is very narrow
+  const strip = $("lvSteps"); if(!strip) return;
+  Array.from(strip.children).forEach(seg => {
+    const b = seg.firstElementChild; if(!b) return;
+    const txt = b.textContent.replace(/^(\d+(?:\.\d)?)(?: min)?$/, "$1"), n = txt.replace(/\D*$/, "");
+    b.textContent = n + " min"; b.style.visibility = "";
+    if(b.scrollWidth > seg.clientWidth + 1) b.textContent = n;
+    if(b.scrollWidth > seg.clientWidth + 1) b.style.visibility = "hidden";
+  });
+}
+window.addEventListener("resize", () => { lvNameSig = ""; lvFitLabels(); });
 function liveSoundTick(now, info){                // a sound when a part has just ended (not for one that ended long ago, e.g. before a page reload)
   if(!settings.extras.live) return;
   const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds(), iso = toISO(now);
@@ -3241,8 +3309,8 @@ function liveSummary(text, code){
   const p = parseLive(text);
   if(!p.tasks.length) return p.errors.length ? "Nothing usable yet: " + p.errors.slice(0, 2).join("; ") + "." : "Empty. Write the minutes before the bell, then one part per line: name | minutes.";
   const total = p.tasks.reduce((x, k) => x + k.min, 0), info = effectiveBandInfo(settings.activeBand, toISO(appNow())), start = lessonStartSec(code, info);
-  let msg = p.tasks.length + " part" + (p.tasks.length > 1 ? "s" : "") + ", " + (Math.round(total * 10) / 10) + " min in all, starts " + p.lead + " min before the bell";
-  if(start !== null) msg += ", ends " + clockOfSec(start - p.lead * 60 + total * 60).replace(/\s?[AP]M$/i, "");
+  let msg = p.tasks.length + " part" + (p.tasks.length > 1 ? "s" : "") + ", " + (Math.round(total * 10) / 10) + " min in all, from the bell" + (p.lead > 0 ? " (announced " + p.lead + " min before it)" : "");
+  if(start !== null) msg += ", ends " + clockOfSec(start + total * 60).replace(/\s?[AP]M$/i, "");
   if(p.errors.length) msg += ". Not understood: " + p.errors.slice(0, 2).join("; ");
   return msg + ".";
 }
@@ -3275,7 +3343,7 @@ function openCopyDialog(kind){                    // "Copy to...": the periods w
   const live = kind === "live", from = (live ? $("lvBlock") : $("agBlock")).value, text = (live ? $("lvText") : $("agText")).value, status = live ? $("lvStatus") : $("agStatus");
   if(!text.trim()){ status.textContent = "Write the plan first."; return; }
   const dlg = $("passDialog"); passDialogSlot = null;
-  dlg.innerHTML = '<h3>Copy ' + (live ? "the live agenda" : "the agenda") + ' of ' + from + ' to...</h3><div class="copy-grid" id="cpGrid">' +
+  dlg.innerHTML = '<h3>Copy ' + (live ? "the lesson flow" : "the agenda") + ' of ' + from + ' to...</h3><div class="copy-grid" id="cpGrid">' +
     ["A", "B"].map(L => '<div class="cp-col"><div class="cp-h">' + L + ' day</div>' + [1, 2, 3, 4].map(n => { const c = L + n; return '<label class="cp-it"><input type="checkbox" data-c="' + c + '"' + (c === from ? " disabled" : "") + '> ' + c + (c === from ? " (this one)" : "") + '</label>'; }).join("") + '</div>').join("") + '</div>' +
     '<div class="dlg-actions"><button type="button" id="cpAll" class="clear">All</button><button type="button" id="cpDay" class="clear">This day</button><button type="button" id="cpNone" class="clear">None</button><button type="button" id="cpCancel" class="clear">Cancel</button><button type="button" id="cpGo" class="grant" disabled>Copy</button></div>';
   const boxes = () => Array.from(dlg.querySelectorAll("#cpGrid input:not(:disabled)")), upd = () => { $("cpGo").disabled = !boxes().some(b => b.checked); };
@@ -4195,8 +4263,8 @@ const PREF_FIXED = ["extras.hallPass", "extras.cards", "extras.agenda", "extras.
   "live.sound", "live.volume", "timer.duration", "timer.threshold", "timer.thresholdUnit", "timer.endOn", "timer.endSound", "timer.endVolume", "timer.warnOn", "timer.warnSound", "timer.warnVolume", "timer.presets", "countdownFormat", "hour12",
   "notify.sound", "notify.ringSound", "notify.distractorSound", "notify.volume", "notify.ringVolume", "notify.distractorVolume", "theme"];
 const PREF_LABELS = { "pass.useWindow": "the 10/10 rule", "pass.closedStartMin": "the closed first minutes", "pass.closedEndMin": "the closed last minutes", "pass.allowOutside": "passes in the closed minutes", "pass.slots": "the number of pass buttons",
-  "pass.maxMinutes": "the pass time limit", "pass.reasons": "the places to go", "pass.limits": "the limits per place", "pin": "the PIN", "pinEnabled": "the PIN switch", "extras.hallPass": "hall passes", "extras.timer": "the timer", "extras.cards": "the cards", "extras.agenda": "the agenda", "extras.live": "the Live Agenda",
-  "notify.sound": "the alert sound", "notify.ringSound": "the bell sound", "notify.distractorSound": "the attention signal sound", "notify.volume": "the alert volume", "notify.ringVolume": "the bell volume", "notify.distractorVolume": "the attention signal volume", "live.volume": "the Live Agenda volume", "timer.endVolume": "the timer volume", "timer.warnVolume": "the timer warning volume", "theme": "the theme" };
+  "pass.maxMinutes": "the pass time limit", "pass.reasons": "the places to go", "pass.limits": "the limits per place", "pin": "the PIN", "pinEnabled": "the PIN switch", "extras.hallPass": "hall passes", "extras.timer": "the timer", "extras.cards": "the cards", "extras.agenda": "the agenda", "extras.live": "the Lesson Flow",
+  "notify.sound": "the alert sound", "notify.ringSound": "the bell sound", "notify.distractorSound": "the attention signal sound", "notify.volume": "the alert volume", "notify.ringVolume": "the bell volume", "notify.distractorVolume": "the attention signal volume", "live.volume": "the Lesson Flow volume", "timer.endVolume": "the timer volume", "timer.warnVolume": "the timer warning volume", "theme": "the theme" };
 function prefKeys(){ return PREF_FIXED.concat(PREF_BLOCKS.map(b => "agenda.texts." + b), PREF_BLOCKS.map(b => "live.texts." + b)); }
 const prefJSON = k => { const v = getPath(settings, k); return v === undefined ? "null" : JSON.stringify(v); };
 let prefDefaults = null;
@@ -4647,7 +4715,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.15 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.16 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -5320,7 +5388,7 @@ function setSchoolSounds(files){
   preloadSelectedSounds();
   renderSchoolSoundsStatus();
 }
-function preloadSelectedSounds(){                 // the school sounds in use (alert, bell, attention, timer, Live Agenda) are fetched now, so that they are on the device before they are needed
+function preloadSelectedSounds(){                 // the school sounds in use (alert, bell, attention, timer, Lesson Flow) are fetched now, so that they are on the device before they are needed
   [settings.notify.sound, settings.notify.ringSound, settings.notify.distractorSound, settings.timer.endSound, settings.timer.warnSound, settings.live.sound].forEach(k => { const it = schoolSounds.find(x => x.id === k); if(it) loadSchoolSound(it); });
 }
 async function refreshSchoolSounds(force){
