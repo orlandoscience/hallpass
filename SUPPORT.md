@@ -6,7 +6,7 @@ If it is useful to you, you are welcome to **thank the author in any form you li
 
 ## How to send a contribution
 
-**[Payment details will be added here.]**
+**Zelle by email osshallpass@gmail.com**
 
 ---
 
