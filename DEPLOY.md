@@ -89,3 +89,7 @@ Put the sound files (`.mp3`, `.wav`, `.ogg`, `.m4a`, `.aac`) in the `sounds/` fo
 ## The Support page
 
 The link *Support the author* at the bottom of the settings opens the separate page `support/index.html` (`https://<user>.github.io/<repository>/support/`). Like the Study Hall page it is a plain page of its own; the service worker leaves the `support/` folder alone. The payment details are written inside `support/index.html` (the e-mail address is put together by a small script, so that it is not found by robots as one piece of text); change them there, in the lines `data-u` and `data-d` of the address (the part before and after the @) and in the line *In the comments write*. `SUPPORT.md` is the same text for people who open the repository on GitHub: keep the two in step or delete `SUPPORT.md`.
+
+## A board that is never switched off
+
+A tablet or an Android board that stays on for days slowly gets heavier. The page therefore restarts itself at night (Settings, *Board care and log*; the hour can be changed or the switch turned off) and when it gets slow. When something goes wrong, open that section, press **Copy log** and send the text: it shows how each page ended (a clean restart, or cut off by a crash, a kill or the power), the memory and size of the page every 10 minutes, long freezes, errors, and whether the alert sounds played or were blocked. A line at the start of every page says whether the sounds were unlocked, and a small note on the screen asks for one touch when they are not.

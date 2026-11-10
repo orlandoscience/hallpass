@@ -874,11 +874,14 @@
   .load-note.warn{ border-left-color: #f59e0b; background: rgba(245,158,11,.14); }
   .load-note.info{ border-left-color: #94a3b8; background: rgba(148,163,184,.14); }
   .load-note.hidden{ display: none; }
+  .ed-nav{ display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; font-size: .82rem; color: var(--ink-dim); }
+  .ed-nav button{ padding: 4px 12px; }
+  #diagBox{ width: 100%; box-sizing: border-box; min-height: 9em; font: 11px/1.35 "Courier New", monospace; background: rgba(0,0,0,.25); color: inherit; border: 1px solid rgba(127,127,127,.35); border-radius: 8px; padding: 8px; resize: vertical; }
   .load-note{ flex: 0 0 auto; max-height: 34vh; overflow-y: auto; }          /* never squeezed by the window: it shows all its text, and scrolls only when it is really long */
   @media (max-width: 820px){ .load-note ul{ columns: 1; } }
   .load-note ul{ margin: 6px 0 0; padding-left: 20px; columns: 2; column-gap: 28px; }
   .load-note li{ break-inside: avoid; }
-  .load-note .ln-x{ position: absolute; right: 10px; top: 6px; border: none; background: none; color: inherit; font-size: 1.1rem; cursor: pointer; opacity: .7; }
+  .load-note .ln-x{ position: absolute; right: 10px; top: 4px; border: none; background: none; color: inherit; font-size: 1.1rem; line-height: 1; padding: 2px 4px; cursor: pointer; opacity: .7; }
   .load-note .ln-more{ opacity: .75; }
 </style>
 </head>
@@ -964,6 +967,7 @@
         <div class="ct" id="clockTime">--:--:--</div>
         <div class="cs" id="clockSync">device time</div>
         <div class="cs" id="audioStatus" style="color:var(--danger); display:none;"></div>
+        <div class="cs" id="soundHint" style="color:#fbbf24; display:none; white-space:normal; max-width:14em;">&#128263; Touch the screen once to switch the sounds on</div>
       </div>
     </div>
 
@@ -1453,6 +1457,20 @@
       <div id="passRecent" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
     </div>
 
+    <div class="section" id="secCare" data-store="brd">
+      <h2>Board care and log</h2>
+      <div class="perm-note">For a board that stays on for days. It restarts the page by itself when nothing is going on (nothing is lost: passes, timer and settings are kept). The log is kept on this device; copy it and send it when something goes wrong.</div>
+      <div class="toggle-row"><span>Restart the page every night</span><label class="switch"><input type="checkbox" id="careNightly"><span class="slider"></span></label></div>
+      <div class="field-row"><span>Restart at (hour, 0 to 23)</span><input type="number" id="careHour" class="num-input" min="0" max="23" step="1" style="width:5em;"></div>
+      <div class="toggle-row"><span>Restart by itself when the board gets slow (between lessons)</span><label class="switch"><input type="checkbox" id="careWatch"><span class="slider"></span></label></div>
+      <div class="perm-note" id="careInfo"></div>
+      <div class="btn-row"><button type="button" id="careRestartBtn">Restart now</button></div>
+      <div class="perm-note" style="margin-top:12px;"><b>Log</b> (the newest lines; Copy takes everything)</div>
+      <textarea id="diagBox" readonly spellcheck="false"></textarea>
+      <div class="btn-row"><button type="button" id="diagRefresh">Refresh</button><button type="button" id="diagCopy">Copy log</button><button type="button" id="diagDownload">Download .txt</button><button type="button" id="diagClear">Clear log</button></div>
+      <div class="perm-note" id="diagMsg"></div>
+    </div>
+
     <div class="section" id="secDemo" data-store="brd">
       <h2>Presentation demo</h2>
       <div class="override-note" style="margin-top:0;">Runs a pretend school day on a fast clock, so you can show the 10/10 rule and the progress bars in a few minutes. Nothing is saved or sent while it runs. Tip: add <b>?demo=1</b> to the page address to start in demo mode.</div>
@@ -1603,6 +1621,7 @@ let BAND_LABELS = { "912": "9th–12th Grade", "1011": "10th–11th Grade" };
    the sound library already surviving reloads), so settings live there too. */
 function getDefaultSettings(){
   return {
+    care: { nightly: true, hour: 3, watchdog: true },          // this board only: a fresh start every night, and when it gets slow
     theme: "dark",
     hour12: true,
     dayStart: "07:30",
@@ -1686,6 +1705,7 @@ async function loadSettingsFromIDB(){
       live: { ...defaults.live, ...(saved.live || {}), texts: { ...((saved.live && saved.live.texts) || {}) } },
       timer: { ...defaults.timer, ...(saved.timer || {}), recent: ((saved.timer && saved.timer.recent) || []).slice(0, 4), endOn: (saved.timer && saved.timer.endOn !== undefined) ? saved.timer.endOn : !(saved.timer && saved.timer.ring === false) },
       agenda: { ...defaults.agenda, ...(saved.agenda || {}), texts: { ...((saved.agenda && saved.agenda.texts) || {}) } },
+      care: { ...defaults.care, ...(saved.care || {}) },
       extras: older ? { hallPass: true, ding: true, sounds: true, cards: true } : { ...defaults.extras, ...saved.extras },
       setupDone: older ? true : !!saved.setupDone,
       overrides: { ...(saved.overrides && typeof saved.overrides === "object" ? saved.overrides : {}) }
@@ -2124,13 +2144,15 @@ function playSoundFor(kind){
     if(it && !it.error && !it.loaded){ loadSchoolSound(it).then(() => playSoundFor(kind)); return; }      // a school sound that is not loaded yet: load it, then play (if it cannot be loaded the standard bell plays, never silence)
     el = document.getElementById("sound-bell");
   }
-  if(!el){ showAudioError("Sound file missing"); return; }
+  if(!el){ diagLog("SOUND", kind + " the sound file is missing (" + soundKey + ")"); showAudioError("Sound file missing"); return; }
   try{
     el.volume = safeVolume(vol) / 100;
     el.currentTime = 0;
     const p = el.play();
     if(p && typeof p.catch === "function"){
+      p.then(() => diagLog("SOUND", kind + " played (" + soundKey + ")")).catch(() => {});
       p.catch((err) => {
+        diagLog("SOUND", kind + " BLOCKED (" + (err && err.name ? err.name : "?") + ", sound " + soundKey + ")");
         showAudioError("🔇 Blocked: " + (err && err.name ? err.name : "tap Test Sound to unlock"));
       });
     }
@@ -2182,10 +2204,12 @@ function checkAndFireNotifications(info, now){
         const key = `${toISO(now)}_${settings.activeBand}_${idx}_${t}`;
         if(nowSeconds >= fireAt && nowSeconds < fireAt + 2 && !firedNotifications[key]){
           firedNotifications[key] = true;
+          playSoundFor("warning");                                   // the sound comes first: a notification that cannot be shown must never keep it silent
+          diagLog("ALERT", t + " minutes left in " + dispLabel(row.label));
           if(canNotify){
-            new Notification(`${t} minutes left`, { body: `${dispLabel(row.label)} ends in ${t} minutes.`, tag: key });
+            try{ new Notification(`${t} minutes left`, { body: `${dispLabel(row.label)} ends in ${t} minutes.`, tag: key }); }
+            catch(e){ diagLog("ALERT", "the browser could not show the notification (" + (e && e.message ? e.message : e) + "); the sound was played"); }
           }
-          playSoundFor("warning");
         }
       });
     });
@@ -2256,6 +2280,7 @@ function refreshAll(){
 }
 
 function tick(){
+  { const pn = performance.now(); if(diagLastTick && pn - diagLastTick > 3000){ diagLate++; if(pn - diagLastTick > 15000) diagLog("LAG", "the clock stood still for " + Math.round((pn - diagLastTick) / 1000) + " s (the page was frozen or hidden, or the device slept)"); } diagLastTick = pn; }
   const now = appNow();
   syncBandForDay(now);
   tickClock(now);
@@ -3134,22 +3159,25 @@ $("tmReset").addEventListener("click", () => { const t = settings.timer; t.remai
 
 /* ---------- The teacher's own announcements and questions, and preferred-name suggestions ---------- */
 var LESSONS = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"], EDIT_MAX = { ann: 8, qa: 12 };
-var editing = { ann: [], qa: [] };
+var editing = { ann: [], qa: [] }, EDIT_PAGE = 10, editPage = { ann: 0, qa: 0 };           // only one page of ten rows is ever drawn, so the window stays light however long the list is
 function addButtonsState(){                       // a full list cannot be added to (unless its section is locked anyway)
   ["ann", "qa"].forEach(k => { const b = $(k + "Add"); if(b && editing && !b.closest(".section").classList.contains("locked")) b.disabled = editing[k].length >= EDIT_MAX[k]; });
 }
 function loadEditing(){
   editing.ann = (settings.pass.ann || []).map(x => ({ t: x.t, b: (x.b || []).slice() }));
   editing.qa = (settings.pass.qa || []).map(x => ({ q: x.q, a: x.a, b: (x.b || []).slice() }));
-  renderEditor("ann"); renderEditor("qa");
+  editPage.ann = editPage.qa = 0; renderEditor("ann"); renderEditor("qa");
 }
 function renderEditor(kind){
   const box = $(kind + "List"), items = editing[kind], isAnn = kind === "ann";
-  box.innerHTML = items.length ? items.map((it, i) => '<div class="ed-item" data-i="' + i + '">' +
+  const pages = Math.max(1, Math.ceil(items.length / EDIT_PAGE)); editPage[kind] = Math.max(0, Math.min(editPage[kind], pages - 1));
+  const from = editPage[kind] * EDIT_PAGE, shown = items.slice(from, from + EDIT_PAGE);
+  const nav = items.length > EDIT_PAGE ? '<div class="ed-nav"><button type="button" class="ed-prev"' + (editPage[kind] > 0 ? '' : ' disabled') + '>&larr; Previous ' + EDIT_PAGE + '</button><span>' + (from + 1) + '&ndash;' + (from + shown.length) + ' of ' + items.length + '</span><button type="button" class="ed-next"' + (editPage[kind] < pages - 1 ? '' : ' disabled') + '>Next ' + EDIT_PAGE + ' &rarr;</button></div>' : '';
+  box.innerHTML = items.length ? nav + shown.map((it, k) => '<div class="ed-item" data-i="' + (from + k) + '">' +
       (isAnn ? '<textarea class="ed-t" rows="2" maxlength="140" placeholder="Announcement (up to 140 characters)"></textarea>'
              : '<input type="text" class="ed-q" maxlength="100" placeholder="Question"><input type="text" class="ed-a" maxlength="100" placeholder="Answer">') +
       '<div class="ed-flags">' + LESSONS.map(b => '<label><input type="checkbox" data-b="' + b + '">' + b + '</label>').join("") + '</div>' +
-      '<div class="ed-btns"><button type="button" class="ed-mine">All my lessons</button><button type="button" class="ed-del">Delete</button></div></div>').join("")
+      '<div class="ed-btns"><button type="button" class="ed-mine">All my lessons</button><button type="button" class="ed-del">Delete</button></div></div>').join("") + nav
     : '<div class="perm-note">Nothing yet. Press + Add.</div>';
   box.querySelectorAll(".ed-item").forEach(el => {              // the typed text goes in as a value, never as markup
     const it = items[+el.getAttribute("data-i")];
@@ -3157,6 +3185,9 @@ function renderEditor(kind){
     el.querySelectorAll("input[data-b]").forEach(c => { c.checked = it.b.indexOf(c.getAttribute("data-b")) >= 0; });
   });
   syncSectionLocks();
+  const locked = box.closest(".section").classList.contains("locked");                       // the lock of the section switched every button on or off: the ends of the list switch theirs off again
+  box.querySelectorAll(".ed-prev").forEach(b => { b.disabled = locked || editPage[kind] <= 0; });
+  box.querySelectorAll(".ed-next").forEach(b => { b.disabled = locked || editPage[kind] >= pages - 1; });
 }
 ["ann", "qa"].forEach(kind => {
   const box = $(kind + "List");
@@ -3164,12 +3195,13 @@ function renderEditor(kind){
   box.addEventListener("input", e => { const it = itemOf(e); if(!it) return; if(e.target.classList.contains("ed-t")) it.t = e.target.value; if(e.target.classList.contains("ed-q")) it.q = e.target.value; if(e.target.classList.contains("ed-a")) it.a = e.target.value; });
   box.addEventListener("change", e => { const it = itemOf(e); if(!it || !e.target.getAttribute("data-b")) return; const b = e.target.getAttribute("data-b"), at = it.b.indexOf(b); if(e.target.checked && at < 0) it.b.push(b); if(!e.target.checked && at >= 0) it.b.splice(at, 1); });
   box.addEventListener("click", e => {
+    if(e.target.classList.contains("ed-prev") || e.target.classList.contains("ed-next")){ editPage[kind] += e.target.classList.contains("ed-next") ? 1 : -1; renderEditor(kind); return; }
     const el = e.target.closest(".ed-item"); if(!el) return;
     const i = +el.getAttribute("data-i");
     if(e.target.classList.contains("ed-del")){ editing[kind].splice(i, 1); renderEditor(kind); }
     if(e.target.classList.contains("ed-mine")){ editing[kind][i].b = Object.keys(settings.pass.rosterSections || {}).filter(k => LESSONS.indexOf(k) >= 0); renderEditor(kind); }
   });
-  $(kind + "Add").addEventListener("click", () => { if(editing[kind].length >= EDIT_MAX[kind]) return; editing[kind].push(kind === "ann" ? { t: "", b: [] } : { q: "", a: "", b: [] }); renderEditor(kind); $(kind + "Status").textContent = ""; });
+  $(kind + "Add").addEventListener("click", () => { if(editing[kind].length >= EDIT_MAX[kind]) return; editing[kind].push(kind === "ann" ? { t: "", b: [] } : { q: "", a: "", b: [] }); editPage[kind] = Math.floor((editing[kind].length - 1) / EDIT_PAGE); renderEditor(kind); $(kind + "Status").textContent = ""; });
   $(kind + "Save").addEventListener("click", () => saveEditor(kind));
 });
 async function saveEditor(kind){
@@ -4689,7 +4721,8 @@ function reapplyAll(){                            // everything on the screen fo
 function commitSettings(){ settingsHold = false; settingsDirty = false; writeSettings(); settingsHold = true; settingsSnap = snapshotSettings(); showDirty(); if(typeof prefsPush === "function") prefsPush(); }
 function openSettings(){
   settingsSnap = snapshotSettings(); settingsHold = true; settingsDirty = false; showDirty(); $("loadNote").classList.add("hidden");
-  syncTimerUI(); syncLayoutUI(); loadEditing(); syncLiveUI();
+  diagSetAt = Date.now(); diagLog("SETTINGS", "opened (" + document.getElementsByTagName("*").length + " elements on the page)");
+  syncTimerUI(); syncLayoutUI(); loadEditing(); syncLiveUI(); careSyncUI();
   $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
   renderTeacherStatus();
   if(settings.extras.agenda){ agSyncUI(false); setTimeout(agPreview, 80); }
@@ -4703,11 +4736,13 @@ function openSettings(){
   $("settingsBody").scrollTop = 0;
 }
 function closeSettings(){                         // Save: write everything and close
+  diagLog("SETTINGS", "closed with Save after " + Math.round((Date.now() - diagSetAt) / 1000) + " s");
   if(settingsHold) commitSettings();
   settingsHold = false; settingsSnap = null; $("settingsModal").classList.add("hidden");
   if(prefsDeferred){ const r = prefsDeferred; prefsDeferred = null; prefsMerge(r); }
 }
 function cancelSettings(){                        // Cancel: take back what was changed since the window was opened
+  diagLog("SETTINGS", "closed with Cancel after " + Math.round((Date.now() - diagSetAt) / 1000) + " s");
   if(settingsHold && settingsDirty && settingsSnap){ restoreSettings(settingsSnap); reapplyAll(); }
   settingsHold = false; settingsDirty = false; settingsSnap = null; showDirty(); writeSettings(); $("settingsModal").classList.add("hidden");
   if(prefsDeferred){ const r = prefsDeferred; prefsDeferred = null; prefsMerge(r); }
@@ -4771,7 +4806,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.20 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.21 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -5204,7 +5239,7 @@ function maybeApplyUpdate(){
   const now = appNow(), nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
   const rows = rowsFor(settings.activeBand, effectiveBandInfo(settings.activeBand, toISO(now)).timeType);
   const inSchool = rows.length > 0 && nowSec >= rowStartSec(rows[0]) - 600 && nowSec <= rowEndSec(rows[rows.length - 1]);
-  if(!inSchool) location.reload();
+  if(!inSchool) boardRestart("a new version of the page");
 }
 async function checkForUpdate(){            // asks the web server for the newest page; the service worker also saves it for next time
   if(!onWeb) return false;
@@ -5693,6 +5728,104 @@ document.body.setAttribute("data-theme", settings.theme);
 
 refreshAll(); // paint immediately with device/cached time, don't wait on network
 setInterval(tick, 1000);
+
+/* ================= Board care: a log of what happens on this board, and a fresh start when nothing is going on ================= */
+var DIAG_MAX = 700, diag = [], diagStart = Date.now(), diagLate = 0, diagLong = 0, diagLongLogged = 0, diagErr = 0, diagErrLogged = 0, diagLastTick = 0, diagSetAt = Date.now(), diagBad = 0, diagWhy = "", diagReady = false;
+function diagFmt(t){ const d = new Date(t), p = x => String(x).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()); }
+function diagUp(ms){ const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60); return (d ? d + "d " : "") + h + "h " + (m % 60) + "m"; }
+function diagLog(kind, text){ (diag || (diag = [])).push({ t: Date.now(), k: kind, s: String(text).slice(0, 400) }); if(diag.length > DIAG_MAX) diag.splice(0, diag.length - DIAG_MAX); }
+function diagLine(x){ return diagFmt(x.t) + "  " + String(x.k).padEnd(8) + x.s; }
+function diagDevice(){ const n = navigator, ua = n.userAgent || "", m = /(Android [\d.]+|CrOS|Windows NT [\d.]+|Mac OS X [\d_]+|iPhone OS [\d_]+|Linux)/.exec(ua), c = /(Chrome|Firefox|Safari|Edg)\/[\d.]+/.exec(ua); return (m ? m[1] : "?") + ", " + (c ? c[0] : "?") + ", screen " + screen.width + "x" + screen.height + "@" + (window.devicePixelRatio || 1) + ", cores " + (n.hardwareConcurrency || "?") + ", memory " + (n.deviceMemory || "?") + " GB"; }
+function diagText(){ return ["Hall Pass Board log", APP_VERSION, "Exported " + diagFmt(Date.now()), diagDevice(), "This page has run for " + diagUp(Date.now() - diagStart) + " (since " + diagFmt(diagStart) + ")", "Teacher: " + ((settings.pass.teacher || {}).display || "-") + "; grade group " + settings.activeBand, ""].concat(diag.map(diagLine)).join("\n"); }
+async function diagSave(){ try{ await idbSet("diag", { v: 1, lines: diag }); }catch(e){} }
+function reloadPage(){ location.reload(); }                       // one door for every restart (a test can stand in for it)
+function boardRestart(reason){
+  diagLog("RESTART", reason);
+  try{ localStorage.setItem("hpDiagEnd", JSON.stringify({ t: Date.now(), reason: "restarted by the board: " + reason })); localStorage.setItem("hpLastRestart", String(Date.now())); }catch(e){}
+  Promise.race([diagSave(), new Promise(r => setTimeout(r, 800))]).then(reloadPage);
+}
+async function diagInit(){
+  let prev = null; try{ prev = await idbGet("diag"); }catch(e){}
+  if(prev && Array.isArray(prev.lines)) diag = prev.lines.concat(diag).slice(-DIAG_MAX);
+  let end = null, alive = 0; try{ end = JSON.parse(localStorage.getItem("hpDiagEnd") || "null"); alive = +localStorage.getItem("hpDiagAlive") || 0; localStorage.removeItem("hpDiagEnd"); }catch(e){}
+  let why = "the first start on this board";
+  if(end) why = (end.reason || "the page was closed or reloaded") + " (the last page ended " + diagFmt(end.t) + ")";
+  else if(alive) why = "the previous page did NOT end cleanly: the browser was killed, the page crashed, or the power was cut (its last sign of life: " + diagFmt(alive) + ", " + diagUp(Date.now() - alive) + " ago)";
+  diagLog("START", APP_VERSION.split(" ")[0] + " | " + diagDevice() + " | sounds unlocked at start: " + (navigator.userActivation ? (navigator.userActivation.hasBeenActive ? "yes" : "no (the screen must be touched once)") : "unknown") + " | " + why);
+  diagBeat(); diagReady = true; await diagSave();          // only now this page writes its own sign of life
+}
+function diagBeat(){ try{ localStorage.setItem("hpDiagAlive", String(Date.now())); }catch(e){} }
+async function diagHealth(){
+  const m = performance && performance.memory, nodes = document.getElementsByTagName("*").length; let st = "";
+  try{ if(navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(); st = " | storage " + Math.round((e.usage || 0) / 1048576) + " MB"; } }catch(e){}
+  const heap = m ? m.usedJSHeapSize : 0, limit = m ? m.jsHeapSizeLimit : 0, out = (settings.pass.active || []).filter(Boolean).length;
+  diagLog("HEALTH", "up " + diagUp(Date.now() - diagStart) + " | heap " + (m ? Math.round(heap / 1048576) + " of " + Math.round(limit / 1048576) + " MB" : "n/a") + " | elements " + nodes + st + " | late ticks " + diagLate + " | long tasks " + diagLong + " | errors " + diagErr + " | passes out " + out + " | waiting trips " + (settings.pass.queue || []).length);
+  const bad = (m && (heap > 220 * 1048576 || (limit && heap / limit > 0.6))) || nodes > 6000 || diagLate >= 20;
+  diagWhy = (m && heap > 220 * 1048576 ? "memory " + Math.round(heap / 1048576) + " MB" : nodes > 6000 ? nodes + " elements" : diagLate >= 20 ? diagLate + " late ticks" : "memory use");
+  diagBad = bad ? diagBad + 1 : 0; diagLate = 0; diagLong = 0; diagErr = 0;
+  await diagSave();
+}
+try{ new PerformanceObserver(list => { list.getEntries().forEach(e => { if(e.duration >= 300){ diagLong++; if(e.duration >= 1000 && diagLongLogged < 40){ diagLongLogged++; diagLog("LONG", "the page was busy for " + Math.round(e.duration) + " ms (taps wait during that time)"); } } }); }).observe({ entryTypes: ["longtask"] }); }catch(e){}
+window.addEventListener("error", e => { diagErr++; if(diagErrLogged < 60){ diagErrLogged++; diagLog("ERROR", (e.message || "error") + " @" + String(e.filename || "").split("/").pop() + ":" + (e.lineno || 0)); } });
+window.addEventListener("unhandledrejection", e => { diagErr++; if(diagErrLogged < 60){ diagErrLogged++; diagLog("ERROR", "promise: " + ((e.reason && e.reason.message) || e.reason)); } });
+document.addEventListener("visibilitychange", () => diagLog("VISIBLE", document.visibilityState));
+window.addEventListener("pagehide", () => { try{ if(!localStorage.getItem("hpDiagEnd")) localStorage.setItem("hpDiagEnd", JSON.stringify({ t: Date.now(), reason: "the page was closed or reloaded" })); }catch(e){} diagSave(); });
+// when may the board restart itself?
+function careIdle(){
+  if(DEMO.on || settingsHold || !$("settingsModal").classList.contains("hidden")) return false;
+  if((settings.pass.active || []).some(Boolean)) return false;                    // a student is out
+  if(settings.timer && settings.timer.running) return false;                       // a timer is running
+  if(!$("passDialogBackdrop").classList.contains("hidden")) return false;          // somebody is typing or choosing
+  if($("ambient") && $("ambient").getAttribute("data-live") === "1") return false; // a Lesson Flow plan is running
+  return true;
+}
+function careBetween(){                                                           // not in the middle of a lesson
+  const now = appNow(), nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const rows = rowsFor(settings.activeBand, effectiveBandInfo(settings.activeBand, toISO(now)).timeType);
+  const cur = rows.find(r => nowSec >= rowStartSec(r) && nowSec < rowEndSec(r));
+  return !cur || cur.type !== "class";                                           // a break, lunch, before or after school
+}
+function careTick(){
+  const c = settings.care || {}; let last = 0; try{ last = +localStorage.getItem("hpLastRestart") || 0; }catch(e){}
+  const sinceRestart = Date.now() - Math.max(last, diagStart);
+  if(!careIdle()) return;
+  if(c.nightly !== false && sinceRestart > 12 * 3600000){
+    const h = appNow().getHours(), hr = Number.isFinite(+c.hour) ? +c.hour : 3;
+    if(h === hr || h === (hr + 1) % 24){ boardRestart("the nightly fresh start"); return; }
+  }
+  if(c.watchdog !== false && diagBad >= 2 && sinceRestart > 6 * 3600000 && (careBetween() || diagBad >= 6)){ boardRestart("the board was getting slow (" + diagWhy + ")"); return; }
+}
+function soundHintTick(){
+  const ua = navigator.userActivation, need = !!(ua && !ua.hasBeenActive && settings.extras && settings.extras.sounds);
+  $("soundHint").style.display = need ? "block" : "none";
+}
+function careInfoUpdate(){ let last = 0; try{ last = +localStorage.getItem("hpLastRestart") || 0; }catch(e){} $("careInfo").textContent = "This page has run for " + diagUp(Date.now() - diagStart) + (last ? "; the board last restarted itself on " + diagFmt(last) + "." : "; it has not restarted itself yet."); }
+function diagBoxUpdate(){ $("diagBox").value = diag.slice(-40).map(diagLine).join("\n"); $("diagBox").scrollTop = 1e9; $("diagMsg").textContent = diag.length + " lines are kept on this device (the newest " + DIAG_MAX + ")."; }
+function careSyncUI(){
+  const c = settings.care || (settings.care = { nightly: true, hour: 3, watchdog: true });
+  $("careNightly").checked = c.nightly !== false; $("careHour").value = Number.isFinite(+c.hour) ? c.hour : 3; $("careWatch").checked = c.watchdog !== false;
+  careInfoUpdate(); diagBoxUpdate();
+}
+$("careNightly").addEventListener("change", e => { settings.care.nightly = e.target.checked; saveSettings(); });
+$("careWatch").addEventListener("change", e => { settings.care.watchdog = e.target.checked; saveSettings(); });
+$("careHour").addEventListener("change", e => { const v = Math.round(+e.target.value); settings.care.hour = v >= 0 && v <= 23 ? v : 3; e.target.value = settings.care.hour; saveSettings(); });
+$("careRestartBtn").addEventListener("click", () => boardRestart("restarted from the settings (button)"));
+$("diagRefresh").addEventListener("click", () => { careInfoUpdate(); diagBoxUpdate(); });
+$("diagCopy").addEventListener("click", async () => {
+  const text = diagText(); let ok = false;
+  try{ await navigator.clipboard.writeText(text); ok = true; }
+  catch(e){ const ta = $("diagBox"), keep = ta.value; ta.value = text; ta.focus(); ta.select(); try{ ok = document.execCommand("copy"); }catch(e2){} ta.value = keep; }
+  $("diagMsg").textContent = ok ? "Copied: " + diag.length + " lines. Paste them into a message." : "Could not copy here. Use Download, or select the text in the box and copy it.";
+});
+$("diagDownload").addEventListener("click", () => {
+  try{ const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([diagText()], { type: "text/plain" })); a.download = "hallpass-log-" + diagFmt(Date.now()).replace(/[: ]/g, "-") + ".txt"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); $("diagMsg").textContent = "The file was saved (look in the Downloads folder)."; }
+  catch(e){ $("diagMsg").textContent = "Could not save a file here. Use Copy log."; }
+});
+$("diagClear").addEventListener("click", () => { diag = []; diagLog("LOG", "cleared in the settings"); diagSave(); diagBoxUpdate(); });
+setInterval(diagBeat, 60000); setInterval(careTick, 60000); setInterval(soundHintTick, 3000); setTimeout(diagHealth, 90000); setInterval(diagHealth, 10 * 60000);
+diagInit();
+
+
 
 /* ================= Load real settings + sound library from IndexedDB =================
    Runs independently of everything above — every button, checkbox, and input
