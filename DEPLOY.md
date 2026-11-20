@@ -93,3 +93,11 @@ The link *Support the author* at the bottom of the settings opens the separate p
 ## A board that is never switched off
 
 A tablet or an Android board that stays on for days slowly gets heavier. The page therefore restarts itself at night (Settings, *Board care and log*; the hour can be changed or the switch turned off) and when it gets slow. When something goes wrong, open that section, press **Copy log** and send the text: it shows how each page ended (a clean restart, or cut off by a crash, a kill or the power), the memory and size of the page every 10 minutes, long freezes, errors, and whether the alert sounds played or were blocked. A line at the start of every page says whether the sounds were unlocked, and a small note on the screen asks for one touch when they are not.
+
+## Questions and announcements: a new version of the script
+
+The banks of questions and announcements need the **newest `Code.gs`**: paste it into the script editor and make a new version (*Deploy -> Manage deployments -> edit -> New version*). The first time it runs it changes the `Questions` and `Announcements` tabs **in place** (a first column `ID`; announcements also get `From` and `To`) and numbers the old rows; nothing is lost. **Hall Pass -> Number new questions and announcements** numbers rows that someone typed or pasted into the two tabs by hand. Until the script is updated, a board that has the new page shows the first few items and says that the script is too old to change them.
+
+## The names in the Study Hall pass window
+
+In the Study Hall settings (Hall pass box) choose *Names in the pass window*: All names, Letters first, Letters in blocks or Auto (letters above a number of names, 40 by default). The choice is kept on the sheet under the teacher like the other blue settings, so the **newest `Code.gs`** must be deployed (it allows the keys `sh.nameMode`, `sh.nameAuto`, `sh.nameAutoStyle`). Until then a board keeps its choice on the board only.

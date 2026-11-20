@@ -18,12 +18,13 @@ const BLOCKS = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
 const LUNCH = 'LUNCH';                                       // lunch is a section too: in the cafeteria it belongs to the teacher "Lunch", in a classroom to that room's teacher
 const ALL_BLOCKS = BLOCKS.concat([LUNCH]);
 const NAMES_HEAD = ['Student ID', 'Preferred name', 'Status', 'Suggested by', 'Date', 'Note'];     // Status: ok (or empty) = used, pending = waits for an administrator
-const ANN_HEAD = ['Teacher', 'Announcement'].concat(BLOCKS, ['Updated']);                       // an x in A1..B4 = shown during that lesson
-const QA_HEAD = ['Teacher', 'Question', 'Answer'].concat(BLOCKS, ['Updated']);
+const ANN_HEAD = ['ID', 'Teacher', 'Announcement'].concat(BLOCKS, ['From', 'To', 'Updated']);     // ID: a number that is never used twice. An x in A1..B4 = shown during that lesson (none = every lesson). From, To: the days it is shown (empty = always)                       // an x in A1..B4 = shown during that lesson
+const QA_HEAD = ['ID', 'Teacher', 'Question', 'Answer'].concat(BLOCKS, ['Updated']);
+const BANK_TEXT = 200;                                                    // the longest question, answer or announcement
 const PREFS_HEAD = ['Teacher', 'Key', 'Value', 'Updated'];                                  // one row per teacher and setting; Value is JSON; Updated is a time in milliseconds
 const DEFAULTS_HEAD = ['Key', 'Value', 'Locked', 'Note'];                              // the school's defaults; Locked = x means a teacher cannot change it
 // The settings that follow a teacher from board to board. (Theme, screen width, sounds, volumes, the bell shift and the connection stay on each board.)
-const PREF_KEY_RE = /^(extras\.(hallPass|cards|agenda|timer|ann|qa|live)|stage\.(phases|arc|facts|riddles|messages|calendar|weather|alerts|cardSec)|pass\.(slots|autoLeaveSec|useWindow|closedStartMin|closedEndMin|allowOutside|maxMinutes|reasons|limits)|pass\.profile\.(name|room|nameEdited|roomEdited)|pin|pinEnabled|agenda\.(clearDaily|leadMin)|agenda\.texts\.[AB][1-4]|live\.texts\.[AB][1-4]|live\.(sound|volume)|timer\.(duration|threshold|thresholdUnit|endOn|endSound|endVolume|warnOn|warnSound|warnVolume|presets)|notify\.(sound|ringSound|distractorSound|volume|ringVolume|distractorVolume)|theme|countdownFormat|hour12|sh\.(pin|pinOn|band|hour12|theme|phases|ruleMin|clubsRule|room|teachers|limitMin|maxOut|dests|snd))$/;
+const PREF_KEY_RE = /^(extras\.(hallPass|cards|agenda|timer|ann|qa|live)|stage\.(phases|arc|facts|riddles|messages|calendar|weather|alerts|cardSec|qSec|aSec|qaOrder)|pass\.(slots|autoLeaveSec|useWindow|closedStartMin|closedEndMin|allowOutside|maxMinutes|reasons|limits)|pass\.profile\.(name|room|nameEdited|roomEdited)|pin|pinEnabled|agenda\.(clearDaily|leadMin)|agenda\.texts\.[AB][1-4]|live\.texts\.[AB][1-4]|live\.(sound|volume)|timer\.(duration|threshold|thresholdUnit|endOn|endSound|endVolume|warnOn|warnSound|warnVolume|presets)|notify\.(sound|ringSound|distractorSound|volume|ringVolume|distractorVolume)|theme|countdownFormat|hour12|sh\.(pin|pinOn|band|hour12|theme|phases|ruleMin|clubsRule|room|teachers|limitMin|maxOut|dests|snd|nameMode|nameAuto|nameAutoStyle))$/;
 const PREF_MAX = 40000;                                                                     // characters in one value (a cell holds 50,000)
 const BELLS_HEAD = ['Band', 'Day type', 'Day name', 'Label', 'Kind', 'Start', 'End'];      // Band: 912 or 1011. Kind: class, break or lunch. Times like 07:50 (24 hours)
 const CAL_HEAD = ['Date', 'Day', 'Type', 'Event', 'Event kind'];                          // Day: A or B, empty = no school. Type: regular, wednesday... Event kind: break, end or year
@@ -323,8 +324,8 @@ function route_(p) {
   if (a === 'prefs_get') return prefsGet_(t);
   if (a === 'prefs_set') return prefsSet_(t, p);
   if (a === 'suggest') return suggestName_(t, p);
-  if (a === 'ann_set') return saveItems_(t, p, 'ann');
-  if (a === 'qa_set') return saveItems_(t, p, 'qa');
+  const m = /^(qa|ann)_(get|list|add|edit|del|set)$/.exec(a);                      // the banks of questions and announcements
+  if (m) return bank_(t, p, m[1], m[2]);
   return { ok: false, error: 'unknown action' };
 }
 
@@ -534,18 +535,6 @@ function names_() {                     // student ID -> preferred first name (o
 
 function flagsOf_(row, from) { return BLOCKS.filter(function (b, i) { const v = String(row[from + i] == null ? '' : row[from + i]).trim().toLowerCase(); return v !== '' && v !== '0' && v !== 'no' && v !== 'false'; }); }
 
-function readItems_(tab, teacher, kind) {  // this teacher's announcements ({t, b}) or questions ({q, a, b}); b = the lessons they are shown in
-  const sh = sheet_(tab), out = [];
-  if (!sh || sh.getLastRow() < 2) return out;
-  const cols = kind === 'ann' ? ANN_HEAD.length : QA_HEAD.length;
-  sh.getRange(2, 1, sh.getLastRow() - 1, cols).getValues().forEach(function (r) {
-    if (String(r[0]).trim() !== teacher) return;
-    if (kind === 'ann') { const t = safeText_(r[1], 140); if (t) out.push({ t: t, b: flagsOf_(r, 2) }); }
-    else { const q = safeText_(r[1], 100), a = safeText_(r[2], 100); if (q && a) out.push({ q: q, a: a, b: flagsOf_(r, 3) }); }
-  });
-  return out;
-}
-
 function hello_(t) {
   const cache = CacheService.getScriptCache(), key = 'hello:' + ver_() + ':' + t.teacher + ':' + t.role;
   const hit = cache.get(key);
@@ -554,8 +543,10 @@ function hello_(t) {
   const res = { ok: true, teacher: t.teacher, display: display, role: t.role, semester: semester_(), sections: [], teachers: teacherNames_(), announcements: [], questions: [] };
   if (t.role === 'teacher') {
     const pref = names_(), sem = res.semester, byBlock = {};
-    res.announcements = readItems_(TAB.announcements, t.teacher, 'ann');
-    res.questions = readItems_(TAB.questions, t.teacher, 'qa');
+    const qa = readBank_('qa', t.teacher), an = readBank_('ann', t.teacher);
+    res.qa = { n: qa.length, ver: bankVer_(qa) }; res.ann = { n: an.length, ver: bankVer_(an) };       // the new boards ask for the items only when the version changed
+    res.questions = qa.slice(0, 12).map(function (x) { return { q: x.q, a: x.a, b: x.b }; });            // (for a board that still has the old page)
+    res.announcements = an.slice(0, 8).map(function (x) { return { t: x.t, b: x.b }; });
     readSchedule_().forEach(function (r) {
       if (r.teacher !== t.teacher) return;
       if (r.role === 'S1' && sem !== 1) return;
@@ -736,32 +727,202 @@ function suggestName_(t, p) {          // a teacher suggests a preferred first n
   } finally { lock.releaseLock(); }
 }
 
-function saveItems_(t, p, kind) {       // a teacher saves his own announcements or questions (all of them at once); admins see them on the sheet
-  if (t.role !== 'teacher') return { ok: false, error: 'this code cannot save' };
-  let data;
-  try { data = JSON.parse(String(p.data || '[]')); } catch (e) { return { ok: false, error: 'bad data' }; }
-  if (!Array.isArray(data)) return { ok: false, error: 'bad data' };
-  const ann = kind === 'ann', tab = ann ? TAB.announcements : TAB.questions, head = ann ? ANN_HEAD : QA_HEAD, cols = head.length, max = ann ? 8 : 12, rows = [];
-  data.slice(0, max).forEach(function (x) {
-    if (!x || typeof x !== 'object') return;
-    const text = safeText_(ann ? x.t : x.q, ann ? 140 : 100), answer = ann ? '' : safeText_(x.a, 100);
-    if (!text || (!ann && !answer)) return;
-    const flags = BLOCKS.map(function (b) { return (Array.isArray(x.b) && x.b.indexOf(b) >= 0) ? 'x' : ''; });
-    rows.push((ann ? [t.teacher, text] : [t.teacher, text, answer]).concat(flags, [today_()]));
-  });
-  const lock = LockService.getScriptLock();
+/* ===================== the banks of questions and announcements ===================== */
+// One row per item, in the Questions and Announcements tabs; the first column is a number (ID) that is never given twice.
+// A board adds, changes and deletes ONE item at a time (and asks for the whole bank only when its version changed),
+// so nothing here depends on how many items there are.
+
+function ensureBank_(kind) {            // the tab exists and has the layout with IDs (an older sheet is changed in place, once)
+  const ann = kind === 'ann', head = ann ? ANN_HEAD : QA_HEAD, r = ensureTab_(ann ? TAB.announcements : TAB.questions, head), sh = r.sh;
+  if (!r.made && sh.getLastRow() > 0 && String(sh.getRange(1, 1).getValue()).trim() !== 'ID') {
+    sh.insertColumnBefore(1);
+    if (ann) sh.insertColumnsBefore(head.indexOf('From') + 1, 2);                  // From and To, before Updated
+    sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold'); sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function allocIds_(kind, sh, count) {   // `count` new numbers: bigger than every one in use and than every one ever given
+  const pr = PropertiesService.getScriptProperties(), key = 'next_' + kind, last = sh.getLastRow();
+  let next = Number(pr.getProperty(key)) || 1;
+  if (last > 1) sh.getRange(2, 1, last - 1, 1).getValues().forEach(function (r) { const v = Number(r[0]); if (v >= next) next = v + 1; });
+  pr.setProperty(key, String(next + count));
+  const ids = []; for (let i = 0; i < count; i++) ids.push(next + i);
+  return ids;
+}
+
+function numberRows_(kind) {            // rows that were typed or pasted into the sheet without an ID get one
+  const ann = kind === 'ann', cols = (ann ? ANN_HEAD : QA_HEAD).length, lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    const sh = ensureTab_(tab, head).sh, last = sh.getLastRow(), keep = [];
-    if (last > 1) {
-      sh.getRange(2, 1, last - 1, cols).getValues().forEach(function (r) { if (String(r[0]).trim() !== t.teacher) keep.push(r.slice(0, cols)); });
-      sh.getRange(2, 1, last - 1, cols).clearContent();
-    }
-    const all = keep.concat(rows);
-    if (all.length) sh.getRange(2, 1, all.length, cols).setValues(all);
+    const sh = ensureBank_(kind), last = sh.getLastRow();
+    if (last < 2) return 0;
+    const vals = sh.getRange(2, 1, last - 1, cols).getValues(), need = [];
+    vals.forEach(function (r, i) { if (!Number(r[0]) && String(r[1]).trim() && String(r[2]).trim()) need.push(i); });
+    if (!need.length) return 0;
+    const ids = allocIds_(kind, sh, need.length);
+    need.forEach(function (i, k) { vals[i][0] = ids[k]; });
+    sh.getRange(2, 1, vals.length, 1).setValues(vals.map(function (r) { return [r[0]]; }));
     bumpVer_();
-    return { ok: true, saved: rows.length };
+    return need.length;
   } finally { lock.releaseLock(); }
+}
+
+function dateOnly_(v) { return isoDate_(v); }
+
+function readBank_(kind, teacher, again) {      // this teacher's items, oldest first: {id, q, a, b} or {id, t, b, f, e}; b = the lessons (none = every lesson)
+  const ann = kind === 'ann', sh = ensureBank_(kind), cols = (ann ? ANN_HEAD : QA_HEAD).length, out = []; let unnumbered = false;
+  const last = sh.getLastRow();
+  if (last < 2) return out;
+  sh.getRange(2, 1, last - 1, cols).getValues().forEach(function (r, i) {
+    if (String(r[1]).trim() !== teacher) return;
+    const id = Number(r[0]), text = safeText_(r[2], BANK_TEXT);
+    if (!text) return;
+    if (!id) { unnumbered = true; return; }
+    if (ann) out.push({ id: id, t: text, b: flagsOf_(r, 3), f: dateOnly_(r[11]), e: dateOnly_(r[12]), row: i + 2 });
+    else { const ans = safeText_(r[3], BANK_TEXT); if (ans) out.push({ id: id, q: text, a: ans, b: flagsOf_(r, 4), row: i + 2 }); }
+  });
+  if (unnumbered && !again) { numberRows_(kind); return readBank_(kind, teacher, true); }
+  return out.sort(function (x, y) { return x.id - y.id; });
+}
+
+function bankVer_(items) {              // changes whenever anything in the bank changes (also when the sheet was edited by hand)
+  const s = JSON.stringify(items.map(function (x) { return x.t !== undefined ? [x.id, x.t, x.b.join(''), x.f, x.e] : [x.id, x.q, x.a, x.b.join('')]; }));
+  let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return items.length + '-' + h.toString(36);
+}
+
+function plain_(x) { const o = {}; Object.keys(x).forEach(function (k) { if (k !== 'row') o[k] = x[k]; }); return o; }
+
+function cleanItem_(kind, x) {          // one item from a board -> {ok, row parts} or {ok: false, why}
+  if (!x || typeof x !== 'object') return { ok: false, why: 'not an item' };
+  const ann = kind === 'ann', text = safeText_(ann ? x.t : x.q, BANK_TEXT), ans = ann ? '' : safeText_(x.a, BANK_TEXT);
+  if (!text) return { ok: false, why: ann ? 'the text is empty' : 'the question is empty' };
+  if (!ann && !ans) return { ok: false, why: 'the answer is empty' };
+  const flags = BLOCKS.map(function (b) { return (Array.isArray(x.b) && x.b.indexOf(b) >= 0) ? 'x' : ''; });
+  let f = '', e = '';
+  if (ann) {
+    f = x.f ? dateOnly_(x.f) : ''; e = x.e ? dateOnly_(x.e) : '';
+    if ((x.f && !f) || (x.e && !e)) return { ok: false, why: 'a date is not like 2026-11-20' };
+    if (f && e && f > e) return { ok: false, why: 'the first day is after the last day' };
+  }
+  return { ok: true, text: text, ans: ans, flags: flags, f: f, e: e };
+}
+
+function parseIds_(txt) {               // "5, 9, 20-30" -> [5, 9, 20, ..., 30]
+  const out = [], seen = {};
+  String(txt || '').split(/[\s,;]+/).forEach(function (tok) {
+    if (!tok) return;
+    const m = /^(\d+)(?:\s*[-\u2013]\s*(\d+))?$/.exec(tok);
+    if (!m) return;
+    let a = Number(m[1]), b = m[2] === undefined ? a : Number(m[2]);
+    if (b < a) { const c = a; a = b; b = c; }
+    for (let i = a; i <= b && i - a < 5000 && out.length < 5000; i++) if (!seen[i]) { seen[i] = 1; out.push(i); }
+  });
+  return out;
+}
+
+function bank_(t, p, kind, act) {       // qa_get / qa_list / qa_add / qa_edit / qa_del / qa_set and the same for ann_
+  if (t.role !== 'teacher') return { ok: false, error: 'this code cannot use the bank' };
+  const ann = kind === 'ann', cols = (ann ? ANN_HEAD : QA_HEAD).length, upd = cols - 1;
+  if (act === 'get') {                  // the whole bank for the board, in pieces: from = the last ID it already has
+    const items = readBank_(kind, t.teacher), from = Number(p.from) || 0, limit = Math.min(500, Math.max(1, Number(p.limit) || 300));
+    const rest = items.filter(function (x) { return x.id > from; }), page = rest.slice(0, limit);
+    return { ok: true, ver: bankVer_(items), n: items.length, items: page.map(plain_), next: rest.length > limit ? page[page.length - 1].id : 0 };
+  }
+  if (act === 'list') {                 // a page for the settings window, newest first, with a search (a part of the text, or an ID)
+    const size = Math.min(50, Math.max(1, Number(p.size) || 10)), q = String(p.search || '').trim().toLowerCase();
+    let items = readBank_(kind, t.teacher).reverse();
+    if (q) items = items.filter(function (x) { return String(x.id) === q || (ann ? x.t : x.q + ' ' + x.a).toLowerCase().indexOf(q) >= 0; });
+    const pages = Math.max(1, Math.ceil(items.length / size)), page = Math.max(0, Math.min(Number(p.page) || 0, pages - 1));
+    return { ok: true, total: items.length, page: page, pages: pages, size: size, items: items.slice(page * size, page * size + size).map(plain_), n: readBankCount_(kind, t.teacher, items, q) };
+  }
+  let data;
+  if (act === 'add' || act === 'edit' || act === 'set') {
+    try { data = JSON.parse(String(p.data || (act === 'edit' ? '{}' : '[]'))); } catch (e) { return { ok: false, error: 'bad data' }; }
+  }
+  const lock = LockService.getScriptLock();
+  if (act === 'add' || act === 'set') {
+    if (!Array.isArray(data)) return { ok: false, error: 'bad data' };
+    data = data.slice(0, act === 'set' ? 2000 : 25);
+    lock.waitLock(20000);
+    try {
+      const sh = ensureBank_(kind), added = [], skipped = [], rows = [];
+      if (act === 'set') deleteRows_(sh, kind, t.teacher, null);            // the old way (an old board): the whole list replaces the teacher's items
+      const good = [];
+      data.forEach(function (x, i) { const c = cleanItem_(kind, x); if (c.ok) good.push({ i: (x && x.i !== undefined) ? x.i : i, c: c }); else skipped.push({ i: (x && x.i !== undefined) ? x.i : i, why: c.why }); });
+      const ids = good.length ? allocIds_(kind, sh, good.length) : [];
+      good.forEach(function (g, k) {
+        const c = g.c; added.push({ i: g.i, id: ids[k] });
+        rows.push(ann ? [ids[k], t.teacher, c.text].concat(c.flags, [c.f, c.e, today_()]) : [ids[k], t.teacher, c.text, c.ans].concat(c.flags, [today_()]));
+      });
+      if (rows.length) {
+        const at = sh.getLastRow() + 1;
+        if (ann) sh.getRange(at, 12, rows.length, 2).setNumberFormat('@');          // the days stay text, as typed
+        sh.getRange(at, 1, rows.length, cols).setValues(rows);
+      }
+      bumpVer_();                                                          // old answers of hello stop being used
+      return act === 'set' ? { ok: true, saved: rows.length } : Object.assign({ ok: true, added: added, skipped: skipped }, state_(kind, t.teacher));
+    } finally { lock.releaseLock(); }
+  }
+  if (act === 'edit') {
+    const id = Number(p.id), c = cleanItem_(kind, data);
+    if (!id) return { ok: false, error: 'no id' };
+    if (!c.ok) return { ok: false, error: c.why };
+    lock.waitLock(20000);
+    try {
+      const sh = ensureBank_(kind), last = sh.getLastRow();
+      if (last > 1) {
+        const vals = sh.getRange(2, 1, last - 1, 2).getValues();
+        for (let i = 0; i < vals.length; i++) {
+          if (Number(vals[i][0]) === id && String(vals[i][1]).trim() === t.teacher) {
+            const row = ann ? [id, t.teacher, c.text].concat(c.flags, [c.f, c.e, today_()]) : [id, t.teacher, c.text, c.ans].concat(c.flags, [today_()]);
+            if (ann) sh.getRange(i + 2, 12, 1, 2).setNumberFormat('@');
+            sh.getRange(i + 2, 1, 1, cols).setValues([row]);
+            bumpVer_();
+            return Object.assign({ ok: true, id: id }, state_(kind, t.teacher));
+          }
+        }
+      }
+      return { ok: false, error: 'not found' };
+    } finally { lock.releaseLock(); }
+  }
+  if (act === 'del') {
+    const ids = parseIds_(p.ids);
+    if (!ids.length) return { ok: false, error: 'no id' };
+    lock.waitLock(20000);
+    try {
+      const sh = ensureBank_(kind), set = {}; ids.forEach(function (i) { set[i] = 1; });
+      const gone = deleteRows_(sh, kind, t.teacher, set), missing = ids.filter(function (i) { return !gone[i]; });
+      if (Object.keys(gone).length) bumpVer_();
+      return Object.assign({ ok: true, deleted: Object.keys(gone).length, missing: missing.slice(0, 20) }, state_(kind, t.teacher));
+    } finally { lock.releaseLock(); }
+  }
+  return { ok: false, error: 'unknown action' };
+}
+
+function state_(kind, teacher) { const items = readBank_(kind, teacher); return { ver: bankVer_(items), n: items.length }; }   // what a board needs to know after it changed something: the new version and the count
+function readBankCount_(kind, teacher, items, q) { return q ? readBank_(kind, teacher).length : items.length; }
+
+function deleteRows_(sh, kind, teacher, set) {      // this teacher's rows (those whose ID is in `set`, or all when set is null) go; returns the IDs that were deleted
+  const last = sh.getLastRow(), gone = {};
+  if (last < 2) return gone;
+  const vals = sh.getRange(2, 1, last - 1, 2).getValues(), rows = [];
+  vals.forEach(function (r, i) {
+    if (String(r[1]).trim() !== teacher) return;
+    const id = Number(r[0]);
+    if (set === null || set[id]) { rows.push(i + 2); gone[id] = 1; }
+  });
+  for (let k = rows.length - 1; k >= 0; ) {            // from the bottom, in blocks of neighbouring rows, so that the numbers of the rows above do not change
+    let j = k; while (j > 0 && rows[j - 1] === rows[j] - 1) j--;
+    sh.deleteRows(rows[j], k - j + 1); k = j - 1;
+  }
+  return gone;
+}
+
+function numberNewRows() {              // the menu: IDs for rows that were typed or pasted into the two tabs
+  const a = numberRows_('qa'), b = numberRows_('ann');
+  say_('Numbered ' + a + ' new question' + (a === 1 ? '' : 's') + ' and ' + b + ' new announcement' + (b === 1 ? '' : 's') + '.');
 }
 
 function readSchedule_() {
@@ -847,6 +1008,7 @@ function onOpen() {
     .addSeparator()
     .addItem('Add a preferred name...', 'addPreferredName')
     .addItem('Approve waiting preferred names', 'approveNames')
+    .addItem('Number new questions and announcements', 'numberNewRows')
     .addSeparator()
     .addItem('Make school defaults from a teacher...', 'makeDefaultsFromTeacher')
     .addItem('Show the setting keys', 'showPrefKeys')
@@ -877,6 +1039,7 @@ function setupTabs() {
       r.sh.getRange(2, 1, data.length, data[0].length).setValues(data);
     }
   });
+  ensureBank_('qa'); ensureBank_('ann');                          // an older Questions or Announcements tab gets the ID column (and From, To) in place
   const st = ensureTab_(TAB.settings, null);
   if (st.made || st.sh.getLastRow() === 0) {
     st.sh.getRange(1, 1, 7, 3).setValues([

@@ -883,6 +883,24 @@
   .load-note li{ break-inside: avoid; }
   .load-note .ln-x{ position: absolute; right: 10px; top: 4px; border: none; background: none; color: inherit; font-size: 1.1rem; line-height: 1; padding: 2px 4px; cursor: pointer; opacity: .7; }
   .load-note .ln-more{ opacity: .75; }
+
+  /* ---- the banks of questions and announcements ---- */
+  .bk-box{ margin: 10px 0; padding: 10px 12px; border: 1px solid rgba(127,127,127,.28); border-radius: 10px; }
+  .bk-box > summary{ cursor: pointer; font-weight: 700; }
+  .bk-title{ font-weight: 800; margin-bottom: 6px; }
+  .bk-in{ width: 100%; box-sizing: border-box; margin: 3px 0; padding: 8px 10px; font: inherit; border-radius: 8px; border: 1px solid rgba(127,127,127,.4); background: rgba(0,0,0,.18); color: inherit; }
+  .bk-bulk{ width: 100%; box-sizing: border-box; margin: 6px 0; padding: 8px 10px; font: 12px/1.4 "Courier New", monospace; border-radius: 8px; border: 1px solid rgba(127,127,127,.4); background: rgba(0,0,0,.18); color: inherit; }
+  .bk-flags{ display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0; }
+  .bk-days{ display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; margin: 6px 0; }
+  .bk-days input{ font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(127,127,127,.4); background: rgba(0,0,0,.18); color: inherit; }
+  .bk-rows{ margin: 6px 0; }
+  .bk-row{ display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(127,127,127,.2); font-size: .88rem; }
+  .bk-id{ font-weight: 800; min-width: 3.4em; opacity: .8; }
+  .bk-text{ flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .bk-b{ flex: 0 0 auto; opacity: .7; font-size: .78rem; max-width: 9em; text-align: right; }
+  .bk-row button{ flex: 0 0 auto; padding: 4px 10px; }
+  .sc-id{ font-size: .5em; font-weight: 800; opacity: .6; letter-spacing: .04em; white-space: nowrap; }
+  .sc-id-corner{ position: absolute; top: .5em; right: .8em; font-size: .62em; }
 </style>
 </head>
 <body data-theme="dark">
@@ -1355,18 +1373,51 @@
 
     <div class="section" data-switch="exAnn" data-store="srv">
       <div class="sec-head" data-pref="extras.ann"><h2>Announcements</h2><label class="switch sec-switch"><input type="checkbox" id="exAnn"><span class="slider"></span></label></div>
-      <div class="override-note">Short messages for your students, shown as a card on the left (it needs the rotating cards). Tick the lessons each one is for. They are saved on the school's sheet under your name; the administrators can read them there.</div>
-      <div id="annList"></div>
-      <div class="btn-row"><button type="button" id="annAdd">+ Add</button><button type="button" id="annSave" class="grant">Save to the school sheet</button></div>
-      <div class="perm-note" id="annStatus"></div>
+      <div class="override-note">Short messages for your students, shown as a card on the left (it needs the rotating cards). Choose the lessons (none ticked = every lesson) and, if you like, the first and the last day. Every announcement has a number (#). They are kept on the school's sheet under your name; there is no limit on how many.</div>
+      <div class="perm-note" id="annCount"></div>
+      <div class="bk-box"><div class="bk-title" id="annFormTitle">Add an announcement</div>
+        <input type="text" id="annT" maxlength="200" placeholder="Announcement (up to 200 characters)" class="bk-in">
+        <div class="bk-flags" id="annFlags"></div>
+        <div class="bk-days"><label>From <input type="date" id="annFrom"></label><label>To <input type="date" id="annTo"></label><span class="perm-note">Leave empty to show it always.</span></div>
+        <div class="btn-row"><button type="button" id="annAdd" class="grant">Add</button><button type="button" id="annCancel" hidden>Cancel the change</button><button type="button" id="annMine">All my lessons</button><button type="button" id="annEvery">Every lesson</button></div>
+        <div class="perm-note" id="annStatus"></div></div>
+      <details class="bk-box"><summary>Add many at once</summary>
+        <textarea id="annBulk" rows="6" class="bk-bulk" spellcheck="false" placeholder="One per line:  text | first day | last day | lessons
+(only the text is needed; days like 2026-11-20 or 11/20; lessons like A1,A3)"></textarea>
+        <div class="btn-row"><button type="button" id="annBulkBtn" class="grant">Add all</button></div>
+        <div class="perm-note" id="annBulkStatus"></div></details>
+      <div class="bk-box"><div class="bk-title">Find, change, delete</div>
+        <div class="field-row"><input type="search" id="annSearch" class="bk-in" placeholder="Search the text, or a number" maxlength="60"></div>
+        <div class="ed-nav"><button type="button" id="annPrev">&larr; Newer</button><span id="annPage"></span><button type="button" id="annNext">Older &rarr;</button></div>
+        <div id="annRows" class="bk-rows"></div>
+        <div class="field-row"><span>Delete by number</span><input type="text" id="annDelIds" class="bk-in" maxlength="200" placeholder="5, 9, 20-30" style="max-width:12em;"><button type="button" id="annDelBtn">Delete</button></div>
+        <div class="perm-note" id="annDelStatus"></div></div>
     </div>
 
     <div class="section" data-switch="exQa" data-store="srv">
       <div class="sec-head" data-pref="extras.qa"><h2>Questions</h2><label class="switch sec-switch"><input type="checkbox" id="exQa"><span class="slider"></span></label></div>
-      <div class="override-note">Your own quick questions with answers (the answer appears after 30 seconds on the card). For a lesson that has questions ticked, these are shown instead of the general ones. They are saved on the school's sheet under your name.</div>
-      <div id="qaList"></div>
-      <div class="btn-row"><button type="button" id="qaAdd">+ Add</button><button type="button" id="qaSave" class="grant">Save to the school sheet</button></div>
-      <div class="perm-note" id="qaStatus"></div>
+      <div class="override-note">Your own quick questions with answers. For a lesson that has questions (or questions for every lesson) these are shown instead of the general ones. Every question has a number (#), shown on its card; delete by that number. They are kept on the school's sheet under your name; there is no limit on how many.</div>
+      <div class="field-row" data-pref="stage.qSec"><span>Show the question for (seconds)</span><input type="number" id="qaQSec" class="num-input" min="3" max="300" step="1" style="width:5em;"></div>
+      <div class="field-row" data-pref="stage.aSec"><span>Then show the answer for (seconds)</span><input type="number" id="qaASec" class="num-input" min="3" max="300" step="1" style="width:5em;"></div>
+      <div class="field-row" data-pref="stage.qaOrder"><span>Order</span><select id="qaOrder"><option value="seq">In the order of the numbers</option><option value="rand">Random, no repeats until all were shown</option></select></div>
+      <div class="perm-note" id="qaCount"></div>
+      <div class="bk-box"><div class="bk-title" id="qaFormTitle">Add a question</div>
+        <input type="text" id="qaQ" maxlength="200" placeholder="Question (up to 200 characters)" class="bk-in"><input type="text" id="qaA" maxlength="200" placeholder="Answer (up to 200 characters)" class="bk-in">
+        <div class="bk-flags" id="qaFlags"></div>
+        
+        <div class="btn-row"><button type="button" id="qaAdd" class="grant">Add</button><button type="button" id="qaCancel" hidden>Cancel the change</button><button type="button" id="qaMine">All my lessons</button><button type="button" id="qaEvery">Every lesson</button></div>
+        <div class="perm-note" id="qaStatus"></div></div>
+      <details class="bk-box"><summary>Add many at once</summary>
+        <textarea id="qaBulk" rows="6" class="bk-bulk" spellcheck="false" placeholder="One per line:  question | answer | lessons
+(lessons are optional, like A1,A3; you can paste two columns from a spreadsheet)"></textarea>
+        <div class="btn-row"><button type="button" id="qaBulkBtn" class="grant">Add all</button></div>
+        <div class="perm-note" id="qaBulkStatus"></div></details>
+      <div class="bk-box"><div class="bk-title">Find, change, delete</div>
+        <div class="field-row"><input type="search" id="qaSearch" class="bk-in" placeholder="Search the text, or a number" maxlength="60"></div>
+        <div class="ed-nav"><button type="button" id="qaPrev">&larr; Newer</button><span id="qaPage"></span><button type="button" id="qaNext">Older &rarr;</button></div>
+        <div id="qaRows" class="bk-rows"></div>
+        <div class="field-row"><span>Delete by number</span><input type="text" id="qaDelIds" class="bk-in" maxlength="200" placeholder="5, 9, 20-30" style="max-width:12em;"><button type="button" id="qaDelBtn">Delete</button></div>
+        <div class="perm-note" id="qaDelStatus"></div></div>
     </div>
 
     <div class="section" data-store="srv">
@@ -1643,7 +1694,7 @@ function getDefaultSettings(){
     agenda: { clearDaily: true, leadMin: 5, texts: {} },   // texts["A1"] = { t: the plan, d: the day it was written }
     stage: {                    // the rotating left screen
       phases: false, arc: true, facts: true, riddles: true, messages: true, calendar: true,
-      weather: false, alerts: false, cardSec: 20,
+      weather: false, alerts: false, cardSec: 20, qSec: 30, aSec: 10, qaOrder: "seq",      // a question is shown for qSec seconds, then its answer for aSec
       messagesList: [],         // announcements loaded from the sheet: { text, from, to }
       wxCache: null             // last weather answer, so it still shows without internet
     },
@@ -2750,7 +2801,7 @@ function wxNextCard(now){
 }
 
 /* ---------- Stage: what the title block says, and which card is showing ---------- */
-const stage = { mode: "", idx: -1, card: null, shownAt: 0, factToggle: 0, calIdx: 0, msgIdx: 0, qaIdx: 0, swap: null };
+const stage = { mode: "", idx: -1, card: null, shownAt: 0, factToggle: 0, calIdx: 0, msgIdx: 0, qaIdx: 0, annIdx: 0, qaQueue: [], swap: null };
 function stageReset(){ stage.mode = ""; }
 
 function lessonPhase(row, nowSec){
@@ -2852,20 +2903,35 @@ function makeCard(kind, ctx, now){
     return { kind, dur, html: '<div class="sc-label">' + (useFact ? "Did you know?" : "Thought for today") + '</div><div class="sc-text sc-serif">' + esc(text) + '</div>' };
   }
   if(kind === "ann"){                             // the teacher's own announcements for this lesson (written in the settings, kept on the school's sheet)
-    const code = agendaCodeFor(ctx), list = code ? (settings.pass.ann || []).filter(x => (x.b || []).indexOf(code) >= 0) : [];
+    const code = agendaCodeFor(ctx), iso = ctx.iso;           // none ticked = every lesson; the first and last day are respected
+    const list = code ? bank.ann.filter(x => (!x.b.length || x.b.indexOf(code) >= 0) && (!x.f || x.f <= iso) && (!x.e || x.e >= iso)) : [];
     if(!list.length) return null;
-    return { kind, dur, html: '<div class="sc-label">\ud83d\udce3 Announcement</div>' + list.slice(0, 3).map(x => '<div class="sc-text sc-announce sc-item">' + esc(x.t) + '</div>').join("") };
+    const start = stage.annIdx % list.length; stage.annIdx += Math.min(3, list.length);          // more than three: the next time the next three
+    const shown = list.length <= 3 ? list : [0, 1, 2].map(k => list[(start + k) % list.length]);
+    return { kind, dur, html: '<div class="sc-label">\ud83d\udce3 Announcement</div>' + shown.map(x => '<div class="sc-text sc-announce sc-item">' + esc(x.t) + (x.id ? ' <span class="sc-id">#' + x.id + '</span>' : '') + '</div>').join("") };
   }
-  if(kind === "riddle"){                          // a quick question: the answer shows after 30 seconds (the teacher's own questions for this lesson first, then the general ones)
-    const ownCode = settings.extras.qa ? agendaCodeFor(ctx) : null, own = ownCode ? (settings.pass.qa || []).filter(x => (x.b || []).indexOf(ownCode) >= 0) : [];
-    const r = own.length ? own[stage.qaIdx++ % own.length] : nextFrom("riddle", QUESTIONS);
-    return { kind, dur: 42000,
-      html: '<div class="sc-label">Quick question</div><div class="sc-text sc-announce">' + esc(r.q) + '</div>' +
+  if(kind === "riddle"){                          // a quick question: the question for qSec seconds, then its answer for aSec (your own questions for this lesson first, then the general ones)
+    const ownCode = settings.extras.qa ? agendaCodeFor(ctx) : null, own = ownCode ? bank.qa.filter(x => !x.b.length || x.b.indexOf(ownCode) >= 0) : [];
+    const qs = bankSec(settings.stage.qSec, 30), as = bankSec(settings.stage.aSec, 10);
+    let r;
+    if(own.length){
+      if(settings.stage.qaOrder === "rand"){          // random, and every question once before any is repeated
+        stage.qaQueue = stage.qaQueue.filter(id => own.some(x => x.id === id));
+        if(!stage.qaQueue.length){ const ids = own.map(x => x.id); for(let i = ids.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const t = ids[i]; ids[i] = ids[j]; ids[j] = t; } stage.qaQueue = ids; }
+        const id = stage.qaQueue.shift(); r = own.find(x => x.id === id) || own[0];
+      } else {                                         // in the order of the numbers
+        const at = own.findIndex(x => x.id > (stage.lastQaId || 0)); r = own[at < 0 ? 0 : at];
+      }
+      stage.lastQaId = r.id;
+    } else r = nextFrom("riddle", QUESTIONS);
+    const tag = r.id ? '<span class="sc-id sc-id-corner">#' + r.id + '</span>' : '';
+    return { kind, dur: (qs + as) * 1000,
+      html: tag + '<div class="sc-label">Quick question</div><div class="sc-text sc-announce">' + esc(r.q) + '</div>' +
             '<div class="sc-bar"><i id="riddleBar"></i></div><div class="sc-ans" id="riddleAns">→ <b>' + esc(r.a) + '</b></div>',
       update(){
         const el = Date.now() - stage.shownAt;
-        const bar = $("riddleBar"); if(bar) bar.style.width = Math.min(100, el / 300) + "%";
-        const a = $("riddleAns"); if(a) a.classList.toggle("show", el >= 30000);
+        const bar = $("riddleBar"); if(bar) bar.style.width = Math.min(100, el / (qs * 10)) + "%";
+        const a = $("riddleAns"); if(a) a.classList.toggle("show", el >= qs * 1000);
       } };
   }
   if(kind === "message"){
@@ -3157,64 +3223,238 @@ $("tmOpenEditor").addEventListener("click", openTimerEditor);
 $("tmReset").addEventListener("click", () => { const t = settings.timer; t.remaining = t.duration; t.running = false; t.endAt = 0; t.finished = false; t.warned = false; saveSettings(); renderTimer(); });
 
 
-/* ---------- The teacher's own announcements and questions, and preferred-name suggestions ---------- */
-var LESSONS = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"], EDIT_MAX = { ann: 8, qa: 12 };
-var editing = { ann: [], qa: [] }, EDIT_PAGE = 10, editPage = { ann: 0, qa: 0 };           // only one page of ten rows is ever drawn, so the window stays light however long the list is
-function addButtonsState(){                       // a full list cannot be added to (unless its section is locked anyway)
-  ["ann", "qa"].forEach(k => { const b = $(k + "Add"); if(b && editing && !b.closest(".section").classList.contains("locked")) b.disabled = editing[k].length >= EDIT_MAX[k]; });
-}
-function loadEditing(){
-  editing.ann = (settings.pass.ann || []).map(x => ({ t: x.t, b: (x.b || []).slice() }));
-  editing.qa = (settings.pass.qa || []).map(x => ({ q: x.q, a: x.a, b: (x.b || []).slice() }));
-  editPage.ann = editPage.qa = 0; renderEditor("ann"); renderEditor("qa");
-}
-function renderEditor(kind){
-  const box = $(kind + "List"), items = editing[kind], isAnn = kind === "ann";
-  const pages = Math.max(1, Math.ceil(items.length / EDIT_PAGE)); editPage[kind] = Math.max(0, Math.min(editPage[kind], pages - 1));
-  const from = editPage[kind] * EDIT_PAGE, shown = items.slice(from, from + EDIT_PAGE);
-  const nav = items.length > EDIT_PAGE ? '<div class="ed-nav"><button type="button" class="ed-prev"' + (editPage[kind] > 0 ? '' : ' disabled') + '>&larr; Previous ' + EDIT_PAGE + '</button><span>' + (from + 1) + '&ndash;' + (from + shown.length) + ' of ' + items.length + '</span><button type="button" class="ed-next"' + (editPage[kind] < pages - 1 ? '' : ' disabled') + '>Next ' + EDIT_PAGE + ' &rarr;</button></div>' : '';
-  box.innerHTML = items.length ? nav + shown.map((it, k) => '<div class="ed-item" data-i="' + (from + k) + '">' +
-      (isAnn ? '<textarea class="ed-t" rows="2" maxlength="140" placeholder="Announcement (up to 140 characters)"></textarea>'
-             : '<input type="text" class="ed-q" maxlength="100" placeholder="Question"><input type="text" class="ed-a" maxlength="100" placeholder="Answer">') +
-      '<div class="ed-flags">' + LESSONS.map(b => '<label><input type="checkbox" data-b="' + b + '">' + b + '</label>').join("") + '</div>' +
-      '<div class="ed-btns"><button type="button" class="ed-mine">All my lessons</button><button type="button" class="ed-del">Delete</button></div></div>').join("") + nav
-    : '<div class="perm-note">Nothing yet. Press + Add.</div>';
-  box.querySelectorAll(".ed-item").forEach(el => {              // the typed text goes in as a value, never as markup
-    const it = items[+el.getAttribute("data-i")];
-    if(isAnn) el.querySelector(".ed-t").value = it.t; else { el.querySelector(".ed-q").value = it.q; el.querySelector(".ed-a").value = it.a; }
-    el.querySelectorAll("input[data-b]").forEach(c => { c.checked = it.b.indexOf(c.getAttribute("data-b")) >= 0; });
+/* ---------- The teacher's own announcements and questions: two banks on the school's sheet, copied to this board ---------- */
+// One item at a time goes to the sheet (and comes back with its number); the whole bank is fetched only when its version changed.
+// The window draws ten rows of plain text at a time, so it stays light however many items there are.
+var LESSONS = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"], BANK_PAGE = 10, BANK_TEXT = 200;
+var bank = { qa: [], ann: [], qaVer: "", annVer: "", qaAt: 0, annAt: 0, want: { qa: null, ann: null }, legacy: false };
+var bankUi = { qa: { page: 0, search: "", edit: 0, flags: [] }, ann: { page: 0, search: "", edit: 0, flags: [] } }, bankBusy = { qa: false, ann: false }, bankSaveT = 0;
+const bankName = k => k === "ann" ? "announcement" : "question";
+function bankSaveSoon(){ clearTimeout(bankSaveT); bankSaveT = setTimeout(() => { idbSet("bank", { v: 1, qa: bank.qa, ann: bank.ann, qaVer: bank.qaVer, annVer: bank.annVer, qaAt: bank.qaAt, annAt: bank.annAt }); }, 400); }
+function bankNorm(kind, x){ return kind === "ann" ? { id: +x.id || 0, t: String(x.t || ""), b: (x.b || []).map(String), f: String(x.f || ""), e: String(x.e || "") } : { id: +x.id || 0, q: String(x.q || ""), a: String(x.a || ""), b: (x.b || []).map(String) }; }
+async function bankLoad(){                        // at the start: what this board kept last time (and, once, the lists an older page kept in the settings)
+  let saved = null; try{ saved = await idbGet("bank"); }catch(e){}
+  if(saved && typeof saved === "object"){ ["qa", "ann"].forEach(k => { if(Array.isArray(saved[k])) bank[k] = saved[k].map(x => bankNorm(k, x)); bank[k + "Ver"] = String(saved[k + "Ver"] || ""); bank[k + "At"] = +saved[k + "At"] || 0; }); }
+  ["qa", "ann"].forEach(k => {
+    const old = settings.pass[k];
+    if(!bank[k].length && Array.isArray(old) && old.length) bank[k] = old.map(x => bankNorm(k, x));     // an older page: its lists serve until the sheet answers
+    if(Array.isArray(old) && old.length){ settings.pass[k] = []; }                                     // they no longer live in the settings (these are rewritten often)
   });
-  syncSectionLocks();
-  const locked = box.closest(".section").classList.contains("locked");                       // the lock of the section switched every button on or off: the ends of the list switch theirs off again
-  box.querySelectorAll(".ed-prev").forEach(b => { b.disabled = locked || editPage[kind] <= 0; });
-  box.querySelectorAll(".ed-next").forEach(b => { b.disabled = locked || editPage[kind] >= pages - 1; });
+  if(settings.pass.qa && !settings.pass.qa.length) writeSettings();
+  bankRenderAll(); if(bank.want.qa || bank.want.ann) bankSync();
 }
+function bankApplyHello(d){                       // d.qa / d.ann = { n, ver }: only a changed version brings the items
+  if(d && d.qa && d.ann){ bank.legacy = false; bank.want = { qa: d.qa, ann: d.ann }; bankSync(); }
+  else {                                          // the school's script is older: it gives the first few only, and cannot save one by one
+    bank.legacy = true;
+    bank.ann = (Array.isArray(d.announcements) ? d.announcements : []).filter(x => x && x.t).map(x => bankNorm("ann", x));
+    bank.qa = (Array.isArray(d.questions) ? d.questions : []).filter(x => x && x.q && x.a).map(x => bankNorm("qa", x));
+    bankRenderAll();
+  }
+}
+async function bankSync(){
+  for(const k of ["qa", "ann"]){
+    const w = bank.want[k]; if(!w) continue;
+    if(bank[k + "Ver"] === w.ver && Date.now() - bank[k + "At"] < 86400000) continue;          // the same version, and looked at in the last day (a sheet edited by hand shows after a day at the latest)
+    await bankFetch(k);
+  }
+}
+async function bankFetch(kind){
+  if(bankBusy[kind] || !teacherOk()) return false; bankBusy[kind] = true;
+  try{
+    const items = []; let from = 0, ver = "", guard = 0;
+    for(;;){
+      const r = await sheetGet(kind + "_get", d => (d && d.ok === true) ? { ok: true, items: Array.isArray(d.items) ? d.items : [], next: +d.next || 0, ver: String(d.ver || "") } : { error: (d && d.error) || "script error" }, { from: from, limit: 300 });
+      if(!r || r.error){ diagLog("BANK", kind + " could not be fetched (" + (r ? r.error : "no connection") + ")"); return false; }
+      r.items.forEach(x => items.push(bankNorm(kind, x))); ver = r.ver;
+      if(!r.next || ++guard > 60) break; from = r.next;
+    }
+    bank[kind] = items; bank[kind + "Ver"] = ver; bank[kind + "At"] = Date.now(); bankSaveSoon(); stage.qaQueue = []; bankRender(kind);
+    diagLog("BANK", kind + ": " + items.length + " items fetched (version " + ver + ")");
+    return true;
+  } finally { bankBusy[kind] = false; }
+}
+function bankCall(kind, act, extra){            // one request to the sheet; { ok: true, ...} or { error }; null = no connection
+  return sheetGet(kind + "_" + act, d => (d && d.ok === true) ? Object.assign({ ok: true }, d) : { error: (d && d.error) || "script error" }, extra || {});
+}
+function bankReady(kind){                       // can the teacher change the bank now? (else the answer is what to tell him)
+  if(!teacherOk()) return "Type your teacher code first (the section \"Teacher code\").";
+  if(bank.legacy) return "The school's script is too old for this: ask the administrator to deploy the newest version of the script.";
+  return "";
+}
+function bankKeep(kind, r){ if(r && r.ver){ bank[kind + "Ver"] = String(r.ver); bank[kind + "At"] = Date.now(); } bankSaveSoon(); stage.qaQueue = []; }
+function bankChunks(items){                     // groups that fit in one request (a long address is refused): by the length once it is written for the web
+  const out = []; let cur = [], len = 0;
+  items.forEach(it => { const l = encodeURIComponent(JSON.stringify(it)).length + 3; if(cur.length && (len + l > 3600 || cur.length >= 20)){ out.push(cur); cur = []; len = 0; } cur.push(it); len += l; });
+  if(cur.length) out.push(cur);
+  return out;
+}
+function bankClean(kind, x){                    // what is sent for one item (the same cutting as on the sheet)
+  const cut = v => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, BANK_TEXT);
+  return kind === "ann" ? { t: cut(x.t), b: (x.b || []).slice(), f: x.f || "", e: x.e || "" } : { q: cut(x.q), a: cut(x.a), b: (x.b || []).slice() };
+}
+function bankDay(txt){                          // "2026-11-20", "11/20/2026", "11/20" (this year) -> "2026-11-20", or "" if it is not a day
+  const t = String(txt || "").trim(); if(!t) return "";
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t), y, mo, d;
+  if(m){ y = +m[1]; mo = +m[2]; d = +m[3]; }
+  else if((m = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/.exec(t))){ mo = +m[1]; d = +m[2]; y = m[3] ? (+m[3] < 100 ? 2000 + +m[3] : +m[3]) : appNow().getFullYear(); }
+  else return null;
+  const dt = new Date(y, mo - 1, d); if(dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return y + "-" + pad2(mo) + "-" + pad2(d);
+}
+function bankParse(kind, text){                 // many lines at once -> { items: [{ line, ...item }], errors: ["line 3: ..."] }
+  const out = { items: [], errors: [] };
+  String(text || "").split(/\r?\n/).forEach((raw, i) => {
+    if(!raw.trim()) return;
+    const parts = (raw.indexOf("\t") >= 0 ? raw.split("\t") : raw.split("|")).map(p => p.trim()), ln = i + 1;
+    const lessons = v => String(v || "").split(/[\s,;]+/).map(z => z.toUpperCase()).filter(z => LESSONS.indexOf(z) >= 0);
+    if(kind === "qa"){
+      if(!parts[0]) { out.errors.push("line " + ln + ": the question is empty"); return; }
+      if(!parts[1]) { out.errors.push("line " + ln + ": no answer (write: question | answer)"); return; }
+      out.items.push({ line: ln, q: parts[0], a: parts[1], b: lessons(parts[2]) });
+    } else {
+      if(!parts[0]) { out.errors.push("line " + ln + ": the text is empty"); return; }
+      const f = bankDay(parts[1]), e = bankDay(parts[2]);
+      if(f === null || e === null){ out.errors.push("line " + ln + ": a day is not like 2026-11-20 or 11/20"); return; }
+      if(f && e && f > e){ out.errors.push("line " + ln + ": the first day is after the last day"); return; }
+      out.items.push({ line: ln, t: parts[0], f: f, e: e, b: lessons(parts[3]) });
+    }
+  });
+  return out;
+}
+async function bankAddMany(kind, list, statusEl){   // list: [{ line?, ... }] -> { added, skipped: [text], first, last }
+  const clean = list.map((x, i) => Object.assign({ i: i }, bankClean(kind, x)));
+  let added = 0; const skipped = []; let firstId = 0, lastId = 0;
+  const chunks = bankChunks(clean);
+  for(let c = 0; c < chunks.length; c++){
+    if(statusEl) statusEl.textContent = "Sending " + Math.min(added + skipped.length + chunks[c].length, list.length) + " of " + list.length + "...";
+    const r = await bankCall(kind, "add", { data: JSON.stringify(chunks[c]) });
+    if(!r) return { error: "no connection", added: added, skipped: skipped };
+    if(r.error) return { error: r.error, added: added, skipped: skipped };
+    (r.added || []).forEach(a => { const it = chunks[c].find(z => z.i === a.i); bank[kind].push(Object.assign(bankNorm(kind, Object.assign({}, it, { id: a.id })), {})); added++; if(!firstId) firstId = a.id; lastId = a.id; });
+    (r.skipped || []).forEach(sk => { const src = list[sk.i]; skipped.push((src && src.line ? "line " + src.line + ": " : "") + sk.why); });
+    bankKeep(kind, r);
+  }
+  return { added: added, skipped: skipped, first: firstId, last: lastId };
+}
+function bankMatches(kind, q){
+  const items = bank[kind].slice().sort((x, y) => y.id - x.id);
+  const s = String(q || "").trim().toLowerCase(); if(!s) return items;
+  return items.filter(x => String(x.id) === s.replace(/^#/, "") || (kind === "ann" ? x.t : x.q + " " + x.a).toLowerCase().indexOf(s) >= 0);
+}
+function bankRows(kind){
+  const ui = bankUi[kind], list = bankMatches(kind, ui.search), pages = Math.max(1, Math.ceil(list.length / BANK_PAGE));
+  ui.page = Math.max(0, Math.min(ui.page, pages - 1));
+  const from = ui.page * BANK_PAGE, show = list.slice(from, from + BANK_PAGE), box = $(kind + "Rows"), ann = kind === "ann";
+  box.innerHTML = show.length ? show.map(x => '<div class="bk-row" data-id="' + x.id + '"><span class="bk-id">#' + (x.id || "?") + '</span><span class="bk-text"></span><span class="bk-b"></span><button type="button" class="bk-edit">Edit</button><button type="button" class="bk-del">Delete</button></div>').join("") : '<div class="perm-note">' + (bank[kind].length ? "Nothing matches the search." : "Nothing yet. Add one above.") + '</div>';
+  box.querySelectorAll(".bk-row").forEach((el, i) => {                      // the text goes in as text, never as markup
+    const x = show[i];
+    el.querySelector(".bk-text").textContent = ann ? x.t : x.q + "  \u2192  " + x.a;
+    el.querySelector(".bk-b").textContent = (x.b.length ? x.b.join(" ") : "every lesson") + (ann && (x.f || x.e) ? " \u00b7 " + (x.f || "...") + " to " + (x.e || "...") : "");
+  });
+  $(kind + "Page").textContent = list.length ? (from + 1) + "\u2013" + (from + show.length) + " of " + list.length : "0";
+  $(kind + "Prev").disabled = ui.page <= 0; $(kind + "Next").disabled = ui.page >= pages - 1;
+}
+function bankFlagsDraw(kind){
+  const box = $(kind + "Flags"), ui = bankUi[kind];
+  if(!box.firstChild) box.innerHTML = LESSONS.map(b => '<label><input type="checkbox" data-b="' + b + '">' + b + '</label>').join("");
+  box.querySelectorAll("input").forEach(c => { c.checked = ui.flags.indexOf(c.getAttribute("data-b")) >= 0; });
+}
+function bankRender(kind){
+  const n = bank[kind].length, ann = kind === "ann";
+  const at = bank[kind + "At"] ? " \u00b7 last checked " + loadWhen(bank[kind + "At"]) : "";
+  $(kind + "Count").textContent = "In the bank: " + n + " " + bankName(kind) + (n === 1 ? "" : "s") + at + (bank.legacy ? " (the school's script is too old to change them from here)" : "") + ".";
+  bankRows(kind); bankFlagsDraw(kind);
+  const ed = bankUi[kind].edit;
+  $(kind + "FormTitle").textContent = ed ? "Change " + bankName(kind) + " #" + ed : "Add " + (ann ? "an " : "a ") + bankName(kind);
+  $(kind + "Add").textContent = ed ? "Save the change" : "Add"; $(kind + "Cancel").hidden = !ed;
+}
+function bankRenderAll(){
+  bankRender("ann"); bankRender("qa");
+  const st = settings.stage; $("qaQSec").value = bankSec(st.qSec, 30); $("qaASec").value = bankSec(st.aSec, 10); $("qaOrder").value = st.qaOrder === "rand" ? "rand" : "seq";
+}
+function bankSec(v, dflt){ v = Math.round(+v); return v >= 3 && v <= 300 ? v : dflt; }
+function bankForm(kind){ const ann = kind === "ann"; return ann ? { t: $("annT").value, f: $("annFrom").value, e: $("annTo").value, b: bankUi.ann.flags.slice() } : { q: $("qaQ").value, a: $("qaA").value, b: bankUi.qa.flags.slice() }; }
+function bankFormClear(kind){ bankUi[kind].edit = 0; bankUi[kind].flags = []; if(kind === "ann"){ $("annT").value = ""; $("annFrom").value = ""; $("annTo").value = ""; } else { $("qaQ").value = ""; $("qaA").value = ""; } bankRender(kind); }
 ["ann", "qa"].forEach(kind => {
-  const box = $(kind + "List");
-  const itemOf = e => { const el = e.target.closest(".ed-item"); return el ? editing[kind][+el.getAttribute("data-i")] : null; };
-  box.addEventListener("input", e => { const it = itemOf(e); if(!it) return; if(e.target.classList.contains("ed-t")) it.t = e.target.value; if(e.target.classList.contains("ed-q")) it.q = e.target.value; if(e.target.classList.contains("ed-a")) it.a = e.target.value; });
-  box.addEventListener("change", e => { const it = itemOf(e); if(!it || !e.target.getAttribute("data-b")) return; const b = e.target.getAttribute("data-b"), at = it.b.indexOf(b); if(e.target.checked && at < 0) it.b.push(b); if(!e.target.checked && at >= 0) it.b.splice(at, 1); });
-  box.addEventListener("click", e => {
-    if(e.target.classList.contains("ed-prev") || e.target.classList.contains("ed-next")){ editPage[kind] += e.target.classList.contains("ed-next") ? 1 : -1; renderEditor(kind); return; }
-    const el = e.target.closest(".ed-item"); if(!el) return;
-    const i = +el.getAttribute("data-i");
-    if(e.target.classList.contains("ed-del")){ editing[kind].splice(i, 1); renderEditor(kind); }
-    if(e.target.classList.contains("ed-mine")){ editing[kind][i].b = Object.keys(settings.pass.rosterSections || {}).filter(k => LESSONS.indexOf(k) >= 0); renderEditor(kind); }
+  const ui = bankUi[kind], say = (id, t) => { $(kind + id).textContent = t; };
+  $(kind + "Flags").addEventListener("change", e => { const c = e.target.closest("input[data-b]"); if(!c) return; const b = c.getAttribute("data-b"), at = ui.flags.indexOf(b); if(c.checked && at < 0) ui.flags.push(b); if(!c.checked && at >= 0) ui.flags.splice(at, 1); });
+  $(kind + "Mine").addEventListener("click", () => { ui.flags = Object.keys(settings.pass.rosterSections || {}).filter(k => LESSONS.indexOf(k) >= 0); bankFlagsDraw(kind); });
+  $(kind + "Every").addEventListener("click", () => { ui.flags = []; bankFlagsDraw(kind); });
+  $(kind + "Cancel").addEventListener("click", () => { bankFormClear(kind); say("Status", ""); });
+  $(kind + "Search").addEventListener("input", e => { ui.search = e.target.value; ui.page = 0; bankRows(kind); });
+  $(kind + "Prev").addEventListener("click", () => { ui.page--; bankRows(kind); });
+  $(kind + "Next").addEventListener("click", () => { ui.page++; bankRows(kind); });
+  $(kind + "Add").addEventListener("click", async () => {                      // one new item, or the change of the item that is being edited
+    const why = bankReady(kind); if(why){ say("Status", why); return; }
+    const item = bankClean(kind, bankForm(kind)), ann = kind === "ann";
+    if(!(ann ? item.t : item.q)){ say("Status", ann ? "Write the announcement first." : "Write the question first."); return; }
+    if(!ann && !item.a){ say("Status", "Write the answer too."); return; }
+    if(ann){ const f = bankDay(item.f), e = bankDay(item.e); if(f === null || e === null){ say("Status", "A day is not right."); return; } if(f && e && f > e){ say("Status", "The first day is after the last day."); return; } item.f = f; item.e = e; }
+    $(kind + "Add").disabled = true; say("Status", "Saving...");
+    try{
+      if(ui.edit){
+        const r = await bankCall(kind, "edit", { id: ui.edit, data: JSON.stringify(item) });
+        if(!r){ say("Status", "No connection: nothing was saved. Try again."); return; }
+        if(r.error){ say("Status", r.error === "not found" ? "That item is not on the sheet any more." : "Could not save (" + r.error + ")."); return; }
+        const at = bank[kind].findIndex(x => x.id === ui.edit); if(at >= 0) bank[kind][at] = bankNorm(kind, Object.assign({ id: ui.edit }, item));
+        bankKeep(kind, r); const id = ui.edit; bankFormClear(kind); say("Status", "Saved: " + bankName(kind) + " #" + id + " was changed.");
+      } else {
+        const r = await bankAddMany(kind, [item]);
+        if(r.error){ say("Status", r.error === "no connection" ? "No connection: nothing was saved. Try again." : "Could not save (" + r.error + ")."); return; }
+        if(!r.added){ say("Status", "It was not saved: " + (r.skipped[0] || "?") + "."); return; }
+        bankFormClear(kind); say("Status", "Added as #" + r.first + ".");
+      }
+      bankRender(kind);
+    } finally { $(kind + "Add").disabled = false; }
   });
-  $(kind + "Add").addEventListener("click", () => { if(editing[kind].length >= EDIT_MAX[kind]) return; editing[kind].push(kind === "ann" ? { t: "", b: [] } : { q: "", a: "", b: [] }); editPage[kind] = Math.floor((editing[kind].length - 1) / EDIT_PAGE); renderEditor(kind); $(kind + "Status").textContent = ""; });
-  $(kind + "Save").addEventListener("click", () => saveEditor(kind));
+  $(kind + "BulkBtn").addEventListener("click", async () => {
+    const st = $(kind + "BulkStatus"), why = bankReady(kind); if(why){ st.textContent = why; return; }
+    const p = bankParse(kind, $(kind + "Bulk").value);
+    if(!p.items.length){ st.textContent = p.errors.length ? "Nothing to add. " + p.errors.slice(0, 5).join("; ") + "." : "Write or paste the lines first."; return; }
+    $(kind + "BulkBtn").disabled = true;
+    try{
+      const r = await bankAddMany(kind, p.items, st);
+      const bad = p.errors.concat(r.skipped || []);
+      let msg = r.added ? "Added " + r.added + " (#" + r.first + (r.last !== r.first ? " to #" + r.last : "") + ")." : "Nothing was added.";
+      if(r.error) msg += " Stopped: " + (r.error === "no connection" ? "no connection" : r.error) + " (the lines that went through are saved).";
+      if(bad.length) msg += " Not added " + bad.length + ": " + bad.slice(0, 6).join("; ") + (bad.length > 6 ? "; ..." : "") + ".";
+      st.textContent = msg;
+      if(r.added && !r.error && !bad.length) $(kind + "Bulk").value = "";
+      bankRender(kind);
+    } finally { $(kind + "BulkBtn").disabled = false; }
+  });
+  $(kind + "Rows").addEventListener("click", async e => {
+    const row = e.target.closest(".bk-row"); if(!row) return; const id = +row.getAttribute("data-id");
+    if(e.target.classList.contains("bk-edit")){
+      const x = bank[kind].find(z => z.id === id); if(!x) return;
+      ui.edit = id; ui.flags = x.b.slice();
+      if(kind === "ann"){ $("annT").value = x.t; $("annFrom").value = x.f || ""; $("annTo").value = x.e || ""; } else { $("qaQ").value = x.q; $("qaA").value = x.a; }
+      bankRender(kind); $(kind + (kind === "ann" ? "T" : "Q")).focus(); say("Status", "Change it above and press Save the change.");
+    }
+    if(e.target.classList.contains("bk-del")){
+      const b = e.target;
+      if(!b.getAttribute("data-sure")){ b.setAttribute("data-sure", "1"); b.textContent = "Sure?"; setTimeout(() => { if(b.isConnected){ b.removeAttribute("data-sure"); b.textContent = "Delete"; } }, 3500); return; }
+      await bankDelete(kind, String(id), $(kind + "DelStatus"));
+    }
+  });
+  $(kind + "DelBtn").addEventListener("click", async () => { const v = $(kind + "DelIds").value.trim(); if(!v){ say("DelStatus", "Type the numbers to delete, like 5, 9, 20-30."); return; } if(await bankDelete(kind, v, $(kind + "DelStatus"))) $(kind + "DelIds").value = ""; });
 });
-async function saveEditor(kind){
-  const st = $(kind + "Status"), isAnn = kind === "ann";
-  if(!teacherOk()){ st.textContent = "Type your teacher code first (the section \"Teacher code\" above)."; return; }
-  const data = editing[kind].map(x => isAnn ? { t: String(x.t || "").trim(), b: x.b } : { q: String(x.q || "").trim(), a: String(x.a || "").trim(), b: x.b }).filter(x => isAnn ? x.t : (x.q && x.a));
-  st.textContent = "Saving...";
-  const r = await sheetGet(isAnn ? "ann_set" : "qa_set", d => (d && d.ok === true) ? { ok: true, saved: d.saved } : { error: (d && d.error) || "script error" }, { data: JSON.stringify(data) });
-  if(!r){ st.textContent = "Could not save: no connection. Try again."; return; }
-  if(!r.ok){ st.textContent = "Could not save (" + r.error + ")."; return; }
-  settings.pass[kind] = data.map(x => ({ ...x, b: x.b.slice() })); saveSettings(); loadEditing();
-  $(kind + "Status").textContent = "Saved (" + data.length + "). The administrators can read it on the school sheet.";
+async function bankDelete(kind, ids, st){
+  const why = bankReady(kind); if(why){ st.textContent = why; return false; }
+  st.textContent = "Deleting...";
+  const r = await bankCall(kind, "del", { ids: ids });
+  if(!r){ st.textContent = "No connection: nothing was deleted. Try again."; return false; }
+  if(r.error){ st.textContent = r.error === "no id" ? "Type numbers, like 5, 9, 20-30." : "Could not delete (" + r.error + ")."; return false; }
+  const gone = {}; (parseBankIds(ids)).forEach(i => { gone[i] = 1; (r.missing || []).forEach(m => { if(m === i) delete gone[i]; }); });
+  bank[kind] = bank[kind].filter(x => !gone[x.id]); bankKeep(kind, r);
+  st.textContent = (r.deleted ? "Deleted " + r.deleted + "." : "Nothing was deleted.") + ((r.missing || []).length ? " Not found: " + r.missing.join(", ") + "." : "");
+  bankRender(kind); return true;
 }
+function parseBankIds(txt){ const out = []; String(txt || "").split(/[\s,;]+/).forEach(tok => { const m = /^(\d+)(?:\s*[-\u2013]\s*(\d+))?$/.exec(tok); if(!m) return; let a = +m[1], b = m[2] === undefined ? a : +m[2]; if(b < a){ const c = a; a = b; b = c; } for(let i = a; i <= b && i - a < 5000; i++) out.push(i); }); return out; }
+$("qaQSec").addEventListener("change", e => { settings.stage.qSec = bankSec(e.target.value, 30); e.target.value = settings.stage.qSec; saveSettings(); });
+$("qaASec").addEventListener("change", e => { settings.stage.aSec = bankSec(e.target.value, 10); e.target.value = settings.stage.aSec; saveSettings(); });
+$("qaOrder").addEventListener("change", e => { settings.stage.qaOrder = e.target.value === "rand" ? "rand" : "seq"; stage.qaQueue = []; saveSettings(); });
 let pnPick = null;
 $("pnLookup").addEventListener("click", async () => {
   const dg = $("pnDigits").value.replace(/\D/g, ""), msg = t => { $("pnMsg").textContent = t; };
@@ -4161,8 +4401,7 @@ function applyHello(d){                          // the school's script answered
   { const had = JSON.stringify(settings.school), took = d.school ? applySchool(d.school) : applySchool(null);
     settings.school = took ? d.school : null;
     if(JSON.stringify(settings.school) !== had) setTimeout(refreshAll, 0); }               // new times or days: draw everything again
-  settings.pass.ann = (Array.isArray(d.announcements) ? d.announcements : []).filter(x => x && x.t).map(x => ({ t: String(x.t), b: (x.b || []).map(String) }));
-  settings.pass.qa = (Array.isArray(d.questions) ? d.questions : []).filter(x => x && x.q && x.a).map(x => ({ q: String(x.q), a: String(x.a), b: (x.b || []).map(String) }));
+  bankApplyHello(d);                                 // the questions and announcements: counts and versions here, the items by qa_get / ann_get
   (d.sections || []).forEach(sec => {
     const k = String(sec.block), gm = {};
     (sec.students || []).forEach(x => { if(x && x.n && x.g !== undefined && x.g !== null) gm[String(x.n)] = Number(x.g); });
@@ -4295,7 +4534,7 @@ function renderPassLogUI(){
 /* ---------- The teacher's settings follow the teacher: they are kept on the school's sheet (Teacher settings), under the school's defaults (School defaults) ---------- */
 const PREF_BLOCKS = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"];
 const PREF_FIXED = ["extras.hallPass", "extras.cards", "extras.agenda", "extras.timer", "extras.ann", "extras.qa", "extras.live",
-  "stage.phases", "stage.arc", "stage.facts", "stage.riddles", "stage.messages", "stage.calendar", "stage.weather", "stage.alerts", "stage.cardSec",
+  "stage.phases", "stage.arc", "stage.facts", "stage.riddles", "stage.messages", "stage.calendar", "stage.weather", "stage.alerts", "stage.cardSec", "stage.qSec", "stage.aSec", "stage.qaOrder",
   "pass.slots", "pass.autoLeaveSec", "pass.useWindow", "pass.closedStartMin", "pass.closedEndMin", "pass.allowOutside", "pass.maxMinutes", "pass.reasons", "pass.limits",
   "pass.profile.name", "pass.profile.room", "pass.profile.nameEdited", "pass.profile.roomEdited", "pin", "pinEnabled", "agenda.clearDaily", "agenda.leadMin",
   "live.sound", "live.volume", "timer.duration", "timer.threshold", "timer.thresholdUnit", "timer.endOn", "timer.endSound", "timer.endVolume", "timer.warnOn", "timer.warnSound", "timer.warnVolume", "timer.presets", "countdownFormat", "hour12",
@@ -4411,7 +4650,7 @@ function prefLabel(k){
   if(PREF_LABELS[k]) return PREF_LABELS[k];
   let m = /^agenda\.texts\.(\w+)$/.exec(k); if(m) return "the agenda note of " + m[1];
   m = /^live\.texts\.(\w+)$/.exec(k); if(m) return "the Lesson Flow plan of " + m[1];
-  const t = { "stage.phases": "the lesson phases", "stage.arc": "the day arc", "stage.facts": "the facts", "stage.riddles": "the riddles", "stage.messages": "the messages", "stage.calendar": "the calendar cards", "stage.weather": "the weather cards", "stage.alerts": "the weather alerts", "stage.cardSec": "the seconds per card", "pass.autoLeaveSec": "the auto-leave seconds", "pass.profile.name": "the name on the board", "pass.profile.room": "the room", "agenda.clearDaily": "the daily clearing of the agenda", "agenda.leadMin": "the agenda lead minutes", "live.sound": "the Lesson Flow sound", "timer.duration": "the timer time", "timer.threshold": "the timer red limit", "timer.thresholdUnit": "the unit of the red limit", "timer.endOn": "the timer end sound switch", "timer.endSound": "the timer end sound", "timer.warnOn": "the timer warning switch", "timer.warnSound": "the timer warning sound", "timer.presets": "the timer quick choices", "countdownFormat": "the countdown format", "hour12": "the clock format", "extras.ann": "announcements", "extras.qa": "questions", "pass.allowOutside": "passes in the closed minutes" };
+  const t = { "stage.phases": "the lesson phases", "stage.arc": "the day arc", "stage.facts": "the facts", "stage.riddles": "the riddles", "stage.messages": "the messages", "stage.calendar": "the calendar cards", "stage.weather": "the weather cards", "stage.alerts": "the weather alerts", "stage.cardSec": "the seconds per card", "stage.qSec": "the seconds a question is shown", "stage.aSec": "the seconds an answer is shown", "stage.qaOrder": "the order of the questions", "pass.autoLeaveSec": "the auto-leave seconds", "pass.profile.name": "the name on the board", "pass.profile.room": "the room", "agenda.clearDaily": "the daily clearing of the agenda", "agenda.leadMin": "the agenda lead minutes", "live.sound": "the Lesson Flow sound", "timer.duration": "the timer time", "timer.threshold": "the timer red limit", "timer.thresholdUnit": "the unit of the red limit", "timer.endOn": "the timer end sound switch", "timer.endSound": "the timer end sound", "timer.warnOn": "the timer warning switch", "timer.warnSound": "the timer warning sound", "timer.presets": "the timer quick choices", "countdownFormat": "the countdown format", "hour12": "the clock format", "extras.ann": "announcements", "extras.qa": "questions", "pass.allowOutside": "passes in the closed minutes" };
   return t[k] || k;
 }
 function prefShow(k, json){
@@ -4505,7 +4744,7 @@ $("sheetKeyInput").addEventListener("change", e => {
   saveSettings(); renderHallPass(); renderTeacherStatus(); refreshRoster(true); flushLogQueue();
 });
 $("teacherDisconnectBtn").addEventListener("click", () => {                     // forget the code and the student lists on this board
-  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {}; settings.pass.groups = {}; settings.pass.rosterGroup = {}; settings.pass.teachers = []; settings.pass.ann = []; settings.pass.qa = [];
+  settings.pass.sheetKey = ""; settings.pass.rosterSections = {}; settings.pass.rosterIds = {}; settings.pass.groups = {}; settings.pass.rosterGroup = {}; settings.pass.teachers = []; settings.pass.ann = []; settings.pass.qa = []; bank.qa = []; bank.ann = []; bank.qaVer = bank.annVer = ""; bank.want = { qa: null, ann: null }; bank.legacy = false; bankSaveSoon();
   settings.pass.sub = { name: "", room: "", blocks: [], date: "", startCode: "" };
   settings.pass.profile = { teacher: "", name: "", room: "", nameEdited: false, roomEdited: false }; renderProfileUI();
   settings.prefs = null; renderPrefsStatus();
@@ -4712,7 +4951,7 @@ function reapplyAll(){                            // everything on the screen fo
     renderThemeButtons(); renderHourFormatButtons(); renderCountdownFormatButtons();
     document.body.setAttribute("data-theme", settings.theme);
     applyExtras(); applyLayout(); syncExtrasUI(); syncPassSettingsUI(); syncStageSettingsUI(); rebuildSoundSelectOptions();
-    syncTimerUI(); syncLayoutUI(); loadEditing(); syncLiveUI(); if(settings.extras.agenda) agSyncUI(false);
+    syncTimerUI(); syncLayoutUI(); bankRenderAll(); syncLiveUI(); if(settings.extras.agenda) agSyncUI(false);
     $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
     renderBandTabs(); renderProfileUI(); renderTeacherStatus(); renderHallPass(); renderWeatherChip(); renderOffsetDisplay();
     stageReset(); lbSig = ""; agendaSig = ""; liveSig = ""; refreshAll();
@@ -4722,7 +4961,7 @@ function commitSettings(){ settingsHold = false; settingsDirty = false; writeSet
 function openSettings(){
   settingsSnap = snapshotSettings(); settingsHold = true; settingsDirty = false; showDirty(); $("loadNote").classList.add("hidden");
   diagSetAt = Date.now(); diagLog("SETTINGS", "opened (" + document.getElementsByTagName("*").length + " elements on the page)");
-  syncTimerUI(); syncLayoutUI(); loadEditing(); syncLiveUI(); careSyncUI();
+  syncTimerUI(); syncLayoutUI(); bankRenderAll(); syncLiveUI(); careSyncUI();
   $("pinEnabledSwitch").checked = settings.pinEnabled !== false;
   renderTeacherStatus();
   if(settings.extras.agenda){ agSyncUI(false); setTimeout(agPreview, 80); }
@@ -4806,7 +5045,7 @@ document.addEventListener("click", e => {
 /* =====================================================================
    Basic mode (the pass indicator), extras, welcome, demo
    ===================================================================== */
-const APP_VERSION = "2026.11.21 · Hall Pass Board (web edition)";
+const APP_VERSION = "2026.11.22 · Hall Pass Board (web edition)";
 /* ---------- The big pass timer ---------- */
 const clamp01 = x => Math.max(0, Math.min(1, x));
 function clockOfSec(sec){
@@ -5033,7 +5272,6 @@ function syncSectionLocks(){                      // a section whose switch is o
     sec.classList.toggle("locked", !on);
     sec.querySelectorAll("input, button, select, textarea").forEach(el => { if(!el.closest(".sec-head")) el.disabled = !on; });
   });
-  addButtonsState();
 }
 function syncSettingsVisibility(){ syncSectionLocks(); }
 document.addEventListener("change", e => { if(e.target.closest && e.target.closest("#settingsBody .sec-switch")) syncSectionLocks(); });
@@ -5837,6 +6075,7 @@ diagInit();
   Object.assign(settings, loaded);
   Object.assign(settings.notify, loaded.notify);
   settings.overrides = loaded.overrides;
+  await bankLoad();                                                         // the questions and announcements this board kept last time
 
   await restoreSoundLibrary();
   if(settings.school) applySchool(settings.school);                          // the school's times and days, as last received
